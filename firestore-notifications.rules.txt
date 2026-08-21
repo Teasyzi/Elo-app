@@ -1,0 +1,15 @@
+// ADAPTE estas regras às suas regras atuais; não substitua seu firestore.rules sem revisar.
+// A ideia é permitir que membros do casal criem notificações para o outro membro e que
+// o destinatário leia/marque suas próprias notificações.
+match /relationships/{coupleId}/notifications/{notificationId} {
+  allow read: if request.auth != null
+    && request.auth.uid == resource.data.recipientUid;
+  allow create: if request.auth != null
+    && request.resource.data.senderUid == request.auth.uid;
+  allow update: if request.auth != null
+    && request.auth.uid == resource.data.recipientUid;
+}
+
+match /userProfiles/{uid}/fcmTokens/{tokenId} {
+  allow read, write: if request.auth != null && request.auth.uid == uid;
+}
