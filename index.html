@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Elo - RPG de Casal</title>
-    <meta name="elo-version" content="33.4-moments-cache-sync-fix">
+    <meta name="elo-version" content="33.5-mission-review-undo-reject">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -3917,50 +3917,343 @@ window.checkInToday = async (buttonEl = null) => {
         };
         const getSpendableCoins = (data, uid) => getUserCoins(data, uid);
 
-        window.requestQuestApproval = async (questId) => {
+        window.requestQuestApproval = (questId) => {
             if (!coupleData || !currentUser) return;
+
             const quest = getQuestByInstanceId(questId, currentUser.uid);
             if (!quest) return showToast('Missão não encontrada.', 'error');
-            await updateDoc(doc(db, 'relationships', coupleId), {
-                [`quests.${questId}_${currentUser.uid}`]: 'pending_approval'
-            });
-            // A notificação revela a missão somente depois que quem a recebeu diz que concluiu.
-            await createPartnerNotification({
-                title: '🎯 Missão para aprovar',
-                body: `${coupleData?.users?.[currentUser.uid]?.name || 'Seu amor'} concluiu: ${quest.title}.`,
-                type: 'quest',
-                data: {questId, title: quest.title, reward: quest.reward, xp: quest.xp, difficulty: quest.difficulty}
-            });
-            showToast("Missão enviada para aprovação!", "info");
+
+            const stateKey = `${questId}_${currentUser.uid}`;
+            const state = coupleData.quests?.[stateKey];
+
+            if (state === 'completed') {
+                return showToast('Essa missão já foi concluída e aprovada.', 'info');
+            }
+
+            if (state === 'pending_approval') {
+                return openCancelQuestApprovalModal(questId);
+            }
+
+            openGenericModal(`
+                <div class="space-y-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest font-black text-orange-400">Confirmar conclusão</p>
+                            <h3 class="text-xl font-black text-white mt-1">Você realmente concluiu?</h3>
+                        </div>
+                        <button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-300 shrink-0">✕</button>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+                        <p class="text-sm font-black text-white">${escapeHTML(quest.title)}</p>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <span class="text-[10px] font-black px-2 py-1 rounded-lg bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">+${quest.reward} Coins</span>
+                            <span class="text-[10px] font-black px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">+${quest.xp} XP</span>
+                            <span class="text-[10px] font-black px-2 py-1 rounded-lg bg-slate-800 text-slate-400">${escapeHTML(quest.difficultyLabel || quest.difficulty || '')}</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Ao confirmar, seu amor poderá ver o conteúdo desta missão e decidir se ela foi realmente concluída.
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="closeGenericModal()" class="bg-slate-800 border border-slate-700 text-slate-300 font-black py-3 rounded-xl">
+                            Ainda não fiz
+                        </button>
+                        <button onclick="confirmQuestCompletion('${questId}')" class="bg-gradient-to-r from-orange-500 to-pink-600 text-white font-black py-3 rounded-xl">
+                            Sim, concluí
+                        </button>
+                    </div>
+                </div>
+            `);
+        };
+
+        window.confirmQuestCompletion = async (questId) => {
+            if (!coupleData || !currentUser) return;
+
+            const quest = getQuestByInstanceId(questId, currentUser.uid);
+            if (!quest) return showToast('Missão não encontrada.', 'error');
+
+            const stateKey = `${questId}_${currentUser.uid}`;
+            const currentState = coupleData.quests?.[stateKey];
+
+            if (currentState === 'completed') {
+                closeGenericModal();
+                return showToast('Essa missão já foi aprovada.', 'info');
+            }
+
+            if (currentState === 'pending_approval') {
+                closeGenericModal();
+                return showToast('Essa missão já está aguardando aprovação.', 'info');
+            }
+
+            // Feedback local imediato.
+            coupleData = {
+                ...coupleData,
+                quests: {
+                    ...(coupleData.quests || {}),
+                    [stateKey]: 'pending_approval'
+                }
+            };
+            closeGenericModal();
+            if (window.activeTab === 'quests') updateUI();
+
+            try {
+                await updateDoc(doc(db, 'relationships', coupleId), {
+                    [`quests.${stateKey}`]: 'pending_approval'
+                });
+
+                // A missão só é revelada ao parceiro depois desta confirmação.
+                backgroundChatTask(createPartnerNotification({
+                    title: '🎯 Missão para aprovar',
+                    body: `${coupleData?.users?.[currentUser.uid]?.name || 'Seu amor'} concluiu: ${quest.title}.`,
+                    type: 'quest',
+                    data: {
+                        questId,
+                        title: quest.title,
+                        reward: quest.reward,
+                        xp: quest.xp,
+                        difficulty: quest.difficulty
+                    }
+                }), 'Notificação de missão');
+
+                showToast('Missão enviada para aprovação!', 'success');
+            } catch (err) {
+                console.error('Enviar missão para aprovação:', err);
+
+                // Reverte o estado otimista em caso de falha.
+                const nextQuests = {...(coupleData.quests || {})};
+                delete nextQuests[stateKey];
+                coupleData = {...coupleData, quests: nextQuests};
+                if (window.activeTab === 'quests') updateUI();
+
+                showToast('Não foi possível enviar a missão para aprovação.', 'error');
+            }
+        };
+
+        window.openCancelQuestApprovalModal = (questId) => {
+            if (!coupleData || !currentUser) return;
+
+            const stateKey = `${questId}_${currentUser.uid}`;
+            if (coupleData.quests?.[stateKey] !== 'pending_approval') {
+                return showToast('Essa missão não está aguardando aprovação.', 'info');
+            }
+
+            const quest = getQuestByInstanceId(questId, currentUser.uid);
+
+            openGenericModal(`
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest font-black text-orange-400">Aguardando aprovação</p>
+                        <h3 class="text-xl font-black text-white mt-1">Desfazer envio?</h3>
+                        <p class="text-xs text-slate-400 mt-2">Use isso se você marcou a missão sem querer ou percebeu que ainda não concluiu.</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+                        <p class="text-sm font-black text-white">${escapeHTML(quest?.title || 'Missão')}</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="closeGenericModal()" class="bg-slate-800 border border-slate-700 text-slate-300 font-black py-3 rounded-xl">
+                            Manter envio
+                        </button>
+                        <button onclick="cancelQuestApproval('${questId}')" class="bg-red-500/15 border border-red-500/25 text-red-300 font-black py-3 rounded-xl">
+                            Desfazer
+                        </button>
+                    </div>
+                </div>
+            `);
+        };
+
+        window.cancelQuestApproval = async (questId) => {
+            if (!coupleData || !currentUser) return;
+
+            const stateKey = `${questId}_${currentUser.uid}`;
+            if (coupleData.quests?.[stateKey] !== 'pending_approval') {
+                closeGenericModal();
+                return showToast('Essa missão já mudou de estado.', 'info');
+            }
+
+            const quest = getQuestByInstanceId(questId, currentUser.uid);
+
+            try {
+                await updateDoc(doc(db, 'relationships', coupleId), {
+                    [`quests.${stateKey}`]: deleteField()
+                });
+
+                const nextQuests = {...(coupleData.quests || {})};
+                delete nextQuests[stateKey];
+                coupleData = {...coupleData, quests: nextQuests};
+
+                closeGenericModal();
+                if (window.activeTab === 'quests') updateUI();
+
+                backgroundChatTask(createPartnerNotification({
+                    title: '↩️ Pedido de missão cancelado',
+                    body: `${coupleData?.users?.[currentUser.uid]?.name || 'Seu amor'} retirou uma missão que estava aguardando aprovação.`,
+                    type: 'quest_cancelled',
+                    data: {questId}
+                }), 'Cancelamento de missão');
+
+                showToast('Envio desfeito. A missão voltou para você.', 'info');
+            } catch (err) {
+                console.error('Cancelar aprovação de missão:', err);
+                showToast('Não foi possível desfazer o envio.', 'error');
+            }
         };
 
         window.approveQuest = async (questId, partnerId, reward, xp) => {
             if (!coupleData || !partnerId || partnerId === currentUser.uid) return;
+
             const quest = getQuestByInstanceId(questId, partnerId);
             const safeReward = Number(quest?.reward ?? reward ?? 0);
             const safeXP = Number(quest?.xp ?? xp ?? 0);
             const stateKey = `${questId}_${partnerId}`;
-            if (coupleData.quests?.[stateKey] !== 'pending_approval') return showToast('Essa missão não está aguardando aprovação.', 'info');
+            const ref = doc(db, 'relationships', coupleId);
 
-            await updateDoc(doc(db, 'relationships', coupleId), {
-                [`quests.${stateKey}`]: 'completed',
-                // Recompensa individual: somente o dono da missão recebe estas moedas e XP.
-                [`users.${partnerId}.coins`]: increment(safeReward),
-                [`users.${partnerId}.xp`]: increment(safeXP),
-                logs: arrayUnion({
-                    id: Date.now().toString(),
-                    text: `${coupleData.users?.[partnerId]?.name || 'Parceiro'} concluiu "${quest?.title || 'missão'}": +${safeReward} Coins e +${safeXP} XP 🌟`,
-                    timestamp: Date.now(),
-                    type: 'system'
-                })
-            });
-            await createPartnerNotification({
-                title: '🏆 Missão aprovada!',
-                body: `Você ganhou ${safeReward} Elo Coins e ${safeXP} XP.`,
-                type: 'quest_approved',
-                data: {questId, reward: safeReward, xp: safeXP}
-            });
-            showToast(`Aprovado! ${coupleData.users?.[partnerId]?.name || 'Seu amor'} recebeu as recompensas.`, "success");
+            try {
+                let approved = false;
+
+                // Transação evita recompensa dupla em toque repetido / dois aparelhos.
+                await runTransaction(db, async transaction => {
+                    const snap = await transaction.get(ref);
+                    if (!snap.exists()) throw new Error('ELO_NOT_FOUND');
+
+                    const data = snap.data();
+                    if (data.quests?.[stateKey] !== 'pending_approval') {
+                        throw new Error('QUEST_NOT_PENDING');
+                    }
+
+                    if (!data.users?.[partnerId]) throw new Error('PARTNER_NOT_FOUND');
+
+                    transaction.update(ref, {
+                        [`quests.${stateKey}`]: 'completed',
+                        [`users.${partnerId}.coins`]: increment(safeReward),
+                        [`users.${partnerId}.xp`]: increment(safeXP),
+                        logs: arrayUnion({
+                            id: Date.now().toString(),
+                            text: `${data.users?.[partnerId]?.name || 'Parceiro'} concluiu "${quest?.title || 'missão'}": +${safeReward} Coins e +${safeXP} XP 🌟`,
+                            timestamp: Date.now(),
+                            type: 'system'
+                        })
+                    });
+
+                    approved = true;
+                });
+
+                if (!approved) return;
+
+                backgroundChatTask(createPartnerNotification({
+                    title: '🏆 Missão aprovada!',
+                    body: `Você ganhou ${safeReward} Elo Coins e ${safeXP} XP.`,
+                    type: 'quest_approved',
+                    data: {questId, reward: safeReward, xp: safeXP}
+                }), 'Aprovação de missão');
+
+                showToast(`Aprovado! ${coupleData.users?.[partnerId]?.name || 'Seu amor'} recebeu as recompensas.`, 'success');
+            } catch (err) {
+                console.error('Aprovar missão:', err);
+
+                if (err?.message === 'QUEST_NOT_PENDING') {
+                    showToast('Essa missão já foi aprovada, recusada ou cancelada.', 'info');
+                } else {
+                    showToast('Não foi possível aprovar a missão.', 'error');
+                }
+            }
+        };
+
+        window.openRejectQuestModal = (questId, partnerId) => {
+            if (!coupleData || !partnerId || partnerId === currentUser.uid) return;
+
+            const stateKey = `${questId}_${partnerId}`;
+            if (coupleData.quests?.[stateKey] !== 'pending_approval') {
+                return showToast('Essa missão não está aguardando sua decisão.', 'info');
+            }
+
+            const quest = getQuestByInstanceId(questId, partnerId);
+            const partnerName = coupleData.users?.[partnerId]?.name || 'Seu amor';
+
+            openGenericModal(`
+                <div class="space-y-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest font-black text-red-400">Recusar conclusão</p>
+                            <h3 class="text-xl font-black text-white mt-1">A missão não foi concluída?</h3>
+                        </div>
+                        <button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-300 shrink-0">✕</button>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+                        <p class="text-[10px] text-slate-500 font-black uppercase">${escapeHTML(partnerName)} marcou:</p>
+                        <p class="text-sm font-black text-white mt-1">${escapeHTML(quest?.title || 'Missão')}</p>
+                    </div>
+
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Ao recusar, nenhuma recompensa será entregue e a missão voltará para ${escapeHTML(partnerName)} tentar novamente.
+                    </p>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="closeGenericModal()" class="bg-slate-800 border border-slate-700 text-slate-300 font-black py-3 rounded-xl">
+                            Voltar
+                        </button>
+                        <button onclick="rejectQuest('${questId}','${partnerId}')" class="bg-red-600 text-white font-black py-3 rounded-xl">
+                            Recusar
+                        </button>
+                    </div>
+                </div>
+            `);
+        };
+
+        window.rejectQuest = async (questId, partnerId) => {
+            if (!coupleData || !partnerId || partnerId === currentUser.uid) return;
+
+            const stateKey = `${questId}_${partnerId}`;
+            const quest = getQuestByInstanceId(questId, partnerId);
+            const ref = doc(db, 'relationships', coupleId);
+
+            try {
+                await runTransaction(db, async transaction => {
+                    const snap = await transaction.get(ref);
+                    if (!snap.exists()) throw new Error('ELO_NOT_FOUND');
+
+                    const data = snap.data();
+
+                    if (data.quests?.[stateKey] !== 'pending_approval') {
+                        throw new Error('QUEST_NOT_PENDING');
+                    }
+
+                    transaction.update(ref, {
+                        [`quests.${stateKey}`]: 'rejected',
+                        logs: arrayUnion({
+                            id: Date.now().toString(),
+                            text: `A conclusão da missão de ${data.users?.[partnerId]?.name || 'Parceiro'} foi recusada.`,
+                            timestamp: Date.now(),
+                            type: 'quest'
+                        })
+                    });
+                });
+
+                closeGenericModal();
+
+                backgroundChatTask(createPartnerNotification({
+                    title: '↩️ Missão recusada',
+                    body: `A missão "${quest?.title || 'Missão'}" não foi aprovada. Você pode tentar novamente.`,
+                    type: 'quest_rejected',
+                    data: {questId}
+                }), 'Recusa de missão');
+
+                showToast('Missão recusada. Nenhuma recompensa foi entregue.', 'info');
+            } catch (err) {
+                console.error('Recusar missão:', err);
+
+                if (err?.message === 'QUEST_NOT_PENDING') {
+                    closeGenericModal();
+                    showToast('Essa missão já mudou de estado.', 'info');
+                } else {
+                    showToast('Não foi possível recusar a missão.', 'error');
+                }
+            }
         };
 
         const eloTabScrollPositions = {};
@@ -4818,14 +5111,15 @@ window.checkInToday = async (buttonEl = null) => {
                     <div class="space-y-3">
                         ${refreshDailyQuests().map(q => {
                             const myState = coupleData.quests?.[`${q.instanceId}_${currentUser.uid}`];
-                            let btnHTML = `<button onclick="requestQuestApproval('${q.instanceId}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl border border-slate-700 transition-colors shadow-md active:scale-95"><i class="ph-bold ph-check"></i></button>`;
-                            if (myState === 'pending_approval') btnHTML = `<div class="px-3 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg text-[10px] font-bold text-center">Aguardando<br>Parceiro</div>`;
+                            let btnHTML = `<button onclick="requestQuestApproval('${q.instanceId}')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-2.5 rounded-xl border border-slate-700 transition-colors shadow-md active:scale-95" aria-label="Marcar missão como concluída"><i class="ph-bold ph-check"></i></button>`;
+                            if (myState === 'pending_approval') btnHTML = `<button onclick="openCancelQuestApprovalModal('${q.instanceId}')" class="px-3 py-2 bg-orange-500/15 text-orange-300 border border-orange-500/25 rounded-xl text-[10px] font-black text-center active:scale-95"><span class="block">Aguardando</span><span class="block text-[8px] text-orange-200/70 mt-0.5">Desfazer</span></button>`;
+                            if (myState === 'rejected') btnHTML = `<button onclick="requestQuestApproval('${q.instanceId}')" class="px-3 py-2 bg-red-500/10 text-red-300 border border-red-500/20 rounded-xl text-[10px] font-black text-center active:scale-95"><span class="block">Recusada</span><span class="block text-[8px] text-red-200/70 mt-0.5">Tentar de novo</span></button>`;
                             if (myState === 'completed') btnHTML = `<div class="p-2 text-green-500"><i class="ph-fill ph-check-circle text-3xl"></i></div>`;
                             return `
                             <div class="bg-slate-900 rounded-2xl p-4 border border-slate-800 flex flex-col gap-2">
                                 <div class="flex justify-between items-center gap-4">
                                     <div class="flex-1">
-                                        <h4 class="font-bold text-sm ${myState === 'completed' ? 'line-through text-slate-600' : 'text-slate-200'}">${q.title}</h4>
+                                        <h4 class="font-bold text-sm ${myState === 'completed' ? 'line-through text-slate-600' : myState === 'rejected' ? 'text-red-200' : 'text-slate-200'}">${q.title}</h4>${myState === 'rejected' ? '<p class="text-[9px] text-red-400 mt-1">Seu amor não aprovou desta vez. Você pode concluir e enviar novamente.</p>' : ''}
                                         <div class="flex flex-wrap items-center gap-2 mt-2">
                                             <span class="text-[10px] font-black px-2 py-1 rounded-lg ${q.difficulty === 'hard' ? 'bg-red-500/15 text-red-400 border border-red-500/20' : q.difficulty === 'medium' ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20' : 'bg-green-500/15 text-green-400 border border-green-500/20'}">${q.difficultyLabel}</span>
                                             <span class="text-xs text-yellow-400 font-black"><i class="ph-fill ph-coin"></i> +${q.reward}</span>
@@ -4842,7 +5136,7 @@ window.checkInToday = async (buttonEl = null) => {
                         const partnerQuests = getDailyQuestsForUser(partnerUid);
                         const pending = partnerQuests.filter(q => coupleData.quests?.[`${q.instanceId}_${partnerUid}`] === 'pending_approval');
                         if (!pending.length) return `<div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 text-center"><i class="ph-fill ph-lock-key text-slate-600 text-xl"></i><p class="text-xs text-slate-500 mt-1">As missões de ${escapeHTML(partnerData.name)} são secretas. Você só verá uma quando ela pedir aprovação.</p></div>`;
-                        return `<div class="space-y-2"><p class="text-[10px] uppercase tracking-widest font-black text-green-400">Para você aprovar</p>${pending.map(q => `<div class="bg-green-500/10 border border-green-500/20 rounded-2xl p-4"><p class="text-[10px] text-green-400 font-black mb-1">${escapeHTML(partnerData.name)} concluiu:</p><p class="text-sm font-bold text-white">${escapeHTML(q.title)}</p><p class="text-[10px] text-slate-400 mt-1">Agora você pode ver o conteúdo porque ${escapeHTML(partnerData.name)} marcou esta missão como concluída.</p><div class="flex items-center justify-between gap-3 mt-3"><div class="flex flex-wrap gap-2"><span class="text-xs text-yellow-400 font-black">+${q.reward} Coins</span><span class="text-xs text-cyan-400 font-black">+${q.xp} XP</span><span class="text-[10px] text-slate-400 font-bold">${q.difficultyLabel}</span></div><button onclick="approveQuest('${q.instanceId}', '${partnerUid}', ${q.reward}, ${q.xp})" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl shadow-md text-xs font-black active:scale-95 transition-all">Aprovar</button></div></div>`).join('')}</div>`;
+                        return `<div class="space-y-2"><p class="text-[10px] uppercase tracking-widest font-black text-green-400">Para você aprovar</p>${pending.map(q => `<div class="bg-green-500/10 border border-green-500/20 rounded-2xl p-4"><p class="text-[10px] text-green-400 font-black mb-1">${escapeHTML(partnerData.name)} concluiu:</p><p class="text-sm font-bold text-white">${escapeHTML(q.title)}</p><p class="text-[10px] text-slate-400 mt-1">Agora você pode ver o conteúdo porque ${escapeHTML(partnerData.name)} marcou esta missão como concluída.</p><div class="mt-3"><div class="flex flex-wrap gap-2 mb-3"><span class="text-xs text-yellow-400 font-black">+${q.reward} Coins</span><span class="text-xs text-cyan-400 font-black">+${q.xp} XP</span><span class="text-[10px] text-slate-400 font-bold">${q.difficultyLabel}</span></div><div class="grid grid-cols-2 gap-2"><button onclick="openRejectQuestModal('${q.instanceId}', '${partnerUid}')" class="bg-red-500/10 border border-red-500/25 text-red-300 px-4 py-2.5 rounded-xl text-xs font-black active:scale-95 transition-all">Recusar</button><button onclick="approveQuest('${q.instanceId}', '${partnerUid}', ${q.reward}, ${q.xp})" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2.5 rounded-xl shadow-md text-xs font-black active:scale-95 transition-all">Aprovar</button></div></div></div>`).join('')}</div>`;
                     })()}
                 </div>`;
             }
