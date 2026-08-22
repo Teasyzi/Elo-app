@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Elo - RPG de Casal</title>
-    <meta name="elo-version" content="33.2-code-first-invite">
+    <meta name="elo-version" content="33.4-moments-cache-sync-fix">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -1056,6 +1056,8 @@ body[data-elo-tab="chat"] .elo-chat-header{
         let lastRelationshipRenderSignature = '';
         let unsubscribeNotifications = null;
         let unsubscribeMoments = null;
+        let momentsCache = [];
+        let momentsLoadedCoupleId = '';
         let pushInitialized = false;
         window.currentAvatarSeed = ''; // Seed global para a interface DiceBear
 
@@ -4117,6 +4119,7 @@ window.checkInToday = async (buttonEl = null) => {
                 localStorage.removeItem('elo_coupleId');
                 localStorage.removeItem('elo_chat_last_seen');
                 coupleId = null; coupleData = null; chatMessages = []; chatInitialized = false;
+                momentsCache = []; momentsLoadedCoupleId = '';
                 chatUnreadCount = 0; lastRelationshipRenderSignature = '';
                 document.getElementById('main-header').classList.add('hidden');
                 document.getElementById('main-content').classList.add('hidden');
@@ -4207,8 +4210,9 @@ window.checkInToday = async (buttonEl = null) => {
 
                 <button onclick="openRelationshipDateModal()" class="w-full bg-pink-500/10 border border-pink-500/20 rounded-2xl p-4 text-left"><p class="text-[9px] uppercase tracking-widest text-pink-400 font-black">Data do relacionamento</p><p class="text-lg font-black text-white mt-1">${coupleData.relationshipStartDate ? new Date(`${coupleData.relationshipStartDate}T12:00:00`).toLocaleDateString('pt-BR') : 'Definir nossa data'}</p><p class="text-xs text-slate-400 mt-1">${relationshipDurationText(coupleData)}</p></button>
                 ${createdAt ? `<p class="text-center text-[10px] text-slate-600">Elo criado em ${createdAt.toLocaleDateString('pt-BR')} · esta data não entra no cálculo do relacionamento.</p>` : ''}
-                ${partner ? '' : `<button onclick="copyInviteLink()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black py-3.5 rounded-xl shadow-lg active:scale-95">🔗 Copiar link direto do convite</button>`}
-                ${partner ? '' : `<button onclick="copyEloCode()" class="w-full bg-slate-800 text-white font-black py-3 rounded-xl border border-slate-700 active:scale-95">Copiar código de 4 dígitos</button>`}
+                ${partner ? '' : `<button onclick="openJoinPartnerEloModal()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black py-3.5 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2"><i class="ph-bold ph-sign-in"></i> Entrar no Elo do meu amor</button>`}
+                ${partner ? '' : `<button onclick="copyEloCode()" class="w-full bg-slate-800 text-white font-black py-3 rounded-xl border border-slate-700 active:scale-95">🔢 Copiar meu código de 4 dígitos</button>`}
+                ${partner ? '' : `<button onclick="copyInviteLink()" class="w-full bg-slate-900 text-slate-300 font-black py-3 rounded-xl border border-slate-800 active:scale-95">🔗 Copiar link direto (opcional)</button>`}
                 <button onclick="shareElo()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-black py-3 rounded-xl active:scale-95 flex items-center justify-center gap-2"><i class="ph-fill ph-share-network"></i> Compartilhar convite</button>
                 <div class="pt-2 border-t border-slate-800">
                     <button onclick="leaveElo()" class="w-full bg-red-950/40 hover:bg-red-950/60 border border-red-500/30 text-red-300 font-black py-3 rounded-xl active:scale-95 flex items-center justify-center gap-2">
@@ -4221,6 +4225,191 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
         window.closeCoupleModal = () => document.getElementById('couple-modal').classList.add('hidden');
+
+        window.openJoinPartnerEloModal = () => {
+            const users = coupleData?.users || {};
+            const hasPartner = Object.keys(users).some(uid => uid !== currentUser?.uid);
+
+            if (hasPartner) {
+                return showToast('Este Elo já possui um parceiro. Para trocar de Elo, encerre o vínculo atual primeiro.', 'info');
+            }
+
+            closeCoupleModal();
+            openGenericModal(`
+                <div class="space-y-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest font-black text-purple-400">Conectar ao seu amor</p>
+                            <h3 class="text-xl font-black text-white mt-1">Entrar em outro Elo</h3>
+                            <p class="text-xs text-slate-400 mt-2">Como seu Elo atual ainda está vazio, você pode trocar para o código do seu amor sem precisar criar outro vínculo.</p>
+                        </div>
+                        <button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-300 shrink-0">✕</button>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4">
+                        <label class="text-[10px] uppercase tracking-widest font-black text-slate-500 block mb-2">Código do Elo do seu amor</label>
+                        <input
+                            id="switch-elo-code"
+                            type="text"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            maxlength="4"
+                            placeholder="0000"
+                            oninput="normalizeEloCodeInput(this)"
+                            onkeydown="if(event.key==='Enter'){event.preventDefault();switchToPartnerElo();}"
+                            class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-4 text-center text-3xl font-black tracking-[0.3em] text-white focus:outline-none focus:border-purple-500"
+                        />
+                    </div>
+
+                    <div class="rounded-2xl bg-amber-500/5 border border-amber-500/15 p-3">
+                        <p class="text-[10px] text-amber-200/80 leading-relaxed">Seu Elo solo atual será removido depois que a conexão com o novo código for confirmada. Seus dados pessoais, como Coins, XP, nome, foto e personagem, serão preservados.</p>
+                    </div>
+
+                    <button onclick="switchToPartnerElo()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black py-3.5 rounded-xl">
+                        Entrar nesse Elo
+                    </button>
+                </div>
+            `);
+
+            setTimeout(() => document.getElementById('switch-elo-code')?.focus(), 80);
+        };
+
+        window.switchToPartnerElo = async () => {
+            if (!currentUser || !coupleId || !coupleData) return;
+
+            const input = document.getElementById('switch-elo-code');
+            const targetCode = normalizeEloJoinCode(input?.value || '');
+
+            if (targetCode.length !== 4) {
+                input?.focus({preventScroll:true});
+                return showToast('Digite os 4 dígitos do Elo do seu amor.', 'info');
+            }
+
+            if (targetCode === coupleId) {
+                return showToast('Esse já é o seu Elo atual.', 'info');
+            }
+
+            const currentUsers = coupleData.users || {};
+            const currentIds = Object.keys(currentUsers);
+
+            if (currentIds.some(uid => uid !== currentUser.uid)) {
+                return showToast('Seu Elo atual já possui um parceiro e não pode ser trocado automaticamente.', 'error');
+            }
+
+            const loading = document.getElementById('loading-screen');
+            if (loading) {
+                loading.classList.remove('hidden','opacity-0','pointer-events-none');
+            }
+
+            const oldCode = coupleId;
+            const oldData = coupleData;
+            const myOldData = oldData.users?.[currentUser.uid] || {};
+
+            try {
+                const oldRef = doc(db,'relationships',oldCode);
+                const targetRef = doc(db,'relationships',targetCode);
+
+                await runTransaction(db, async transaction => {
+                    const [oldSnap, targetSnap] = await Promise.all([
+                        transaction.get(oldRef),
+                        transaction.get(targetRef)
+                    ]);
+
+                    if (!targetSnap.exists()) {
+                        throw new Error('TARGET_NOT_FOUND');
+                    }
+
+                    const targetData = targetSnap.data() || {};
+                    const targetUsers = targetData.users || {};
+                    const targetIds = Object.keys(targetUsers);
+
+                    if (targetIds.length >= 2 && !targetUsers[currentUser.uid]) {
+                        throw new Error('TARGET_FULL');
+                    }
+
+                    if (oldSnap.exists()) {
+                        const freshOldUsers = oldSnap.data()?.users || {};
+                        const otherUsers = Object.keys(freshOldUsers).filter(uid => uid !== currentUser.uid);
+
+                        if (otherUsers.length) {
+                            throw new Error('CURRENT_HAS_PARTNER');
+                        }
+                    }
+
+                    if (!targetUsers[currentUser.uid]) {
+                        transaction.update(targetRef, {
+                            [`users.${currentUser.uid}`]: {
+                                name: myOldData.name || currentUser.displayName || 'Eu',
+                                photoUrl: myOldData.photoUrl || currentUser.photoURL || '',
+                                character: myOldData.character || defaultCharacter(),
+                                checkedInToday: false,
+                                lastCheckInDate: '',
+                                typing: false,
+                                lastSeen: Date.now(),
+                                coins: Number(myOldData.coins ?? 50),
+                                xp: Number(myOldData.xp ?? 0)
+                            },
+                            'streak.status': 'waiting',
+                            logs: arrayUnion({
+                                id: Date.now().toString(),
+                                text: `${myOldData.name || currentUser.displayName || 'Seu amor'} entrou no Elo! 🎉`,
+                                timestamp: Date.now(),
+                                type: 'system'
+                            })
+                        });
+                    }
+
+                    if (oldSnap.exists()) {
+                        transaction.delete(oldRef);
+                    }
+                });
+
+                // Encerra listeners do Elo antigo antes de mudar o código local.
+                if (unsubscribeSnapshot) {
+                    unsubscribeSnapshot();
+                    unsubscribeSnapshot = null;
+                }
+                if (unsubscribeMoments) {
+                    unsubscribeMoments();
+                    unsubscribeMoments = null;
+                }
+                if (unsubscribeNotifications) {
+                    unsubscribeNotifications();
+                    unsubscribeNotifications = null;
+                }
+
+                coupleId = targetCode;
+                coupleData = null;
+                momentsCache = [];
+                momentsLoadedCoupleId = '';
+                localStorage.setItem('elo_coupleId', targetCode);
+
+                await saveUserProfile(
+                    currentUser.uid,
+                    targetCode,
+                    myOldData.name || currentUser.displayName || 'Eu'
+                );
+
+                closeGenericModal();
+                setupSync();
+                showToast('Vocês agora estão no mesmo Elo! ❤️', 'success');
+            } catch (err) {
+                console.error('Troca de Elo:', err);
+
+                if (err?.message === 'TARGET_NOT_FOUND') {
+                    showToast('Não encontramos um Elo com esse código.', 'error');
+                } else if (err?.message === 'TARGET_FULL') {
+                    showToast('Esse Elo já possui duas pessoas.', 'error');
+                } else if (err?.message === 'CURRENT_HAS_PARTNER') {
+                    showToast('Seu Elo atual já possui um parceiro e não pode ser trocado automaticamente.', 'error');
+                } else {
+                    showToast('Não foi possível trocar de Elo agora. Tente novamente.', 'error');
+                }
+            } finally {
+                if (loading) loading.classList.add('hidden');
+            }
+        };
+
         window.copyEloCode = async () => {
             if (!coupleId) return;
             try { await navigator.clipboard.writeText(coupleId); showToast('Código do Elo copiado!', 'success'); }
@@ -4313,7 +4502,7 @@ window.checkInToday = async (buttonEl = null) => {
             const html=`<div class="space-y-3"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">Central</p><h3 class="text-xl font-black text-white">Atividades & Conquistas</h3></div><button onclick="openNotificationCenter()" class="mr-2 text-xs font-black text-pink-400">🔔 Notificações</button><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400"><i class="ph-bold ph-x"></i></button></div><div class="grid grid-cols-2 gap-2">${ACHIEVEMENTS.map(a=>`<div class="rounded-2xl p-3 border ${achievements[a[0]]?'border-yellow-500/30 bg-yellow-500/10':'border-slate-800 bg-slate-900'}"><div class="text-xl">${achievements[a[0]]?'🏆':'🔒'}</div><p class="text-xs font-black text-white mt-1">${a[1]}</p><p class="text-[9px] text-slate-500 mt-1">${a[2]}</p></div>`).join('')}</div><div class="space-y-2">${logs.map(l=>`<div class="bg-slate-900 border border-slate-800 rounded-xl p-3"><p class="text-xs text-slate-200">${escapeHTML(l.text||'Atividade')}</p><p class="text-[9px] text-slate-500 mt-1">${new Date(l.timestamp||Date.now()).toLocaleString('pt-BR')}</p></div>`).join('')||'<p class="text-sm text-slate-500 text-center py-6">Nenhuma atividade ainda.</p>'}</div></div>`;
             openGenericModal(html);
         };
-        window.openGenericModal = html => { let m=document.getElementById('generic-modal'); if(!m){m=document.createElement('div');m.id='generic-modal';m.className='elo-modal-backdrop fixed inset-0 z-[100] bg-black/70 flex items-end sm:items-center justify-center sm:p-4';m.addEventListener('click',e=>{if(e.target===m)closeGenericModal();});document.body.appendChild(m);} m.innerHTML=`<div class="elo-bottom-sheet w-full sm:max-w-md max-h-[88dvh] overflow-y-auto bg-slate-950 border border-slate-800 rounded-t-[2rem] sm:rounded-3xl p-5 shadow-2xl">${html}</div>`; };
+        window.openGenericModal = html => { let m=document.getElementById('generic-modal'); if(!m){m=document.createElement('div');m.id='generic-modal';m.className='elo-modal-backdrop fixed inset-0 z-[100] bg-black/70 flex items-end sm:items-center justify-center sm:p-4';m.addEventListener('click',e=>{if(e.target===m)closeGenericModal();});document.body.appendChild(m);} delete m.dataset.eloModal; m.innerHTML=`<div class="elo-bottom-sheet w-full sm:max-w-md max-h-[88dvh] overflow-y-auto bg-slate-950 border border-slate-800 rounded-t-[2rem] sm:rounded-3xl p-5 shadow-2xl">${html}</div>`; };
         window.closeGenericModal=()=>document.getElementById('generic-modal')?.remove();
         document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('generic-modal'))closeGenericModal();});
         const QUESTIONS=['Qual foi o momento em que você percebeu que estava apaixonado?','Qual viagem você gostaria de fazer comigo?','Qual é meu prato favorito?','Quem sobreviveria mais tempo em uma ilha deserta?','Qual carinho você mais gosta de receber?','Qual sonho você quer realizar comigo?','Qual música lembra nosso relacionamento?','Qual foi nosso encontro mais inesquecível?'];
@@ -4333,8 +4522,22 @@ window.checkInToday = async (buttonEl = null) => {
         const updateNotificationDot=()=>{const dot=document.getElementById('notification-dot');const n=(coupleData?.logs||[]).filter(l=>(l.timestamp||0)>Number(localStorage.getItem('elo_activity_seen')||0)).length;if(dot){dot.textContent=n>9?'9+':String(n);dot.classList.toggle('hidden',!n);dot.classList.toggle('flex',!!n);}};
 
         window.openMomentsModal = () => {
-            const moments=(coupleData?.moments||[]).slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
-            openGenericModal(`<div class="space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">📸 Privado do casal</p><h3 class="text-xl font-black text-white">Nossos Momentos</h3><p class="text-[9px] text-slate-500 mt-1">Fotos comprimidas no aparelho, sem Firebase Storage.</p></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div><label class="w-full flex items-center justify-center gap-2 bg-pink-600 text-white font-black py-3 rounded-xl cursor-pointer"><i class="ph-bold ph-camera"></i> Adicionar momento<input type="file" accept="image/*" class="hidden" onchange="addMoment(event)"></label><div class="grid grid-cols-2 gap-2">${moments.map(m=>`<div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden"><img src="${escapeHTML(m.url)}" loading="lazy" class="w-full aspect-square object-cover"><div class="p-2"><p class="text-xs text-white font-bold">${escapeHTML(m.caption||'Momento de vocês ❤️')}</p><p class="text-[9px] text-slate-500 mt-1">${new Date(m.timestamp).toLocaleDateString('pt-BR')} · ${Math.round((m.bytes||0)/1024)} KB</p><div class="flex gap-1 mt-2">${['❤️','🥰','😂'].map(r=>`<button onclick="reactMoment('${m.id}','${r}')" class="text-xs px-2 py-1 rounded-lg bg-slate-800 border ${m.reactions?.[currentUser.uid]===r?'border-pink-500':'border-slate-700'}">${r}</button>`).join('')}</div></div></div>`).join('')||'<div class="col-span-2 text-center text-sm text-slate-500 py-8">Adicionem a primeira memória de vocês ❤️</div>'}</div></div>`);
+            const loaded = momentsLoadedCoupleId === coupleId;
+            const source = loaded
+                ? momentsCache
+                : (Array.isArray(coupleData?.moments) ? coupleData.moments : []);
+            const moments = source.slice().sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+
+            const galleryHTML = moments.length
+                ? moments.map(m=>`<div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden"><img src="${escapeHTML(m.url)}" loading="lazy" class="w-full aspect-square object-cover"><div class="p-2"><p class="text-xs text-white font-bold">${escapeHTML(m.caption||'Momento de vocês ❤️')}</p><p class="text-[9px] text-slate-500 mt-1">${new Date(m.timestamp).toLocaleDateString('pt-BR')} · ${Math.round((m.bytes||0)/1024)} KB</p><div class="flex gap-1 mt-2">${['❤️','🥰','😂'].map(r=>`<button onclick="reactMoment('${m.id}','${r}')" class="text-xs px-2 py-1 rounded-lg bg-slate-800 border ${m.reactions?.[currentUser.uid]===r?'border-pink-500':'border-slate-700'}">${r}</button>`).join('')}</div></div></div>`).join('')
+                : loaded
+                    ? '<div class="col-span-2 text-center text-sm text-slate-500 py-8">Adicionem a primeira memória de vocês ❤️</div>'
+                    : '<div class="col-span-2 flex flex-col items-center justify-center py-10 text-slate-500"><i class="ph-bold ph-spinner-gap animate-spin text-2xl text-pink-400"></i><p class="text-xs font-bold mt-3">Carregando seus momentos…</p></div>';
+
+            openGenericModal(`<div class="space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">📸 Privado do casal</p><h3 class="text-xl font-black text-white">Nossos Momentos</h3><p class="text-[9px] text-slate-500 mt-1">Fotos comprimidas no aparelho, sem Firebase Storage.</p></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div><label class="w-full flex items-center justify-center gap-2 bg-pink-600 text-white font-black py-3 rounded-xl cursor-pointer"><i class="ph-bold ph-camera"></i> Adicionar momento<input type="file" accept="image/*" class="hidden" onchange="addMoment(event)"></label><div class="grid grid-cols-2 gap-2">${galleryHTML}</div></div>`);
+
+            const modal = document.getElementById('generic-modal');
+            if (modal) modal.dataset.eloModal = 'moments';
         };
         window.reactMoment=async(id,reaction)=>{try{await updateDoc(doc(db,'relationships',coupleId,'moments',id),{[`reactions.${currentUser.uid}`]:reaction});showToast('Reação salva ❤️','success')}catch(e){showToast('Não foi possível reagir.','error')}};
         window.addMoment = async e => {
@@ -4715,7 +4918,18 @@ window.checkInToday = async (buttonEl = null) => {
                 async (snap) => {
                     try {
                         if (snap.exists()) {
-                            coupleData = snap.data();
+                            const parentData = snap.data();
+                            // 'moments' vive em subcoleção. Um snapshot do documento pai
+                            // não pode apagar da memória as fotos que o listener de momentos já carregou.
+                            const preservedMoments =
+                                momentsLoadedCoupleId === coupleId
+                                    ? momentsCache
+                                    : (Array.isArray(coupleData?.moments) ? coupleData.moments : []);
+
+                            coupleData = {
+                                ...parentData,
+                                moments: preservedMoments
+                            };
                             const users = coupleData.users || {};
                             const economyNeedsMigration = Object.values(users).some(u => typeof u?.coins !== 'number' || 'missionCoins' in (u || {})) || 'coins' in (coupleData.stats || {});
                             if (economyNeedsMigration) ensureIndividualEconomy(coupleData);
@@ -4771,11 +4985,24 @@ window.checkInToday = async (buttonEl = null) => {
                             }
 
                             if (!unsubscribeMoments) {
+                                const momentsListenerCoupleId = coupleId;
                                 unsubscribeMoments = onSnapshot(
-                                    query(collection(db,'relationships',coupleId,'moments'), orderBy('timestamp','desc')),
+                                    query(collection(db,'relationships',momentsListenerCoupleId,'moments'), orderBy('timestamp','desc')),
                                     msnap => {
-                                        coupleData = {...coupleData, moments: msnap.docs.map(d => ({id:d.id,...d.data()}))};
-                                        if (document.getElementById('generic-modal') && document.getElementById('generic-modal').innerText.includes('Nossos Momentos')) openMomentsModal();
+                                        // Ignora retorno atrasado de um Elo antigo depois de uma troca de código.
+                                        if (momentsListenerCoupleId !== coupleId) return;
+
+                                        momentsCache = msnap.docs.map(d => ({id:d.id,...d.data()}));
+                                        momentsLoadedCoupleId = momentsListenerCoupleId;
+
+                                        if (coupleData) {
+                                            coupleData = {...coupleData, moments: momentsCache};
+                                        }
+
+                                        const modal = document.getElementById('generic-modal');
+                                        if (modal?.dataset?.eloModal === 'moments') {
+                                            openMomentsModal();
+                                        }
                                     },
                                     err => console.warn('Sincronização dos momentos:', err)
                                 );
