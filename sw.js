@@ -1,6 +1,6 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
 
-const CACHE = 'elo-v33-6-mission-review-hotfix';
+const CACHE = 'elo-v34-social-friends-base';
 
 const CORE = [
   './',
@@ -14,8 +14,8 @@ const CORE = [
    INSTALAÇÃO / CACHE
    ========================================================= */
 
-self.addEventListener('install', event => {
-  event.waitUntil(
+self.addEventListener('install', e => {
+  e.waitUntil(
     caches
       .open(CACHE)
       .then(cache => cache.addAll(CORE))
@@ -23,8 +23,12 @@ self.addEventListener('install', event => {
   );
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
+/* =========================================================
+   ATIVAÇÃO / LIMPEZA DE CACHE ANTIGO
+   ========================================================= */
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
     caches
       .keys()
       .then(keys =>
@@ -39,24 +43,26 @@ self.addEventListener('activate', event => {
 });
 
 /* =========================================================
-   CARREGAMENTO DOS ARQUIVOS
+   CARREGAMENTO DO APP
    ========================================================= */
 
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
 
-  const url = new URL(event.request.url);
+  const url = new URL(e.request.url);
 
   // Não interfere em recursos externos.
   if (url.origin !== location.origin) return;
 
   /*
-   * Para navegação sempre tentamos buscar a versão mais nova.
-   * Isso evita o Elo ficar preso em um index.html antigo.
+   * Para navegação usamos NETWORK FIRST.
+   *
+   * Isso evita que o Elo fique preso em um index.html antigo
+   * depois de uma atualização.
    */
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request, {
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request, {
         cache: 'no-store'
       })
         .then(response => {
@@ -64,34 +70,52 @@ self.addEventListener('fetch', event => {
 
           caches
             .open(CACHE)
-            .then(cache => cache.put('./index.html', copy));
+            .then(cache =>
+              cache.put(
+                './index.html',
+                copy
+              )
+            );
 
           return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() =>
+          caches.match('./index.html')
+        )
     );
 
     return;
   }
 
   /*
-   * Para os demais arquivos:
-   * cache primeiro -> internet caso não esteja armazenado.
+   * Demais arquivos:
+   * CACHE FIRST.
    */
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
+  e.respondWith(
+    caches
+      .match(e.request)
+      .then(cached => {
+        if (cached) {
+          return cached;
+        }
 
-      return fetch(event.request).then(response => {
-        const copy = response.clone();
+        return fetch(e.request)
+          .then(response => {
+            const copy =
+              response.clone();
 
-        caches
-          .open(CACHE)
-          .then(cache => cache.put(event.request, copy));
+            caches
+              .open(CACHE)
+              .then(cache =>
+                cache.put(
+                  e.request,
+                  copy
+                )
+              );
 
-        return response;
-      });
-    })
+            return response;
+          });
+      })
   );
 });
 
@@ -108,132 +132,209 @@ importScripts(
 );
 
 firebase.initializeApp({
-  apiKey: 'AIzaSyAExc0XnqS2MjL3bTmvNNx2CnBbziiyJds',
-  authDomain: 'elo-app-82e6e.firebaseapp.com',
-  projectId: 'elo-app-82e6e',
-  storageBucket: 'elo-app-82e6e.firebasestorage.app',
-  messagingSenderId: '107299510',
-  appId: '1:107299510:web:SEU_APP_ID'
+  apiKey:
+    'AIzaSyAExc0XnqS2MjL3bTmvNNx2CnBbziiyJds',
+
+  authDomain:
+    'elo-app-82e6e.firebaseapp.com',
+
+  projectId:
+    'elo-app-82e6e',
+
+  storageBucket:
+    'elo-app-82e6e.firebasestorage.app',
+
+  messagingSenderId:
+    '107299510923',
+
+  appId:
+    '1:107299510923:web:eb9c8b550ba4ecb3bc528e'
 });
 
-const messaging = firebase.messaging();
+const messaging =
+  firebase.messaging();
 
 /* =========================================================
-   NOTIFICAÇÕES EM SEGUNDO PLANO
+   PUSH EM SEGUNDO PLANO
    ========================================================= */
 
-messaging.onBackgroundMessage(payload => {
-  console.log(
-    '[Elo] Notificação recebida em segundo plano:',
-    payload
-  );
+messaging.onBackgroundMessage(
+  payload => {
 
-  /*
-   * Se o FCM já trouxe uma seção "notification",
-   * o navegador normalmente cria a notificação sozinho.
-   *
-   * Criar outra aqui poderia gerar notificações duplicadas.
-   */
-  if (payload.notification) {
-    return;
+    /*
+     * O Cloudflare Worker envia DATA-ONLY.
+     *
+     * Assim o Chrome/FCM não cria uma segunda
+     * notificação automaticamente.
+     */
+    const data =
+      payload.data || {};
+
+    const title =
+      data.title ||
+      'Elo 💕';
+
+    const body =
+      data.body ||
+      'Você tem uma novidade do seu amor.';
+
+    const icon =
+      './icons/icon-192.png';
+
+    const notificationId =
+      data.notificationId ||
+      `${
+        data.type ||
+        'elo'
+      }-${Date.now()}`;
+
+    return self.registration
+      .showNotification(
+        title,
+        {
+          body,
+
+          icon,
+
+          badge:
+            icon,
+
+          /*
+           * Um identificador diferente para
+           * cada notificação.
+           */
+          tag:
+            `elo-${notificationId}`,
+
+          /*
+           * Permite alertar novamente caso
+           * a mesma tag seja atualizada.
+           */
+          renotify:
+            true,
+
+          /*
+           * Melhor esforço para não ser
+           * considerada silenciosa.
+           *
+           * Android/Chrome ainda possuem
+           * controle final sobre som e
+           * heads-up.
+           */
+          silent:
+            false,
+
+          vibrate: [
+            220,
+            100,
+            220
+          ],
+
+          requireInteraction:
+            false,
+
+          timestamp:
+            Date.now(),
+
+          data: {
+            ...data,
+
+            url:
+              data.url ||
+              './index.html'
+          }
+        }
+      );
   }
-
-  const data = payload.data || {};
-
-  const title =
-    data.title ||
-    'Elo ❤️';
-
-  const body =
-    data.body ||
-    'Você tem uma novidade no Elo.';
-
-  const options = {
-    body,
-
-    icon: './icons/icon-192.png',
-
-    badge: './icons/icon-192.png',
-
-    tag:
-      data.tag ||
-      data.type ||
-      'elo-notification',
-
-    renotify: true,
-
-    silent: false,
-
-    vibrate: [
-      220,
-      100,
-      220
-    ],
-
-    data: {
-      ...data,
-
-      url:
-        data.url ||
-        './'
-    }
-  };
-
-  return self.registration.showNotification(
-    title,
-    options
-  );
-});
+);
 
 /* =========================================================
    CLIQUE NA NOTIFICAÇÃO
    ========================================================= */
 
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
+self.addEventListener(
+  'notificationclick',
+  event => {
 
-  const notificationData =
-    event.notification.data || {};
+    event.notification.close();
 
-  const destination =
-    notificationData.url || './';
+    const target =
+      event.notification
+        .data
+        ?.url ||
+      './index.html';
 
-  event.waitUntil(
-    clients
-      .matchAll({
-        type: 'window',
-        includeUncontrolled: true
-      })
-      .then(windowClients => {
-        /*
-         * Se o Elo já estiver aberto,
-         * focamos a janela existente.
-         */
-        for (const client of windowClients) {
-          if ('focus' in client) {
-            return client.focus();
+    event.waitUntil(
+      (
+        async () => {
+
+          const clientsList =
+            await clients.matchAll({
+              type:
+                'window',
+
+              includeUncontrolled:
+                true
+            });
+
+          /*
+           * Se o Elo já estiver aberto,
+           * focamos a janela existente.
+           */
+          for (
+            const client
+            of clientsList
+          ) {
+
+            if (
+              'focus' in client
+            ) {
+
+              await client.focus();
+
+              try {
+                await client.navigate(
+                  target
+                );
+              } catch (_) {}
+
+              return;
+            }
           }
-        }
 
-        /*
-         * Caso contrário abre o Elo.
-         */
-        if (clients.openWindow) {
-          return clients.openWindow(destination);
+          /*
+           * Caso contrário,
+           * abre uma nova janela do Elo.
+           */
+          if (
+            clients.openWindow
+          ) {
+            await clients.openWindow(
+              target
+            );
+          }
+
         }
-      })
-  );
-});
+      )()
+    );
+  }
+);
 
 /* =========================================================
-   ATUALIZAÇÃO MANUAL DO SERVICE WORKER
+   ATUALIZAÇÃO DO SERVICE WORKER
    ========================================================= */
 
-self.addEventListener('message', event => {
-  if (
-    event.data &&
-    event.data.type === 'SKIP_WAITING'
-  ) {
-    self.skipWaiting();
+self.addEventListener(
+  'message',
+  event => {
+
+    if (
+      event.data &&
+      event.data.type ===
+        'SKIP_WAITING'
+    ) {
+      self.skipWaiting();
+    }
+
   }
-});
+);

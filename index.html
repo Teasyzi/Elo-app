@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Elo - RPG de Casal</title>
-    <meta name="elo-version" content="33.5-mission-review-undo-reject">
+    <meta name="elo-version" content="34-social-friends-chats-base">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -687,6 +687,15 @@ body[data-elo-tab="chat"] .elo-chat-header{
   }
 }
 
+
+/* ===== ELO V34 · SOCIAL ENTRE ELOS ===== */
+body[data-elo-tab="friends"] #main-content{overscroll-behavior:contain}
+@media(max-width:639px){
+  #main-nav .nav-btn{min-width:0!important;flex:1;width:auto!important;padding-inline:.18rem!important}
+  #main-nav .nav-btn span{font-size:.43rem!important;letter-spacing:.04em!important}
+  #main-nav .nav-btn i{font-size:1.2rem!important}
+}
+
 </style>
 
     <meta name="theme-color" content="#0f172a">
@@ -969,13 +978,16 @@ body[data-elo-tab="chat"] .elo-chat-header{
             <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 transition-colors w-16 relative">
                 <i class="ph-fill ph-backpack text-2xl mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wider">Bolsa</span>
             </button>
+            <button onclick="switchTab('friends')" id="nav-friends" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 transition-colors w-16 relative">
+                <i class="ph-fill ph-users-three text-2xl mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wider">Amigos</span>
+            </button>
         </div>
     </nav>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, increment, runTransaction, collection, getDocs, addDoc, query, orderBy, limit, startAfter, serverTimestamp, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, arrayUnion, increment, runTransaction, collection, getDocs, addDoc, query, where, orderBy, limit, startAfter, serverTimestamp, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
         const firebaseConfig = {
@@ -1058,6 +1070,14 @@ body[data-elo-tab="chat"] .elo-chat-header{
         let unsubscribeMoments = null;
         let momentsCache = [];
         let momentsLoadedCoupleId = '';
+
+        // V34 · Amizades entre Elos
+        let socialView = 'list';
+        let socialChatFriendId = '';
+        let socialChatMessages = [];
+        let unsubscribeSocialChat = null;
+        let socialChatReady = false;
+
         let pushInitialized = false;
         window.currentAvatarSeed = ''; // Seed global para a interface DiceBear
 
@@ -4256,6 +4276,573 @@ window.checkInToday = async (buttonEl = null) => {
             }
         };
 
+
+        /* =========================================================
+           V34 · AMIZADES ENTRE ELOS
+           ========================================================= */
+
+        const SOCIAL_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+        const getEloSocialName = (data = coupleData) => {
+            const users = Object.values(data?.users || {});
+            const names = users
+                .map(u => String(u?.name || '').trim())
+                .filter(Boolean)
+                .slice(0,2);
+
+            if (names.length >= 2) return `${names[0]} & ${names[1]}`;
+            if (names.length === 1) return `Elo de ${names[0]}`;
+            return 'Um Elo';
+        };
+
+        const normalizeSocialCode = value =>
+            String(value || '')
+                .toUpperCase()
+                .replace(/[^A-Z0-9]/g,'')
+                .replace(/[01IO]/g,'')
+                .slice(0,6);
+
+        window.normalizeSocialCodeInput = input => {
+            if (!input) return;
+            input.value = normalizeSocialCode(input.value);
+        };
+
+        const makeRandomSocialCode = () => {
+            let code = '';
+            for (let i=0;i<6;i++) {
+                code += SOCIAL_CODE_ALPHABET[
+                    Math.floor(Math.random()*SOCIAL_CODE_ALPHABET.length)
+                ];
+            }
+            return code;
+        };
+
+        const findEloBySocialCode = async code => {
+            const normalized = normalizeSocialCode(code);
+            if (normalized.length !== 6) return null;
+
+            const result = await getDocs(
+                query(
+                    collection(db,'relationships'),
+                    where('social.code','==',normalized),
+                    limit(1)
+                )
+            );
+
+            if (result.empty) return null;
+
+            const snap = result.docs[0];
+            return {
+                coupleId: snap.id,
+                data: snap.data()
+            };
+        };
+
+        const ensureSocialProfile = async () => {
+            if (!coupleId || !coupleData || !currentUser) return;
+
+            const users = coupleData.users || {};
+            if (Object.keys(users).length < 2) return;
+
+            const desiredName = getEloSocialName(coupleData);
+            const existingCode = normalizeSocialCode(coupleData?.social?.code || '');
+
+            if (existingCode.length === 6) {
+                if (coupleData?.social?.displayName !== desiredName) {
+                    updateDoc(
+                        doc(db,'relationships',coupleId),
+                        {'social.displayName':desiredName}
+                    ).catch(()=>{});
+                }
+                return;
+            }
+
+            // Tenta alguns códigos até encontrar um que ainda não esteja em uso.
+            for (let attempt=0; attempt<12; attempt++) {
+                const candidate = makeRandomSocialCode();
+                const found = await findEloBySocialCode(candidate);
+                if (found) continue;
+
+                try {
+                    await updateDoc(
+                        doc(db,'relationships',coupleId),
+                        {
+                            'social.code':candidate,
+                            'social.displayName':desiredName,
+                            'social.createdAt':Date.now(),
+                            'social.enabled':true,
+                            'social.friends':{},
+                            'social.friendRequestsIncoming':{},
+                            'social.friendRequestsOutgoing':{}
+                        }
+                    );
+                    return;
+                } catch (e) {
+                    console.warn('Criar perfil social do Elo:', e);
+                    return;
+                }
+            }
+        };
+
+        window.copySocialCode = async () => {
+            const code = normalizeSocialCode(coupleData?.social?.code || '');
+            if (!code) return showToast('O código social ainda está sendo preparado.', 'info');
+
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast('Código de amizade copiado! 🤝', 'success');
+            } catch (_) {
+                showToast(`Código de amizade: ${code}`, 'info');
+            }
+        };
+
+        const getSocialFriends = () =>
+            Object.entries(coupleData?.social?.friends || {})
+                .map(([id,friend]) => ({coupleId:id,...(friend||{})}))
+                .sort((a,b)=>String(a.displayName||'').localeCompare(String(b.displayName||''),'pt-BR'));
+
+        const getIncomingFriendRequests = () =>
+            Object.entries(coupleData?.social?.friendRequestsIncoming || {})
+                .map(([id,request]) => ({coupleId:id,...(request||{})}))
+                .sort((a,b)=>Number(b.sentAt||0)-Number(a.sentAt||0));
+
+        const getOutgoingFriendRequests = () =>
+            Object.entries(coupleData?.social?.friendRequestsOutgoing || {})
+                .map(([id,request]) => ({coupleId:id,...(request||{})}));
+
+        window.sendEloFriendRequest = async () => {
+            if (!coupleId || !coupleData) return;
+
+            const input = document.getElementById('elo-friend-code');
+            const code = normalizeSocialCode(input?.value || '');
+
+            if (code.length !== 6) {
+                input?.focus({preventScroll:true});
+                return showToast('Digite os 6 caracteres do código de amizade.', 'info');
+            }
+
+            if (code === normalizeSocialCode(coupleData?.social?.code || '')) {
+                return showToast('Esse é o código do seu próprio Elo 😄', 'info');
+            }
+
+            const alreadyFriend = getSocialFriends()
+                .some(friend => normalizeSocialCode(friend.code) === code);
+
+            if (alreadyFriend) {
+                return showToast('Vocês já são Elos amigos ❤️', 'info');
+            }
+
+            try {
+                const target = await findEloBySocialCode(code);
+
+                if (!target) {
+                    return showToast('Não encontramos nenhum Elo com esse código.', 'error');
+                }
+
+                if (target.coupleId === coupleId) {
+                    return showToast('Esse é o seu próprio Elo.', 'info');
+                }
+
+                const targetUsers = Object.keys(target.data?.users || {});
+                if (targetUsers.length < 2) {
+                    return showToast('Esse Elo ainda não está completo.', 'info');
+                }
+
+                if (target.data?.social?.friends?.[coupleId]) {
+                    return showToast('Vocês já são amigos.', 'info');
+                }
+
+                const myCode = normalizeSocialCode(coupleData?.social?.code || '');
+                const myName = getEloSocialName(coupleData);
+                const targetName = getEloSocialName(target.data);
+                const now = Date.now();
+
+                const myRef = doc(db,'relationships',coupleId);
+                const targetRef = doc(db,'relationships',target.coupleId);
+
+                await runTransaction(db, async transaction => {
+                    const [mySnap,targetSnap] = await Promise.all([
+                        transaction.get(myRef),
+                        transaction.get(targetRef)
+                    ]);
+
+                    if (!mySnap.exists() || !targetSnap.exists()) {
+                        throw new Error('ELO_NOT_FOUND');
+                    }
+
+                    const myData = mySnap.data();
+                    const remoteData = targetSnap.data();
+
+                    if (myData?.social?.friends?.[target.coupleId] ||
+                        remoteData?.social?.friends?.[coupleId]) {
+                        throw new Error('ALREADY_FRIENDS');
+                    }
+
+                    transaction.update(targetRef,{
+                        [`social.friendRequestsIncoming.${coupleId}`]:{
+                            code:myCode,
+                            displayName:myName,
+                            sentAt:now
+                        }
+                    });
+
+                    transaction.update(myRef,{
+                        [`social.friendRequestsOutgoing.${target.coupleId}`]:{
+                            code,
+                            displayName:targetName,
+                            sentAt:now
+                        }
+                    });
+                });
+
+                if (input) input.value = '';
+                showToast(`Pedido enviado para ${targetName}! 🤝`,'success');
+            } catch (e) {
+                console.error('Pedido de amizade:',e);
+
+                if (e?.message === 'ALREADY_FRIENDS') {
+                    showToast('Vocês já são Elos amigos.', 'info');
+                } else {
+                    showToast('Não foi possível enviar o pedido agora.', 'error');
+                }
+            }
+        };
+
+        window.acceptEloFriendRequest = async fromCoupleId => {
+            if (!coupleId || !fromCoupleId || fromCoupleId === coupleId) return;
+
+            const myRef = doc(db,'relationships',coupleId);
+            const fromRef = doc(db,'relationships',fromCoupleId);
+
+            try {
+                await runTransaction(db, async transaction => {
+                    const [mySnap,fromSnap] = await Promise.all([
+                        transaction.get(myRef),
+                        transaction.get(fromRef)
+                    ]);
+
+                    if (!mySnap.exists() || !fromSnap.exists()) {
+                        throw new Error('ELO_NOT_FOUND');
+                    }
+
+                    const myData = mySnap.data();
+                    const fromData = fromSnap.data();
+                    const request = myData?.social?.friendRequestsIncoming?.[fromCoupleId];
+
+                    if (!request) throw new Error('REQUEST_NOT_FOUND');
+
+                    const mySocialCode = normalizeSocialCode(myData?.social?.code || '');
+                    const fromSocialCode = normalizeSocialCode(fromData?.social?.code || '');
+                    const now = Date.now();
+
+                    transaction.update(myRef,{
+                        [`social.friends.${fromCoupleId}`]:{
+                            code:fromSocialCode,
+                            displayName:getEloSocialName(fromData),
+                            friendsSince:now
+                        },
+                        [`social.friendRequestsIncoming.${fromCoupleId}`]:deleteField()
+                    });
+
+                    transaction.update(fromRef,{
+                        [`social.friends.${coupleId}`]:{
+                            code:mySocialCode,
+                            displayName:getEloSocialName(myData),
+                            friendsSince:now
+                        },
+                        [`social.friendRequestsOutgoing.${coupleId}`]:deleteField()
+                    });
+                });
+
+                showToast('Agora vocês são Elos amigos! ❤️','success');
+            } catch (e) {
+                console.error('Aceitar amizade:',e);
+                showToast('Não foi possível aceitar este pedido.','error');
+            }
+        };
+
+        window.declineEloFriendRequest = async fromCoupleId => {
+            if (!coupleId || !fromCoupleId) return;
+
+            const myRef = doc(db,'relationships',coupleId);
+            const fromRef = doc(db,'relationships',fromCoupleId);
+
+            try {
+                await runTransaction(db, async transaction => {
+                    const [mySnap,fromSnap] = await Promise.all([
+                        transaction.get(myRef),
+                        transaction.get(fromRef)
+                    ]);
+
+                    if (!mySnap.exists()) return;
+
+                    transaction.update(myRef,{
+                        [`social.friendRequestsIncoming.${fromCoupleId}`]:deleteField()
+                    });
+
+                    if (fromSnap.exists()) {
+                        transaction.update(fromRef,{
+                            [`social.friendRequestsOutgoing.${coupleId}`]:deleteField()
+                        });
+                    }
+                });
+
+                showToast('Pedido recusado.','info');
+            } catch (e) {
+                console.error('Recusar amizade:',e);
+                showToast('Não foi possível recusar o pedido.','error');
+            }
+        };
+
+        window.removeEloFriend = async friendId => {
+            if (!coupleId || !friendId) return;
+            if (!confirm('Remover este Elo da lista de amigos?')) return;
+
+            const myRef = doc(db,'relationships',coupleId);
+            const friendRef = doc(db,'relationships',friendId);
+
+            try {
+                await runTransaction(db, async transaction => {
+                    const [mySnap,friendSnap] = await Promise.all([
+                        transaction.get(myRef),
+                        transaction.get(friendRef)
+                    ]);
+
+                    if (mySnap.exists()) {
+                        transaction.update(myRef,{
+                            [`social.friends.${friendId}`]:deleteField()
+                        });
+                    }
+
+                    if (friendSnap.exists()) {
+                        transaction.update(friendRef,{
+                            [`social.friends.${coupleId}`]:deleteField()
+                        });
+                    }
+                });
+
+                if (socialChatFriendId === friendId) closeSocialChat();
+                showToast('Amizade removida.','info');
+            } catch (e) {
+                console.error('Remover amizade:',e);
+                showToast('Não foi possível remover a amizade.','error');
+            }
+        };
+
+        const getSocialChatId = friendId =>
+            [String(coupleId),String(friendId)].sort().join('__');
+
+        const getSocialChatMessagesCollection = friendId =>
+            collection(
+                db,
+                'eloSocialChats',
+                getSocialChatId(friendId),
+                'messages'
+            );
+
+        window.openSocialChat = friendId => {
+            if (!friendId || !coupleData?.social?.friends?.[friendId]) return;
+
+            if (unsubscribeSocialChat) {
+                unsubscribeSocialChat();
+                unsubscribeSocialChat = null;
+            }
+
+            socialChatFriendId = friendId;
+            socialView = 'chat';
+            socialChatMessages = [];
+            socialChatReady = false;
+            activeTab = 'friends';
+            window.activeTab = 'friends';
+            document.body.dataset.eloTab = 'friends';
+
+            updateUI();
+
+            try {
+                const chatId = getSocialChatId(friendId);
+
+                setDoc(
+                    doc(db,'eloSocialChats',chatId),
+                    {
+                        members:[coupleId,friendId],
+                        updatedAt:Date.now()
+                    },
+                    {merge:true}
+                ).catch(()=>{});
+
+                unsubscribeSocialChat = onSnapshot(
+                    query(
+                        getSocialChatMessagesCollection(friendId),
+                        orderBy('timestamp','asc'),
+                        limit(120)
+                    ),
+                    snap => {
+                        socialChatMessages = snap.docs.map(d=>({
+                            id:d.id,
+                            ...d.data()
+                        }));
+                        socialChatReady = true;
+
+                        if (window.activeTab === 'friends' &&
+                            socialView === 'chat' &&
+                            socialChatFriendId === friendId) {
+                            renderSocialChatOnly();
+                        }
+                    },
+                    err => {
+                        console.warn('Chat social:',err);
+                        socialChatReady = true;
+                        if (window.activeTab === 'friends') renderSocialChatOnly();
+                    }
+                );
+            } catch (e) {
+                console.warn('Abrir chat social:',e);
+            }
+        };
+
+        window.closeSocialChat = () => {
+            if (unsubscribeSocialChat) {
+                unsubscribeSocialChat();
+                unsubscribeSocialChat = null;
+            }
+
+            socialChatFriendId = '';
+            socialChatMessages = [];
+            socialChatReady = false;
+            socialView = 'list';
+
+            if (window.activeTab === 'friends') updateUI();
+        };
+
+        window.sendSocialMessage = async () => {
+            if (!socialChatFriendId || !coupleId) return;
+
+            const input = document.getElementById('social-chat-input');
+            const text = String(input?.value || '').trim();
+            if (!text) return;
+
+            if (text.length > 1500) {
+                return showToast('Mensagem muito longa.','info');
+            }
+
+            const friend = coupleData?.social?.friends?.[socialChatFriendId];
+            if (!friend) return showToast('Este Elo não está mais na sua lista de amigos.','error');
+
+            const message = {
+                senderCoupleId:coupleId,
+                senderName:getEloSocialName(coupleData),
+                text,
+                timestamp:Date.now()
+            };
+
+            if (input) {
+                input.value='';
+                input.style.height='auto';
+            }
+
+            try {
+                await addDoc(
+                    getSocialChatMessagesCollection(socialChatFriendId),
+                    message
+                );
+
+                setDoc(
+                    doc(db,'eloSocialChats',getSocialChatId(socialChatFriendId)),
+                    {
+                        members:[coupleId,socialChatFriendId],
+                        updatedAt:Date.now(),
+                        lastMessage:text.slice(0,100)
+                    },
+                    {merge:true}
+                ).catch(()=>{});
+            } catch (e) {
+                console.error('Enviar mensagem social:',e);
+                showToast('Não foi possível enviar a mensagem.','error');
+            }
+        };
+
+        const renderSocialChatOnly = () => {
+            if (window.activeTab !== 'friends' || socialView !== 'chat') return;
+
+            const main = document.getElementById('main-content');
+            if (!main) return;
+
+            const friend = coupleData?.social?.friends?.[socialChatFriendId];
+
+            if (!friend) {
+                socialView='list';
+                socialChatFriendId='';
+                updateUI();
+                return;
+            }
+
+            const oldInput = document.getElementById('social-chat-input');
+            const draft = oldInput?.value || '';
+            const hadFocus = document.activeElement === oldInput;
+            const oldScroller = document.getElementById('social-chat-messages');
+            const wasNearBottom = oldScroller
+                ? oldScroller.scrollHeight-oldScroller.scrollTop-oldScroller.clientHeight < 100
+                : true;
+
+            const messagesHTML = socialChatMessages.length
+                ? socialChatMessages.map(m=>{
+                    const mine = m.senderCoupleId === coupleId;
+                    return `
+                        <div class="flex ${mine?'justify-end':'justify-start'}">
+                            <div class="max-w-[82%] rounded-2xl ${mine?'bg-purple-600 text-white rounded-br-md':'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-md'} px-3 py-2 shadow-md">
+                                ${mine?'':`<p class="text-[8px] uppercase tracking-widest font-black text-purple-300 mb-1">${escapeHTML(m.senderName||friend.displayName||'Elo amigo')}</p>`}
+                                <p class="text-sm whitespace-pre-wrap break-words">${escapeHTML(m.text||'')}</p>
+                                <p class="text-[8px] ${mine?'text-purple-100/70':'text-slate-500'} mt-1 text-right">${new Date(Number(m.timestamp||Date.now())).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('')
+                : socialChatReady
+                    ? `<div class="text-center text-slate-500 py-12"><i class="ph-fill ph-chat-circle-dots text-3xl text-purple-400"></i><p class="text-sm font-bold mt-3">Comecem a conversar 👋</p><p class="text-xs mt-1">Este chat é entre os dois Elos.</p></div>`
+                    : `<div class="text-center text-slate-500 py-12"><i class="ph-bold ph-spinner-gap animate-spin text-2xl text-purple-400"></i><p class="text-xs font-bold mt-3">Abrindo conversa…</p></div>`;
+
+            main.innerHTML=`
+                <div class="h-[calc(100dvh-175px)] flex flex-col animate-fade-in">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+                        <button onclick="closeSocialChat()" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 grid place-items-center"><i class="ph-bold ph-arrow-left"></i></button>
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/20 grid place-items-center text-purple-300"><i class="ph-fill ph-users-three text-xl"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-black text-white truncate">${escapeHTML(friend.displayName||'Elo amigo')}</p>
+                            <p class="text-[9px] text-slate-500">Chat entre Elos · ${escapeHTML(friend.code||'')}</p>
+                        </div>
+                        <button onclick="removeEloFriend('${socialChatFriendId}')" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-500 grid place-items-center" title="Remover amizade"><i class="ph-bold ph-dots-three-vertical"></i></button>
+                    </div>
+
+                    <div id="social-chat-messages" class="flex-1 min-h-0 overflow-y-auto hide-scrollbar space-y-2 px-1 py-3 overscroll-contain">
+                        ${messagesHTML}
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-2 flex items-end gap-2">
+                        <textarea
+                            id="social-chat-input"
+                            rows="1"
+                            maxlength="1500"
+                            placeholder="Mensagem para este Elo…"
+                            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
+                            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSocialMessage();}"
+                            class="flex-1 min-w-0 resize-none bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 max-h-[100px]"
+                        >${escapeHTML(draft)}</textarea>
+                        <button onclick="sendSocialMessage()" class="w-11 h-11 shrink-0 rounded-xl bg-purple-600 text-white grid place-items-center active:scale-95"><i class="ph-fill ph-paper-plane-right text-xl"></i></button>
+                    </div>
+                </div>
+            `;
+
+            const scroller = document.getElementById('social-chat-messages');
+            if (scroller && wasNearBottom) {
+                requestAnimationFrame(()=>{scroller.scrollTop=scroller.scrollHeight;});
+            }
+
+            const input = document.getElementById('social-chat-input');
+            if (hadFocus && input) {
+                requestAnimationFrame(()=>input.focus({preventScroll:true}));
+            }
+        };
+
         const eloTabScrollPositions = {};
         window.switchTab = (tab) => {
             if (tab === activeTab) return;
@@ -4264,6 +4851,10 @@ window.checkInToday = async (buttonEl = null) => {
             if (main) main.classList.add('elo-tab-changing');
             activeTab = tab; window.activeTab = tab; document.body.dataset.eloTab = tab;
             if(tab==='chat'){chatForceBottomOnOpen=true;chatUserAwayFromBottom=false;chatNewMessagesWhileAway=0;markChatRead();}
+            if(tab!=='friends' && socialView==='chat'){
+                if(unsubscribeSocialChat){unsubscribeSocialChat();unsubscribeSocialChat=null;}
+                socialView='list';socialChatFriendId='';socialChatMessages=[];socialChatReady=false;
+            }
             updateUI();
             requestAnimationFrame(() => {
                 if (main) { main.classList.remove('elo-tab-changing'); main.classList.add('elo-tab-enter'); setTimeout(()=>main.classList.remove('elo-tab-enter'),220); }
@@ -4399,7 +4990,9 @@ window.checkInToday = async (buttonEl = null) => {
                 if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
                 if (unsubscribeNotifications) { unsubscribeNotifications(); unsubscribeNotifications = null; }
                 if (unsubscribeMoments) { unsubscribeMoments(); unsubscribeMoments = null; }
+                if (unsubscribeSocialChat) { unsubscribeSocialChat(); unsubscribeSocialChat = null; }
                 if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+                socialView='list'; socialChatFriendId=''; socialChatMessages=[]; socialChatReady=false;
 
                 // Excluir o documento pai não exclui as subcoleções no Firestore.
                 await deleteSubcollectionDocs(oldCoupleId, 'messages');
@@ -4670,6 +5263,14 @@ window.checkInToday = async (buttonEl = null) => {
                     unsubscribeNotifications();
                     unsubscribeNotifications = null;
                 }
+                if (unsubscribeSocialChat) {
+                    unsubscribeSocialChat();
+                    unsubscribeSocialChat = null;
+                }
+                socialView = 'list';
+                socialChatFriendId = '';
+                socialChatMessages = [];
+                socialChatReady = false;
 
                 coupleId = targetCode;
                 coupleData = null;
@@ -5140,6 +5741,106 @@ window.checkInToday = async (buttonEl = null) => {
                     })()}
                 </div>`;
             }
+            else if (activeTab === 'friends') {
+                if (socialView === 'chat' && socialChatFriendId) {
+                    // O chat social preserva o textarea e só atualiza a lista de mensagens.
+                    renderSocialChatOnly();
+                    return;
+                }
+
+                const socialCode = normalizeSocialCode(coupleData?.social?.code || '');
+                const friends = getSocialFriends();
+                const incoming = getIncomingFriendRequests();
+                const outgoing = getOutgoingFriendRequests();
+                const hasPartner = Object.keys(users).length >= 2;
+
+                html = `
+                <div class="space-y-4 animate-fade-in pb-4">
+                    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-900/80 via-slate-900 to-pink-950 border border-purple-500/20 p-5 shadow-xl">
+                        <div class="absolute -right-12 -top-12 w-36 h-36 rounded-full bg-pink-500/10 blur-2xl"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-[10px] uppercase tracking-[.22em] font-black text-purple-300">Amizades entre Elos</p>
+                                    <h2 class="text-xl font-black text-white mt-1">O social de vocês 🤝</h2>
+                                    <p class="text-xs text-slate-400 mt-1">Adicionem outros casais e conversem em um espaço separado do chat particular do casal.</p>
+                                </div>
+                                <div class="w-11 h-11 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300 grid place-items-center shrink-0"><i class="ph-fill ph-users-three text-2xl"></i></div>
+                            </div>
+
+                            ${hasPartner ? `
+                            <div class="mt-4 rounded-2xl bg-slate-950/55 border border-white/5 p-3">
+                                <p class="text-[9px] uppercase tracking-widest font-black text-slate-500">Código de amizade do Elo</p>
+                                ${socialCode ? `
+                                <div class="flex items-center gap-2 mt-2">
+                                    <button onclick="copySocialCode()" class="flex-1 rounded-xl bg-slate-900 border border-slate-700 px-3 py-3 text-center font-mono text-xl font-black tracking-[.18em] text-purple-300 active:scale-[.99]">${escapeHTML(socialCode)}</button>
+                                    <button onclick="copySocialCode()" class="w-11 h-11 rounded-xl bg-purple-600 text-white grid place-items-center"><i class="ph-bold ph-copy"></i></button>
+                                </div>` : `
+                                <div class="mt-2 flex items-center gap-2 text-xs text-slate-400"><i class="ph-bold ph-spinner-gap animate-spin text-purple-400"></i> Preparando código social…</div>`}
+                            </div>` : `
+                            <div class="mt-4 rounded-2xl bg-amber-500/5 border border-amber-500/15 p-3 text-xs text-amber-200/80">
+                                O sistema de amizades será liberado quando este Elo tiver as duas pessoas conectadas.
+                            </div>`}
+                        </div>
+                    </section>
+
+                    ${hasPartner ? `
+                    <section class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-lg">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <div><p class="text-[9px] uppercase tracking-widest font-black text-purple-400">Adicionar amizade</p><p class="text-sm font-black text-white">Código de outro Elo</p></div>
+                            <i class="ph-bold ph-user-plus text-xl text-purple-400"></i>
+                        </div>
+                        <div class="flex gap-2">
+                            <input id="elo-friend-code" maxlength="6" placeholder="ABC234" oninput="normalizeSocialCodeInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();sendEloFriendRequest();}" class="flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-center uppercase tracking-[.15em] font-black text-white focus:outline-none focus:border-purple-500">
+                            <button onclick="sendEloFriendRequest()" class="px-4 rounded-xl bg-purple-600 text-white font-black text-xs">Adicionar</button>
+                        </div>
+                        <p class="text-[9px] text-slate-500 mt-2">Use o código de 6 caracteres da aba Amigos — não o código de 4 dígitos do casal.</p>
+                    </section>` : ''}
+
+                    ${incoming.length ? `
+                    <section class="space-y-2">
+                        <div class="flex items-center justify-between px-1"><div><p class="text-[9px] uppercase tracking-widest font-black text-pink-400">Pedidos</p><h3 class="font-black text-white">Querem ser amigos</h3></div><span class="min-w-6 h-6 px-2 rounded-full bg-pink-600 text-white text-[10px] font-black grid place-items-center">${incoming.length}</span></div>
+                        ${incoming.map(request=>`
+                        <div class="bg-pink-500/5 border border-pink-500/15 rounded-2xl p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-300 grid place-items-center"><i class="ph-fill ph-heart text-xl"></i></div>
+                                <div class="min-w-0 flex-1"><p class="font-black text-white truncate">${escapeHTML(request.displayName||'Outro Elo')}</p><p class="text-[9px] text-slate-500">Código ${escapeHTML(request.code||'')}</p></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-3">
+                                <button onclick="declineEloFriendRequest('${request.coupleId}')" class="py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs font-black">Recusar</button>
+                                <button onclick="acceptEloFriendRequest('${request.coupleId}')" class="py-2.5 rounded-xl bg-pink-600 text-white text-xs font-black">Aceitar</button>
+                            </div>
+                        </div>`).join('')}
+                    </section>` : ''}
+
+                    <section class="space-y-2">
+                        <div class="flex items-center justify-between px-1">
+                            <div><p class="text-[9px] uppercase tracking-widest font-black text-purple-400">Elos amigos</p><h3 class="font-black text-white">${friends.length ? `${friends.length} ${friends.length===1?'amizade':'amizades'}` : 'Sua lista'}</h3></div>
+                        </div>
+
+                        ${friends.length ? friends.map(friend=>`
+                        <button onclick="openSocialChat('${friend.coupleId}')" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3 text-left active:scale-[.99] shadow-md">
+                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/15 to-pink-500/10 border border-purple-500/20 text-purple-300 grid place-items-center shrink-0"><i class="ph-fill ph-users-three text-2xl"></i></div>
+                            <div class="min-w-0 flex-1">
+                                <p class="font-black text-white truncate">${escapeHTML(friend.displayName||'Elo amigo')}</p>
+                                <p class="text-[9px] text-slate-500 mt-0.5">Código ${escapeHTML(friend.code||'')} · toque para conversar</p>
+                            </div>
+                            <i class="ph-bold ph-chat-circle-text text-xl text-purple-400"></i>
+                        </button>`).join('') : `
+                        <div class="rounded-3xl bg-slate-900/60 border border-slate-800 p-8 text-center">
+                            <div class="w-14 h-14 mx-auto rounded-2xl bg-purple-500/10 text-purple-400 grid place-items-center"><i class="ph-fill ph-users-three text-3xl"></i></div>
+                            <p class="text-sm font-black text-slate-300 mt-3">Ainda sem Elos amigos</p>
+                            <p class="text-xs text-slate-500 mt-1">Troquem os códigos sociais com outro casal para começar.</p>
+                        </div>`}
+                    </section>
+
+                    ${outgoing.length ? `
+                    <section class="rounded-2xl bg-slate-900/50 border border-slate-800 p-3">
+                        <p class="text-[9px] uppercase tracking-widest font-black text-slate-500 mb-2">Pedidos enviados</p>
+                        <div class="space-y-2">${outgoing.map(request=>`<div class="flex items-center justify-between gap-3"><div class="min-w-0"><p class="text-xs font-bold text-slate-300 truncate">${escapeHTML(request.displayName||'Outro Elo')}</p><p class="text-[8px] text-slate-600">${escapeHTML(request.code||'')}</p></div><span class="text-[9px] text-amber-400 font-black">Aguardando</span></div>`).join('')}</div>
+                    </section>` : ''}
+                </div>`;
+            }
             else if (activeTab === 'inventory') {
                 const myItems = (coupleData.inventory || []).filter(i => i.owner === currentUser.uid && i.status === 'available');
                 html = `
@@ -5304,6 +6005,11 @@ window.checkInToday = async (buttonEl = null) => {
 
                             if (!unsubscribeNotifications) startNotificationSync();
                             initForegroundPush();
+
+                            // V34: cria o perfil social apenas quando o Elo já possui as duas pessoas.
+                            if (Object.keys(coupleData.users || {}).length >= 2) {
+                                ensureSocialProfile().catch(()=>{});
+                            }
                         } else {
                             localStorage.removeItem('elo_coupleId');
                             coupleId = null;
