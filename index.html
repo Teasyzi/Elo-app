@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Elo - RPG de Casal</title>
-    <meta name="elo-version" content="33.1-chat-presence-stability">
+    <meta name="elo-version" content="33.2-code-first-invite">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons -->
@@ -771,11 +771,32 @@ body[data-elo-tab="chat"] .elo-chat-header{
                         <div class="flex-grow border-t border-slate-800"></div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <input id="elo-code" type="text" placeholder="CÓDIGO" maxlength="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 text-center text-xl font-black tracking-widest uppercase shadow-inner" />
-                        <button onclick="joinElo()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-6 rounded-xl transition-all shadow-md active:scale-95 border border-slate-700">
-                            Entrar
-                        </button>
+                    <div class="rounded-2xl bg-purple-500/5 border border-purple-500/15 p-3">
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <div>
+                                <p class="text-[10px] uppercase tracking-widest font-black text-purple-400">Entrar no Elo do seu amor</p>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Peça somente o código de 4 dígitos. Não precisa abrir link de convite.</p>
+                            </div>
+                            <i class="ph-bold ph-key text-xl text-purple-400 shrink-0"></i>
+                        </div>
+                        <div class="flex gap-2">
+                            <input
+                                id="elo-code"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="one-time-code"
+                                pattern="[0-9]*"
+                                placeholder="0000"
+                                maxlength="4"
+                                aria-label="Código do Elo"
+                                oninput="normalizeEloCodeInput(this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();joinElo();}"
+                                class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 text-center text-2xl font-black tracking-[0.28em] uppercase shadow-inner"
+                            />
+                            <button onclick="joinElo()" class="bg-purple-600 hover:bg-purple-500 text-white font-black px-5 rounded-xl transition-all shadow-md active:scale-95">
+                                Entrar
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2342,8 +2363,31 @@ body[data-elo-tab="chat"] .elo-chat-header{
             reader.readAsDataURL(file);
         };
 
-        // Convite direto: https://teasyzi.github.io/Elo-app/?join=1234
-        const inviteCode = new URLSearchParams(window.location.search).get('join')?.trim().toUpperCase() || '';
+        // Código do Elo: o fluxo principal não depende mais do link.
+        // Também aceitamos um link inteiro colado no campo por compatibilidade.
+        const normalizeEloJoinCode = (value = '') => {
+            let raw = String(value || '').trim();
+
+            try {
+                if (/^https?:\/\//i.test(raw)) {
+                    const parsed = new URL(raw);
+                    raw = parsed.searchParams.get('join') || '';
+                }
+            } catch (_) {}
+
+            // Os Elos atuais usam exatamente 4 dígitos.
+            return raw.replace(/\D/g, '').slice(0, 4);
+        };
+
+        window.normalizeEloCodeInput = input => {
+            if (!input) return;
+            const normalized = normalizeEloJoinCode(input.value);
+            if (input.value !== normalized) input.value = normalized;
+        };
+
+        const inviteCode = normalizeEloJoinCode(
+            new URLSearchParams(window.location.search).get('join') || ''
+        );
         let inviteAutoJoinInProgress = false;
 
         const getInviteUrl = (code = coupleId) => {
@@ -2545,14 +2589,25 @@ body[data-elo-tab="chat"] .elo-chat-header{
 
         window.joinElo = async (directCode = '') => {
             if (!currentUser || currentUser.isAnonymous) return showToast('Entre com sua conta Google primeiro.', 'error');
-            const name = document.getElementById('user-name').value.trim() || currentUser.displayName || 'Eu';
-            const code = (directCode || document.getElementById('elo-code').value).trim().toUpperCase();
-            if (!code) return showToast('Digite o código do Elo.', 'error');
+
+            const name = document.getElementById('user-name')?.value.trim() || currentUser.displayName || 'Eu';
+            const source = directCode || document.getElementById('elo-code')?.value || '';
+            const code = normalizeEloJoinCode(source);
+
+            if (code.length !== 4) {
+                const input = document.getElementById('elo-code');
+                if (input) {
+                    input.value = code;
+                    input.focus({preventScroll:true});
+                }
+                return showToast('Digite os 4 dígitos do código do Elo.', 'info');
+            }
+
             document.getElementById('loading-screen').classList.remove('hidden');
             try {
                 const docRef = doc(db, 'relationships', code);
                 const snap = await getDoc(docRef);
-                if (!snap.exists()) return showToast('Código inválido.', 'error');
+                if (!snap.exists()) return showToast('Não encontramos um Elo com esse código. Confira os 4 dígitos.', 'error');
                 const data = snap.data();
                 const users = data.users || {};
                 const ids = Object.keys(users);
@@ -4175,7 +4230,7 @@ window.checkInToday = async (buttonEl = null) => {
             if (!coupleId) return;
             const myName = coupleData?.users?.[currentUser.uid]?.name || 'seu amor';
             const inviteUrl = getInviteUrl(coupleId);
-            const text = `💕 ${myName} te convidou para entrar no Elo!\n\nClique neste link para aceitar o convite:\n${inviteUrl}\n\nEntre com sua conta Google e o Elo tentará conectar vocês automaticamente. ❤️`;
+            const text = `💕 ${myName} te convidou para entrar no Elo!\n\nCódigo do Elo: ${coupleId}\n\nAbra o Elo, entre com sua conta Google e digite esse código de 4 dígitos. Não precisa abrir o link. ❤️\n\nSe preferir, link direto:\n${inviteUrl}`;
             try {
                 if (navigator.share) await navigator.share({ title: 'Convite para o Elo ❤️', text, url: inviteUrl });
                 else { await navigator.clipboard.writeText(text); showToast('Link de convite copiado!', 'success'); }
