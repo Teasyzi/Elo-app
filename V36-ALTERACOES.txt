@@ -1,0 +1,27 @@
+ELO V36
+
+DESKTOP
+- Navegação lateral em telas >= 1024px.
+- Header e conteúdo usam a largura real do monitor.
+- Home, Chat, Loja, Missões e Social receberam comportamento próprio no desktop.
+- Mobile mantém a navegação inferior.
+
+CHAMA 2.0
+- Contagem regressiva até a virada do dia.
+- Estado urgente nas últimas 3 horas.
+- Próximo marco e recompensa visíveis.
+- Chama do cabeçalho leva ao cartão da Chama.
+
+MISSÕES
+- 35 missões foram reescritas por serem pouco práticas, exageradas para uma missão diária
+  ou difíceis para casais à distância.
+- Mantidas as 150 missões e o sistema de dificuldade/recompensa.
+
+LOJA
+- Ordenação por Recomendados, Menor preço, Maior preço e A–Z.
+- Primeira rodada de reequilíbrio de preços por categoria e por tipo de item.
+- Pequenos favores custam menos; experiências e itens épicos ficam em faixas mais coerentes.
+
+ATUALIZAÇÃO
+- app.js/styles.css/tailwind.css: v36.0.0
+- CACHE: elo-v36-desktop-streak-store-missions-20260825

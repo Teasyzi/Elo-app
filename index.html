@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Elo - RPG de Casal</title>
-    <meta name="elo-version" content="35.1-static-tailwind-no-history">
+    <meta name="elo-version" content="36-desktop-streak-store-missions">
     <!-- V35: conexões antecipadas reduzem o tempo de primeira abertura sem mudar a stack. -->
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,8 +19,8 @@
     <!-- Tailwind continua compatível com a base atual; o Phosphor pode carregar sem bloquear o parser. -->
     <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap">
-    <link rel="stylesheet" href="./tailwind.css?v=35.1.0">
-    <link rel="stylesheet" href="./styles.css?v=35.1.0">
+    <link rel="stylesheet" href="./tailwind.css?v=36.0.0">
+    <link rel="stylesheet" href="./styles.css?v=36.0.0">
 
 
     <meta name="theme-color" content="#0f172a">
@@ -271,13 +271,13 @@
                     <span id="header-coins" class="font-black text-yellow-400 text-sm">0</span>
                 </div>
             </div>
-            <div class="flex flex-col items-end justify-center bg-slate-950/50 px-3 py-1 rounded-lg border border-slate-800">
+            <button onclick="switchTab('home');setTimeout(()=>document.getElementById('elo-streak-card')?.scrollIntoView({behavior:'smooth',block:'center'}),80)" class="flex flex-col items-end justify-center bg-slate-950/50 px-3 py-1 rounded-lg border border-slate-800" title="Ver Chama do casal">
                 <span class="text-[9px] text-slate-500 uppercase font-bold">Chama</span>
                 <div class="flex items-center gap-1">
                     <i class="ph-fill ph-fire text-orange-500"></i>
                     <span id="header-streak" class="font-black text-orange-500 text-sm">0</span>
                 </div>
-            </div>
+            </button>
         </div>
     </header>
 
@@ -288,6 +288,10 @@
     <!-- Navegação Inferior -->
     <nav id="main-nav" class="hidden fixed bottom-0 w-full bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 p-2 pb-[max(env(safe-area-inset-bottom,0.5rem),0.5rem)] z-40">
         <div class="max-w-md mx-auto flex justify-around items-center">
+            <div class="elo-desktop-brand" aria-hidden="true">
+                <div class="elo-desktop-brand-mark"><i class="ph-fill ph-heart"></i></div>
+                <div><strong>Elo</strong><span>O espaço de vocês</span></div>
+            </div>
             <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 transition-colors w-16">
                 <i class="ph-fill ph-house text-2xl mb-0.5"></i><span class="text-[9px] font-bold uppercase tracking-wider">Início</span>
             </button>
@@ -309,7 +313,7 @@
         </div>
     </nav>
 
-    <script type="module" src="./app.js?v=35.1.0"></script>
+    <script type="module" src="./app.js?v=36.0.0"></script>
 
     
 <script>

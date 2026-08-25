@@ -495,7 +495,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             { id: 'q18', title: 'Mandar uma lembrança engraçada de vocês', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 10 },
             { id: 'q19', title: 'Dizer três coisas que você gosta no seu amor', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 30, xp: 15 },
             { id: 'q20', title: 'Perguntar se seu amor precisa de alguma coisa hoje', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 15, xp: 20 },
-            { id: 'q21', title: 'Escolher um apelido carinhoso e usá-lo durante o dia', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 10 },
+            { id: 'q21', title: 'Criar um apelido carinhoso novo e explicar por que ele combina com seu amor', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 10 },
             { id: 'q22', title: 'Enviar um emoji que represente o relacionamento e explicar por quê', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 15 },
             { id: 'q23', title: 'Dar as mãos por alguns minutos', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 30, xp: 20 },
             { id: 'q24', title: 'Fazer um elogio sobre algo além da aparência', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 15, xp: 10 },
@@ -508,7 +508,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             { id: 'q31', title: 'Deixar um bilhetinho carinhoso', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 30, xp: 15 },
             { id: 'q32', title: 'Perguntar qual música seu amor está ouvindo mais', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 15, xp: 20 },
             { id: 'q33', title: 'Contar uma coisa que fez você lembrar do seu amor hoje', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 10 },
-            { id: 'q34', title: 'Dar cinco beijos seguidos', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 15 },
+            { id: 'q34', title: 'Dar uma sequência de carinho ou mandar cinco beijos virtuais se estiverem longe', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 15 },
             { id: 'q35', title: 'Fazer um elogio sobre o sorriso do seu amor', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 30, xp: 20 },
             { id: 'q36', title: 'Perguntar qual comida seu amor gostaria de comer hoje', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 15, xp: 10 },
             { id: 'q37', title: 'Enviar um meme que tenha a cara de vocês', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 15 },
@@ -519,8 +519,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             { id: 'q42', title: 'Mandar uma mensagem sem usar palavras, apenas emojis, e deixar seu amor adivinhar', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 10 },
             { id: 'q43', title: 'Escolher uma música para ser a trilha sonora do dia de vocês', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 30, xp: 15 },
             { id: 'q44', title: 'Contar uma coisa pela qual você é grato no relacionamento', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 15, xp: 20 },
-            { id: 'q45', title: 'Fazer um cafuné de pelo menos 3 minutos', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 10 },
-            { id: 'q46', title: 'Dar um abraço por trás de surpresa', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 15 },
+            { id: 'q45', title: 'Fazer um cafuné por 3 minutos ou mandar um áudio relaxante se estiverem longe', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 10 },
+            { id: 'q46', title: 'Surpreender com um abraço ou com uma mensagem inesperada se estiverem longe', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 25, xp: 15 },
             { id: 'q47', title: 'Perguntar qual sobremesa seu amor escolheria agora', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 30, xp: 20 },
             { id: 'q48', title: 'Mandar uma mensagem lembrando um detalhe que seu amor contou', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 15, xp: 10 },
             { id: 'q49', title: 'Elogiar uma escolha ou decisão recente do seu amor', difficulty: 'easy', difficultyLabel: 'Fácil', reward: 20, xp: 15 },
@@ -528,44 +528,44 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             { id: 'q51', title: 'Preparar uma pequena surpresa sem contar antes', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
             { id: 'q52', title: 'Planejar um mini encontro para os próximos 7 dias', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 40 },
             { id: 'q53', title: 'Escrever uma mensagem com cinco motivos pelos quais ama seu parceiro', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 50 },
-            { id: 'q54', title: 'Fazer uma tarefa que normalmente seria do seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 30 },
+            { id: 'q54', title: 'Resolver uma pequena tarefa para aliviar o dia do seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 30 },
             { id: 'q55', title: 'Preparar o lanche favorito do seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 40 },
             { id: 'q56', title: 'Criar uma playlist com pelo menos 5 músicas para vocês', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 50 },
-            { id: 'q57', title: 'Recriar uma foto antiga do casal', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 30 },
+            { id: 'q57', title: 'Escolher uma foto antiga e recriar a ideia dela de um jeito simples', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 30 },
             { id: 'q58', title: 'Separar 30 minutos sem celular só para conversar', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 40 },
             { id: 'q59', title: 'Perguntar sobre um sonho do seu amor e conversar sobre como apoiá-lo', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 50 },
-            { id: 'q60', title: 'Escrever um bilhete à mão e esconder para ser encontrado', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 30 },
+            { id: 'q60', title: 'Escrever um bilhete curto, físico ou digital, para seu amor encontrar', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 30 },
             { id: 'q61', title: 'Organizar uma sessão de filme escolhida pensando no gosto do seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 40 },
             { id: 'q62', title: 'Preparar um café da manhã especial', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 50 },
-            { id: 'q63', title: 'Fazer uma massagem de pelo menos 10 minutos', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
+            { id: 'q63', title: 'Fazer 10 minutos de massagem ou preparar um momento de relaxamento à distância', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
             { id: 'q64', title: 'Planejar uma caminhada ou passeio juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 40 },
             { id: 'q65', title: 'Contar três lembranças do relacionamento que você nunca quer esquecer', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 50 },
-            { id: 'q66', title: 'Escolher uma receita simples e preparar juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 30 },
+            { id: 'q66', title: 'Escolher uma receita simples para fazer juntos hoje ou em uma chamada', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 30 },
             { id: 'q67', title: 'Fazer uma lista de 10 coisas que admira no seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 40 },
-            { id: 'q68', title: 'Criar uma pequena caça ao tesouro com uma mensagem no final', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 50 },
+            { id: 'q68', title: 'Criar uma brincadeira com três pistas e uma mensagem carinhosa no final', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 50 },
             { id: 'q69', title: 'Passar uma hora sem redes sociais enquanto estiverem juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 30 },
-            { id: 'q70', title: 'Organizar um cantinho da casa para ficarem confortáveis juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 40 },
+            { id: 'q70', title: 'Preparar um cantinho confortável ou organizar um momento tranquilo para vocês', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 40 },
             { id: 'q71', title: 'Surpreender com o doce ou snack favorito do seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 50 },
             { id: 'q72', title: 'Gravar um vídeo curto contando por que seu amor é importante', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 30 },
-            { id: 'q73', title: 'Planejar uma noite temática em casa', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 40 },
+            { id: 'q73', title: 'Criar uma mini noite temática que caiba na rotina de hoje', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 40 },
             { id: 'q74', title: 'Fazer uma pergunta profunda que vocês nunca discutiram antes', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 50 },
             { id: 'q75', title: 'Rever fotos antigas juntos por pelo menos 20 minutos', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
             { id: 'q76', title: 'Montar uma lista de 5 lugares que querem conhecer juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 40 },
-            { id: 'q77', title: 'Fazer algo que seu amor vem pedindo há alguns dias', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 50 },
+            { id: 'q77', title: 'Fazer uma pequena coisa que seu amor comentou que precisava nesta semana', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 50 },
             { id: 'q78', title: 'Preparar uma sobremesa ou mimo caseiro', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 30 },
             { id: 'q79', title: 'Escolher uma atividade nova para experimentarem juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 40 },
             { id: 'q80', title: 'Escrever como imagina vocês dois daqui a 5 anos', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 50 },
-            { id: 'q81', title: 'Fazer um piquenique simples, mesmo que seja dentro de casa', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 30 },
+            { id: 'q81', title: 'Fazer um mini piquenique com o que já têm, até mesmo dentro de casa', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 30 },
             { id: 'q82', title: 'Organizar uma surpresa usando apenas coisas que já têm em casa', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 40 },
             { id: 'q83', title: 'Passar 20 minutos conversando sobre planos para o próximo mês', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 50 },
             { id: 'q84', title: 'Fazer uma lista compartilhada de sonhos do casal', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 30 },
             { id: 'q85', title: 'Escolher uma lembrança e contar detalhes que seu amor talvez não saiba', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 40 },
             { id: 'q86', title: 'Planejar uma noite de jogos para os dois', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 50 },
-            { id: 'q87', title: 'Fazer uma massagem nos pés ou ombros por 15 minutos', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
-            { id: 'q88', title: 'Preparar uma refeição simples sem deixar seu amor ajudar', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 40 },
+            { id: 'q87', title: 'Fazer 15 minutos de cuidado: massagem, cafuné ou conversa relaxante', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
+            { id: 'q88', title: 'Preparar ou providenciar uma refeição simples pensando no gosto do seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 40 },
             { id: 'q89', title: 'Escolher três fotos do casal e escrever uma legenda especial para cada uma', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 50 },
             { id: 'q90', title: 'Perguntar o que você poderia fazer melhor no relacionamento e ouvir sem interromper', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 30 },
-            { id: 'q91', title: 'Fazer uma ligação surpresa só para conversar, se estiverem longe', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 40 },
+            { id: 'q91', title: 'Fazer uma ligação ou chamada surpresa só para conversar alguns minutos', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 40 },
             { id: 'q92', title: 'Planejar uma atividade gratuita para fazerem juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 50 },
             { id: 'q93', title: 'Criar um vale-mimo personalizado para seu amor usar depois', difficulty: 'medium', difficultyLabel: 'Média', reward: 55, xp: 30 },
             { id: 'q94', title: 'Passar 30 minutos fazendo uma atividade que seu amor gosta', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 40 },
@@ -575,56 +575,56 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             { id: 'q98', title: 'Fazer uma lista de 5 coisas que querem melhorar juntos', difficulty: 'medium', difficultyLabel: 'Média', reward: 65, xp: 50 },
             { id: 'q99', title: 'Organizar um momento de relaxamento para seu amor', difficulty: 'medium', difficultyLabel: 'Média', reward: 35, xp: 30 },
             { id: 'q100', title: 'Planejar e executar um encontro surpresa simples', difficulty: 'medium', difficultyLabel: 'Média', reward: 45, xp: 40 },
-            { id: 'q101', title: 'Organizar um encontro completo surpresa do início ao fim', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 70 },
+            { id: 'q101', title: 'Planejar um encontro surpresa simples que possa acontecer nos próximos dias', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 70 },
             { id: 'q102', title: 'Escrever uma carta de amor detalhada e entregar pessoalmente', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 90 },
-            { id: 'q103', title: 'Planejar um dia inteiro com atividades pensadas no seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 110 },
-            { id: 'q104', title: 'Recriar o primeiro encontro de vocês com o máximo de detalhes possível', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 130 },
+            { id: 'q103', title: 'Planejar três pequenos momentos especiais para seu amor ao longo da próxima semana', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 110 },
+            { id: 'q104', title: 'Relembrar o primeiro encontro e recriar hoje um pequeno detalhe dele', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 130 },
             { id: 'q105', title: 'Criar um álbum digital com pelo menos 15 momentos do casal', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 70 },
             { id: 'q106', title: 'Preparar um jantar completo especial para os dois', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 90 },
-            { id: 'q107', title: 'Planejar uma viagem ou passeio futuro com roteiro e orçamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 110 },
-            { id: 'q108', title: 'Ficar uma noite inteira sem celulares para focar um no outro', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 130 },
+            { id: 'q107', title: 'Pesquisar um passeio futuro e salvar três opções com preço e data aproximados', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 110 },
+            { id: 'q108', title: 'Ficar pelo menos 90 minutos sem redes sociais para focar um no outro', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 130 },
             { id: 'q109', title: 'Criar uma cápsula do tempo do relacionamento para abrir no futuro', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 70 },
             { id: 'q110', title: 'Escrever 20 motivos específicos pelos quais escolheria seu amor novamente', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 90 },
             { id: 'q111', title: 'Organizar uma surpresa envolvendo uma lembrança importante do relacionamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 110 },
-            { id: 'q112', title: 'Planejar uma experiência nova que nenhum dos dois já tenha feito', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 130 },
+            { id: 'q112', title: 'Escolher uma experiência nova e definir quando vocês podem fazê-la', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 130 },
             { id: 'q113', title: 'Criar um vídeo com fotos, músicas e mensagens sobre a história de vocês', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 70 },
             { id: 'q114', title: 'Ter uma conversa de uma hora sobre sonhos, medos e planos sem distrações', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 90 },
-            { id: 'q115', title: 'Preparar um dia de cuidados para seu amor com pelo menos três mimos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 110 },
+            { id: 'q115', title: 'Preparar três pequenos cuidados ou gentilezas para seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 110 },
             { id: 'q116', title: 'Criar um mapa com lugares importantes da história de vocês', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 130 },
             { id: 'q117', title: 'Montar uma caixa de lembranças do relacionamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 70 },
             { id: 'q118', title: 'Escrever cartas para vocês mesmos lerem daqui a um ano', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 90 },
             { id: 'q119', title: 'Planejar uma meta financeira ou projeto do casal e definir os primeiros passos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 110 },
-            { id: 'q120', title: 'Fazer um jantar temático completo inspirado em um lugar que querem visitar', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 130 },
-            { id: 'q121', title: 'Organizar um passeio surpresa fora da rotina', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 70 },
+            { id: 'q120', title: 'Escolher um lugar que querem conhecer e montar uma refeição ou playlist inspirada nele', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 130 },
+            { id: 'q121', title: 'Planejar um passeio simples fora da rotina para os próximos sete dias', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 70 },
             { id: 'q122', title: 'Criar um livro curto contando a história de vocês em capítulos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 90 },
-            { id: 'q123', title: 'Passar uma tarde realizando atividades escolhidas exclusivamente pelo seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 110 },
+            { id: 'q123', title: 'Dedicar pelo menos uma hora a uma atividade escolhida pelo seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 110 },
             { id: 'q124', title: 'Planejar uma comemoração especial para uma pequena conquista do seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 130 },
             { id: 'q125', title: 'Criar 12 ideias de encontros, uma para cada mês', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 70 },
             { id: 'q126', title: 'Fazer uma entrevista divertida com seu amor e registrar as respostas para o futuro', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 90 },
-            { id: 'q127', title: 'Preparar uma noite de memórias com fotos, músicas, comidas e histórias marcantes', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 110 },
+            { id: 'q127', title: 'Criar um momento de memórias com algumas fotos, músicas e uma história marcante', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 110 },
             { id: 'q128', title: 'Planejar juntos três metas para os próximos seis meses e como alcançá-las', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 130 },
             { id: 'q129', title: 'Criar uma tradição nova que vocês possam repetir todo mês', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 70 },
             { id: 'q130', title: 'Fazer uma surpresa baseada em algo que seu amor comentou semanas atrás', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 90 },
-            { id: 'q131', title: 'Organizar um encontro ao nascer ou pôr do sol com tudo preparado', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 110 },
+            { id: 'q131', title: 'Planejar um momento especial ao nascer ou pôr do sol para uma data possível', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 110 },
             { id: 'q132', title: 'Criar uma playlist de pelo menos 20 músicas contando a história do relacionamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 130 },
-            { id: 'q133', title: 'Preparar uma refeição de três etapas para seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 70 },
+            { id: 'q133', title: 'Preparar uma refeição caprichada com pelo menos duas etapas', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 70 },
             { id: 'q134', title: 'Montar um mural físico ou digital de sonhos do casal', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 90 },
             { id: 'q135', title: 'Dedicar duas horas a aprender ou praticar um hobby do seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 110 },
-            { id: 'q136', title: 'Planejar um final de semana especial com opções de atividades e orçamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 130 },
+            { id: 'q136', title: 'Planejar um dia especial de fim de semana com opções de atividades e orçamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 130 },
             { id: 'q137', title: 'Escrever uma carta sobre como o relacionamento mudou você', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 70 },
             { id: 'q138', title: 'Criar um quiz personalizado sobre a história de vocês e jogar juntos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 90 },
             { id: 'q139', title: 'Organizar uma sessão de fotos do casal feita por vocês mesmos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 110 },
-            { id: 'q140', title: 'Preparar cinco pequenas surpresas distribuídas ao longo do dia', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 130 },
+            { id: 'q140', title: 'Preparar três pequenas surpresas distribuídas ao longo do dia', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 130 },
             { id: 'q141', title: 'Planejar uma experiência romântica sem gastar dinheiro, mas com pelo menos três etapas', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 70 },
             { id: 'q142', title: 'Criar uma lista de 30 coisas que ainda querem viver juntos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 90 },
             { id: 'q143', title: 'Fazer uma noite em que você cuide de todos os detalhes para seu amor descansar', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 110 },
             { id: 'q144', title: 'Organizar uma atividade que ajude vocês a aprender algo novo juntos', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 130 },
-            { id: 'q145', title: 'Criar uma retrospectiva completa do último ano ou período importante do casal', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 70 },
-            { id: 'q146', title: 'Planejar uma surpresa que envolva o lugar favorito do seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 90 },
+            { id: 'q145', title: 'Criar uma retrospectiva curta com cinco momentos importantes do relacionamento', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 70 },
+            { id: 'q146', title: 'Planejar uma surpresa simples inspirada em um lugar ou atividade favorita do seu amor', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 80, xp: 90 },
             { id: 'q147', title: 'Montar um calendário com ideias de momentos a dois para o próximo mês', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 100, xp: 110 },
             { id: 'q148', title: 'Ter uma conversa estruturada sobre o futuro e registrar três decisões do casal', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 120, xp: 130 },
             { id: 'q149', title: 'Criar um presente artesanal ou digital totalmente personalizado', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 140, xp: 70 },
-            { id: 'q150', title: 'Realizar uma experiência que esteja há muito tempo na lista de desejos de vocês', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 90 },
+            { id: 'q150', title: 'Escolher uma experiência antiga da lista de desejos e dar o primeiro passo para realizá-la', difficulty: 'hard', difficultyLabel: 'Difícil', reward: 160, xp: 90 },
         ];
 
         const hashDailySeed = str => {
@@ -709,9 +709,40 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             updateDailyQuestTimer();
             if (!dailyQuestTimerInterval) dailyQuestTimerInterval = setInterval(updateDailyQuestTimer, 1000);
         };
+
+        let streakCountdownInterval = null;
+        const updateHomeStreakCountdown = () => {
+            const el = document.getElementById('home-streak-countdown');
+            if (!el) return;
+            const remaining = getTimeUntilNextDay();
+            const streakNow = getStreakData(coupleData);
+            if (streakNow.bothChecked) {
+                el.textContent = 'SEGURA 🔥';
+            } else {
+                el.textContent = formatDailyQuestCountdown(remaining);
+            }
+            const box = el.closest('.elo-streak-countdown');
+            if (box) box.classList.toggle('urgent', !streakNow.bothChecked && remaining <= 3*60*60*1000);
+        };
+        const stopHomeStreakCountdown = () => {
+            if (streakCountdownInterval) {
+                clearInterval(streakCountdownInterval);
+                streakCountdownInterval = null;
+            }
+        };
+        const startHomeStreakCountdown = () => {
+            if (window.activeTab !== 'home' || document.hidden) return;
+            updateHomeStreakCountdown();
+            if (!streakCountdownInterval) streakCountdownInterval = setInterval(updateHomeStreakCountdown,1000);
+        };
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) stopDailyQuestTimer();
-            else if (window.activeTab === 'quests') startDailyQuestTimer();
+            if (document.hidden) {
+                stopDailyQuestTimer();
+                stopHomeStreakCountdown();
+            } else {
+                if (window.activeTab === 'quests') startDailyQuestTimer();
+                if (window.activeTab === 'home') startHomeStreakCountdown();
+            }
         });
 
         // --- SISTEMA LEGADO (SVG MANUAL) MANTIDO PARA RETROCOMPATIBILIDADE ---
@@ -1718,6 +1749,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             } finally { document.getElementById('loading-screen').classList.add('hidden'); }
         };
         const STREAK_REWARDS = {7:100,14:200,30:500,50:800,100:2000,180:5000,365:10000};
+        const getNextStreakReward = current => {
+            const next = Object.keys(STREAK_REWARDS).map(Number).sort((a,b)=>a-b).find(v=>v>Number(current||0));
+            return next ? {days:next,reward:STREAK_REWARDS[next]} : null;
+        };
         const grantStreakMilestone = async (streakValue) => {
             const reward = STREAK_REWARDS[streakValue];
             if (!reward) return;
@@ -4192,7 +4227,9 @@ window.checkInToday = async (buttonEl = null) => {
                 }
             });
         };
-        const centerActiveStoreCategory = (smooth = true) => {
+                let storeSortMode = 'recommended';
+
+const centerActiveStoreCategory = (smooth = true) => {
             requestAnimationFrame(() => {
                 const active = document.querySelector('[data-store-category].is-active-store-category');
                 if (!active) return;
@@ -4210,6 +4247,11 @@ window.checkInToday = async (buttonEl = null) => {
             storeCategoryFilter = cat;
             updateUI();
             centerActiveStoreCategory(true);
+        };
+        window.setStoreSort = mode => {
+            storeSortMode = ['recommended','price_asc','price_desc','alpha'].includes(mode) ? mode : 'recommended';
+            updateUI();
+            centerActiveStoreCategory(false);
         };
         let storeSearchFrame = 0;
         const applyStoreSearch = () => {
@@ -4986,6 +5028,9 @@ window.checkInToday = async (buttonEl = null) => {
                 const nextQuest = todaysQuests.find(q => !coupleData.quests?.[`${q.instanceId}_${currentUser.uid}`]) || null;
                 const nextMilestone = getNextMilestone(streak.current || 0);
                 const streakProgress = Math.min(100, Math.max(0, ((streak.current || 0) / nextMilestone) * 100));
+                const nextStreakReward = getNextStreakReward(streak.current || 0);
+                const streakRemainingMs = getTimeUntilNextDay();
+                const streakUrgent = streakRemainingMs <= 3*60*60*1000;
                 const partnerCheckedToday = partnerData?.lastCheckInDate === today;
                 const relationshipDays = getRelationshipDays(coupleData);
                 const todayMood = coupleData?.moodCheckins?.[currentUser.uid]?.date===new Date().toISOString().slice(0,10)?coupleData.moodCheckins[currentUser.uid]:null;
@@ -5071,13 +5116,17 @@ window.checkInToday = async (buttonEl = null) => {
 
                         <!-- 3. CHAMA -->
                         ${partnerData ? `
-                        <section class="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-lg">
+                        <section id="elo-streak-card" class="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-lg">
                             <div class="flex items-center justify-between gap-3 mb-4">
                                 <div><p class="text-[10px] uppercase tracking-[0.2em] font-black text-orange-400">Chama do casal</p><h3 class="text-3xl font-black text-white flex items-center gap-2 mt-1"><i class="ph-fill ph-fire text-orange-500"></i>${streak.current || 0}<span class="text-sm text-slate-500 mt-2">dias</span></h3></div>
                                 <div class="text-right"><p class="text-[9px] uppercase font-black text-slate-500">Recorde</p><p class="text-lg font-black text-pink-400">${streak.longest || 0}</p></div>
                             </div>
+                            <div class="elo-streak-countdown ${streakUrgent && !streak.bothChecked ? 'urgent' : ''}">
+                                <div><p class="text-[9px] uppercase tracking-widest font-black text-slate-500">${streak.bothChecked ? 'Status de hoje' : 'Tempo para manter a chama'}</p><p class="text-[10px] text-slate-400 mt-0.5">${streak.bothChecked ? 'Os dois fizeram a parte de hoje ❤️' : 'Os dois precisam concluir antes da virada do dia.'}</p></div>
+                                <strong id="home-streak-countdown">${streak.bothChecked ? 'SEGURA 🔥' : formatDailyQuestCountdown(streakRemainingMs)}</strong>
+                            </div>
                             <div class="h-2 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 rounded-full" style="width:${streakProgress}%"></div></div>
-                            <div class="flex justify-between text-[9px] font-bold text-slate-500 mb-4"><span>Agora: ${streak.current || 0}</span><span>Próximo marco: ${nextMilestone}</span></div>
+                            <div class="elo-streak-milestone mb-4"><span>Agora: ${streak.current || 0} dias</span><span>${nextStreakReward ? `Próximo prêmio: ${nextStreakReward.days} dias · +${nextStreakReward.reward} Coins` : 'Todos os marcos principais alcançados 🏆'}</span></div>
                             <div class="grid grid-cols-2 gap-2 mb-4">
                                 <div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-[9px] uppercase font-black text-slate-500">${escapeHTML(myData.name || 'Você')}</p><p class="text-sm font-black ${myCheckedToday ? 'text-emerald-400' : 'text-amber-400'}">${myCheckedToday ? '✓ Fez hoje' : '○ Falta fazer'}</p></div>
                                 <div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-[9px] uppercase font-black text-slate-500">${escapeHTML(partnerData.name)}</p><p class="text-sm font-black ${partnerCheckedToday ? 'text-emerald-400' : 'text-slate-400'}">${partnerCheckedToday ? '✓ Fez hoje' : '○ Ainda não'}</p></div>
@@ -5126,7 +5175,14 @@ window.checkInToday = async (buttonEl = null) => {
                     {id:'epicos', icon:'crown', name:'Épicos'}
                 ];
                 const q = String(storeSearchQuery || '').toLowerCase();
-                const categoryStoreItems = STORE_ITEMS.filter(item => storeCategoryFilter === 'todos' || item.category === storeCategoryFilter);
+                const categoryStoreItems = STORE_ITEMS
+                    .filter(item => storeCategoryFilter === 'todos' || item.category === storeCategoryFilter)
+                    .sort((a,b) => {
+                        if (storeSortMode === 'price_asc') return a.price-b.price;
+                        if (storeSortMode === 'price_desc') return b.price-a.price;
+                        if (storeSortMode === 'alpha') return a.title.localeCompare(b.title,'pt-BR');
+                        return Number(a.id)-Number(b.id);
+                    });
                 const initialVisibleCount = categoryStoreItems.filter(item => {
                     const categoryName = STORE_CATEGORY_INFO[item.category]?.name || item.category;
                     return !q || `${item.title} ${item.desc} ${categoryName}`.toLowerCase().includes(q);
@@ -5139,10 +5195,18 @@ window.checkInToday = async (buttonEl = null) => {
                                 <div><p class="text-[10px] uppercase tracking-widest font-black text-purple-400">Loja do Elo</p><h2 class="text-xl font-black text-white">Escolha seu próximo mimo</h2></div>
                                 <div class="text-right"><p class="text-[9px] uppercase font-black text-slate-500">Seu saldo</p><p class="text-sm font-black text-yellow-400"><i class="ph-fill ph-coin"></i> ${getUserCoins(coupleData,currentUser.uid).toLocaleString('pt-BR')}</p></div>
                             </div>
-                            <div class="relative">
-                                <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                                <input id="store-search-input" value="${escapeHTML(storeSearchQuery)}" oninput="setStoreSearch(this.value)" placeholder="Pesquisar por nome, efeito ou categoria..." class="w-full bg-slate-900 border border-slate-800 focus:border-purple-500/70 outline-none rounded-2xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-slate-600">
-                                <button id="store-search-clear" onclick="clearStoreSearch()" class="${storeSearchQuery ? '' : 'hidden '}absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-800 text-slate-400 grid place-items-center"><i class="ph-bold ph-x"></i></button>
+                            <div class="elo-store-toolbar">
+                                <div class="relative flex-1 min-w-0">
+                                    <i class="ph-bold ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                    <input id="store-search-input" value="${escapeHTML(storeSearchQuery)}" oninput="setStoreSearch(this.value)" placeholder="Pesquisar por nome, efeito ou categoria..." class="w-full bg-slate-900 border border-slate-800 focus:border-purple-500/70 outline-none rounded-2xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-slate-600">
+                                    <button id="store-search-clear" onclick="clearStoreSearch()" class="${storeSearchQuery ? '' : 'hidden '}absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-800 text-slate-400 grid place-items-center"><i class="ph-bold ph-x"></i></button>
+                                </div>
+                                <select class="elo-store-sort" onchange="setStoreSort(this.value)" aria-label="Ordenar itens da loja">
+                                    <option value="recommended" ${storeSortMode==='recommended'?'selected':''}>Recomendados</option>
+                                    <option value="price_asc" ${storeSortMode==='price_asc'?'selected':''}>Menor preço</option>
+                                    <option value="price_desc" ${storeSortMode==='price_desc'?'selected':''}>Maior preço</option>
+                                    <option value="alpha" ${storeSortMode==='alpha'?'selected':''}>A–Z</option>
+                                </select>
                             </div>
                             <div id="store-category-rail" class="flex gap-2 overflow-x-auto pb-1 px-1 hide-scrollbar scroll-smooth">
                                 ${cats.map(c => `
@@ -5156,7 +5220,7 @@ window.checkInToday = async (buttonEl = null) => {
                                 <p class="text-[9px] text-slate-600">Toque no item para ver como funciona</p>
                             </div>
                         </div>
-                        <div class="flex-1 overflow-y-auto space-y-2.5 hide-scrollbar pb-5 pr-0.5">
+                        <div class="elo-store-results flex-1 overflow-y-auto space-y-2.5 hide-scrollbar pb-5 pr-0.5">
                             ${categoryStoreItems.map(item => {
                                 const categoryName = STORE_CATEGORY_INFO[item.category]?.name || item.category;
                                 const searchText = `${item.title} ${item.desc} ${categoryName}`.toLowerCase();
@@ -5192,7 +5256,7 @@ window.checkInToday = async (buttonEl = null) => {
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <h2 class="font-black text-lg flex items-center gap-2"><i class="ph-fill ph-target"></i> Missões Diárias</h2>
-                                <p class="text-xs text-white/80 mt-1">Suas missões são secretas e diferentes das do seu amor. Cumpra, peça aprovação e ganhe Elo Coins!</p><div class="flex flex-wrap gap-2 mt-2"><span class="text-[10px] font-black bg-black/20 border border-white/15 rounded-lg px-2 py-1">Nível ${getUserLevelInfo(coupleData,currentUser.uid).level} · ${getUserLevelInfo(coupleData,currentUser.uid).title}</span><span class="text-[10px] font-black bg-black/20 border border-white/15 rounded-lg px-2 py-1">${getMissionXP(coupleData, currentUser.uid)} XP</span><span class="text-[10px] font-black bg-black/20 border border-white/15 rounded-lg px-2 py-1">${getUserCoins(coupleData, currentUser.uid)} Coins</span></div>
+                                <p class="text-xs text-white/80 mt-1">Suas missões são secretas e diferentes das do seu amor. Na V36 priorizamos tarefas que cabem na rotina do dia e várias podem ser adaptadas à distância.</p><div class="flex flex-wrap gap-2 mt-2"><span class="text-[10px] font-black bg-black/20 border border-white/15 rounded-lg px-2 py-1">Nível ${getUserLevelInfo(coupleData,currentUser.uid).level} · ${getUserLevelInfo(coupleData,currentUser.uid).title}</span><span class="text-[10px] font-black bg-black/20 border border-white/15 rounded-lg px-2 py-1">${getMissionXP(coupleData, currentUser.uid)} XP</span><span class="text-[10px] font-black bg-black/20 border border-white/15 rounded-lg px-2 py-1">${getUserCoins(coupleData, currentUser.uid)} Coins</span></div>
                             </div>
                             <div class="shrink-0 bg-black/20 border border-white/20 rounded-xl px-3 py-2 text-center">
                                 <p class="text-[8px] uppercase tracking-widest font-black text-white/70">Novas em</p>
@@ -5363,7 +5427,8 @@ window.checkInToday = async (buttonEl = null) => {
                 return;
             }
             main.innerHTML = html;
-            if (window.activeTab === 'quests') startDailyQuestTimer();
+            if (window.activeTab === 'quests') startDailyQuestTimer(); else stopDailyQuestTimer();
+            if (window.activeTab === 'home') startHomeStreakCountdown(); else stopHomeStreakCountdown();
             if (window.activeTab === 'store') centerActiveStoreCategory(false);
             updateChatBadge();
             updateNotificationDot();
