@@ -1,0 +1,37 @@
+ELO V35.1 — Tailwind local + remoção do histórico
+
+ARQUIVOS PARA PUBLICAR NA RAIZ DO PROJETO:
+- index.html
+- app.js
+- styles.css
+- tailwind.css
+- sw.js
+- package.json
+- tailwind-input.css
+
+IMPORTANTE:
+O arquivo tailwind.css já está compilado e pronto. Portanto, esta versão pode ser publicada imediatamente.
+O npm é necessário somente para recompilar o Tailwind quando você alterar classes no HTML/JavaScript futuramente.
+
+NO SEU PC, UMA VEZ:
+1. Abra o terminal na pasta do projeto.
+2. Execute:
+   npm install
+
+DURANTE O DESENVOLVIMENTO:
+   npm run dev:css
+
+ANTES DE PUBLICAR UMA NOVA VERSÃO:
+   npm run build:css
+
+A cada nova versão do Elo:
+- mudar o número ?v= do app.js, styles.css e tailwind.css no index.html;
+- mudar CACHE no sw.js;
+- rodar npm run build:css antes de enviar ao GitHub.
+
+V35.1 usa:
+- assets: 35.1.0
+- CACHE: elo-v35-1-static-tailwind-no-history-20260825
+
+O histórico antigo `logs` é removido automaticamente do documento relationships/{coupleId}
+quando o Elo sincronizar pela primeira vez nesta versão.

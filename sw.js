@@ -1,340 +1,112 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-
-const CACHE = 'elo-v34-social-friends-base';
-
-const CORE = [
+const CACHE='elo-v35-1-static-tailwind-no-history-20260825';
+const CORE=[
   './',
   './index.html',
+  './app.js?v=35.1.0',
+  './tailwind.css?v=35.1.0',
+  './styles.css?v=35.1.0',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
 
-/* =========================================================
-   INSTALAÇÃO / CACHE
-   ========================================================= */
-
-self.addEventListener('install', e => {
+self.addEventListener('install',e=>{
   e.waitUntil(
-    caches
-      .open(CACHE)
-      .then(cache => cache.addAll(CORE))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c=>c.addAll(CORE))
+      .then(()=>self.skipWaiting())
   );
 });
-
-/* =========================================================
-   ATIVAÇÃO / LIMPEZA DE CACHE ANTIGO
-   ========================================================= */
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches
-      .keys()
-      .then(keys =>
-        Promise.all(
-          keys
-            .filter(key => key !== CACHE)
-            .map(key => caches.delete(key))
-        )
-      )
-      .then(() => self.clients.claim())
-  );
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
 });
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  const u=new URL(e.request.url);
+  if(u.origin!==location.origin)return;
 
-/* =========================================================
-   CARREGAMENTO DO APP
-   ========================================================= */
-
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-
-  const url = new URL(e.request.url);
-
-  // Não interfere em recursos externos.
-  if (url.origin !== location.origin) return;
-
-  /*
-   * Para navegação usamos NETWORK FIRST.
-   *
-   * Isso evita que o Elo fique preso em um index.html antigo
-   * depois de uma atualização.
-   */
-  if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request, {
-        cache: 'no-store'
-      })
-        .then(response => {
-          const copy = response.clone();
-
-          caches
-            .open(CACHE)
-            .then(cache =>
-              cache.put(
-                './index.html',
-                copy
-              )
-            );
-
-          return response;
-        })
-        .catch(() =>
-          caches.match('./index.html')
-        )
-    );
-
+  // Navegações usam network-first para novas versões do Elo aparecerem sem
+  // o usuário ficar preso ao HTML antigo do cache. Demais assets seguem cache-first.
+  if(e.request.mode==='navigate'){
+    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{
+      const copy=r.clone(); caches.open(CACHE).then(cache=>cache.put('./index.html',copy)); return r;
+    }).catch(()=>caches.match('./index.html')));
     return;
   }
-
-  /*
-   * Demais arquivos:
-   * CACHE FIRST.
-   */
-  e.respondWith(
-    caches
-      .match(e.request)
-      .then(cached => {
-        if (cached) {
-          return cached;
-        }
-
-        return fetch(e.request)
-          .then(response => {
-            const copy =
-              response.clone();
-
-            caches
-              .open(CACHE)
-              .then(cache =>
-                cache.put(
-                  e.request,
-                  copy
-                )
-              );
-
-            return response;
-          });
-      })
-  );
+  e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{
+    const copy=r.clone(); caches.open(CACHE).then(cache=>cache.put(e.request,copy)); return r;
+  })));
 });
 
-/* =========================================================
-   FIREBASE CLOUD MESSAGING
-   ========================================================= */
-
-importScripts(
-  'https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js'
-);
-
-importScripts(
-  'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js'
-);
+// Firebase Messaging uses this service worker when the PWA is in the background
+// or completely closed. The Cloudflare Worker sends the actual FCM message.
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey:
-    'AIzaSyAExc0XnqS2MjL3bTmvNNx2CnBbziiyJds',
-
-  authDomain:
-    'elo-app-82e6e.firebaseapp.com',
-
-  projectId:
-    'elo-app-82e6e',
-
-  storageBucket:
-    'elo-app-82e6e.firebasestorage.app',
-
-  messagingSenderId:
-    '107299510923',
-
-  appId:
-    '1:107299510923:web:eb9c8b550ba4ecb3bc528e'
+  apiKey: 'AIzaSyAExc0XnqS2MjL3bTmvNNx2CnBbziiyJds',
+  authDomain: 'elo-app-82e6e.firebaseapp.com',
+  projectId: 'elo-app-82e6e',
+  storageBucket: 'elo-app-82e6e.firebasestorage.app',
+  messagingSenderId: '107299510923',
+  appId: '1:107299510923:web:eb9c8b550ba4ecb3bc528e'
 });
 
-const messaging =
-  firebase.messaging();
+const messaging = firebase.messaging();
 
-/* =========================================================
-   PUSH EM SEGUNDO PLANO
-   ========================================================= */
+messaging.onBackgroundMessage(payload => {
+  // O Cloudflare Worker envia DATA-ONLY para impedir que o FCM/Chrome
+  // crie uma segunda notificação automaticamente.
+  const data = payload.data || {};
+  const title = data.title || 'Elo 💕';
+  const body = data.body || 'Você tem uma novidade do seu amor.';
+  const icon = './icons/icon-192.png';
 
-messaging.onBackgroundMessage(
-  payload => {
+  const notificationId =
+    data.notificationId ||
+    `${data.type || 'elo'}-${Date.now()}`;
 
-    /*
-     * O Cloudflare Worker envia DATA-ONLY.
-     *
-     * Assim o Chrome/FCM não cria uma segunda
-     * notificação automaticamente.
-     */
-    const data =
-      payload.data || {};
+  return self.registration.showNotification(title, {
+    body,
+    icon,
+    badge: icon,
 
-    const title =
-      data.title ||
-      'Elo 💕';
+    // Um identificador por notificação evita duplicação e permite que
+    // uma atualização real volte a alertar o usuário.
+    tag: `elo-${notificationId}`,
+    renotify: true,
 
-    const body =
-      data.body ||
-      'Você tem uma novidade do seu amor.';
+    // Melhor esforço para Android/Web Push. O SO ainda decide se exibirá
+    // banner/heads-up conforme as configurações do canal do navegador/PWA.
+    silent: false,
+    vibrate: [220, 100, 220],
+    requireInteraction: false,
+    timestamp: Date.now(),
 
-    const icon =
-      './icons/icon-192.png';
-
-    const notificationId =
-      data.notificationId ||
-      `${
-        data.type ||
-        'elo'
-      }-${Date.now()}`;
-
-    return self.registration
-      .showNotification(
-        title,
-        {
-          body,
-
-          icon,
-
-          badge:
-            icon,
-
-          /*
-           * Um identificador diferente para
-           * cada notificação.
-           */
-          tag:
-            `elo-${notificationId}`,
-
-          /*
-           * Permite alertar novamente caso
-           * a mesma tag seja atualizada.
-           */
-          renotify:
-            true,
-
-          /*
-           * Melhor esforço para não ser
-           * considerada silenciosa.
-           *
-           * Android/Chrome ainda possuem
-           * controle final sobre som e
-           * heads-up.
-           */
-          silent:
-            false,
-
-          vibrate: [
-            220,
-            100,
-            220
-          ],
-
-          requireInteraction:
-            false,
-
-          timestamp:
-            Date.now(),
-
-          data: {
-            ...data,
-
-            url:
-              data.url ||
-              './index.html'
-          }
-        }
-      );
-  }
-);
-
-/* =========================================================
-   CLIQUE NA NOTIFICAÇÃO
-   ========================================================= */
-
-self.addEventListener(
-  'notificationclick',
-  event => {
-
-    event.notification.close();
-
-    const target =
-      event.notification
-        .data
-        ?.url ||
-      './index.html';
-
-    event.waitUntil(
-      (
-        async () => {
-
-          const clientsList =
-            await clients.matchAll({
-              type:
-                'window',
-
-              includeUncontrolled:
-                true
-            });
-
-          /*
-           * Se o Elo já estiver aberto,
-           * focamos a janela existente.
-           */
-          for (
-            const client
-            of clientsList
-          ) {
-
-            if (
-              'focus' in client
-            ) {
-
-              await client.focus();
-
-              try {
-                await client.navigate(
-                  target
-                );
-              } catch (_) {}
-
-              return;
-            }
-          }
-
-          /*
-           * Caso contrário,
-           * abre uma nova janela do Elo.
-           */
-          if (
-            clients.openWindow
-          ) {
-            await clients.openWindow(
-              target
-            );
-          }
-
-        }
-      )()
-    );
-  }
-);
-
-/* =========================================================
-   ATUALIZAÇÃO DO SERVICE WORKER
-   ========================================================= */
-
-self.addEventListener(
-  'message',
-  event => {
-
-    if (
-      event.data &&
-      event.data.type ===
-        'SKIP_WAITING'
-    ) {
-      self.skipWaiting();
+    data: {
+      ...data,
+      url: data.url || './index.html'
     }
+  });
+});
 
-  }
-);
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = event.notification.data?.url || './index.html';
+  event.waitUntil((async()=>{
+    const clientsList = await clients.matchAll({type:'window', includeUncontrolled:true});
+    for (const client of clientsList) {
+      if ('focus' in client) {
+        await client.focus();
+        try { await client.navigate(target); } catch (_) {}
+        return;
+      }
+    }
+    if (clients.openWindow) await clients.openWindow(target);
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
