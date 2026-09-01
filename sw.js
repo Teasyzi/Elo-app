@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-desktop-streak-store-missions-20260825';
+const CACHE = 'elo-v36-1-daily-missions-24h-audit-20260826';
 const CORE=[
   './',
   './index.html',

@@ -1,0 +1,19 @@
+ELO V36.1 — REVISÃO DAS MISSÕES DIÁRIAS
+
+- Revisadas individualmente as 150 missões.
+- Mantidos os mesmos IDs (q1 a q150), dificuldades, Coins e XP para preservar compatibilidade.
+- Missão diária agora segue uma regra fixa: precisa poder ser concluída e verificada antes do reset de 24h.
+- Removidos objetivos cuja conclusão real dependia de dias/semanas/meses futuros.
+- Várias missões presenciais ganharam alternativa à distância.
+- Missões fáceis: rápidas.
+- Missões médias: mais envolvimento, normalmente 15–45 min.
+- Missões difíceis: mais dedicação, mas ainda totalmente realizáveis no mesmo dia.
+- O fluxo de concluir / desfazer / recusar / aprovar não foi alterado.
+
+VERSÃO
+- app.js/styles.css/tailwind.css: v36.1.0
+- CACHE: elo-v36-1-daily-missions-24h-audit-20260826
+
+Não há novas classes Tailwind nesta versão, então o tailwind.css da V36 continua funcional.
+Ainda assim, se quiser manter o processo padrão antes do upload:
+npm run build:css
