@@ -1,10 +1,13 @@
 {
   "available": false,
-  "versionName": "0.1.0",
-  "versionCode": 1,
+  "versionName": "0.3.0",
+  "versionCode": 3,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Primeira versão Android experimental do Elo"
+    "Notificações nativas FCM no Android",
+    "Canais de alta importância para Chat, Presentes, Chama e Elo",
+    "Toque na notificação abre a área correspondente",
+    "Tokens Android separados dos tokens Web/PWA"
   ]
 }

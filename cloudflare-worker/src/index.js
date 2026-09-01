@@ -116,21 +116,29 @@ function unwrap(v){
   return null;
 }
 
-async function sendFcm(env, accessToken, token, notification, coupleId, notificationId, hideContent=false) {
+async function sendFcm(env, accessToken, tokenInfo, notification, coupleId, notificationId, hideContent=false) {
+  const token = tokenInfo.token;
+  const platform = String(tokenInfo.platform || 'web').toLowerCase();
+  const type = String(field(notification,'type') || 'system');
+  const title = hideContent ? 'Elo 💕' : String(field(notification,'title') || 'Elo 💕');
+  const body = hideContent ? 'Você recebeu uma nova notificação no Elo.' : String(field(notification,'body') || 'Você tem uma novidade do seu amor.');
+  const data = {title,body,type,notificationId:String(notificationId),coupleId:String(coupleId),url:'./index.html'};
+  const channelId = ['chat','chat_image','chat_audio','messages'].includes(type) ? 'elo_messages'
+    : ['vouchers','gift','gifts'].includes(type) ? 'elo_gifts'
+    : ['checkin','streak'].includes(type) ? 'elo_streak' : 'elo_general';
+  const message = {token,data};
+  if (platform === 'android' || platform === 'native') {
+    message.notification = {title,body};
+    message.android = {priority:'high',ttl:'86400s',notification:{channel_id:channelId,notification_priority:'PRIORITY_HIGH',default_sound:true,default_vibrate_timings:true}};
+  } else {
+    // Web/PWA permanece data-only para o service worker ser a única camada que exibe a notificação.
+    message.webpush = {headers:{Urgency:'high',TTL:'86400'},fcmOptions:{link:'./index.html'}};
+  }
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/messages:send`, {
-    method:'POST',
-    headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'},
-    body: JSON.stringify({message:{token,data:{
-      title: hideContent ? 'Elo 💕' : String(field(notification,'title') || 'Elo 💕'),
-      body: hideContent ? 'Você recebeu uma nova notificação no Elo.' : String(field(notification,'body') || 'Você tem uma novidade do seu amor.'),
-      type: String(field(notification,'type') || 'system'),
-      notificationId: String(notificationId),
-      coupleId: String(coupleId),
-      url: './index.html'
-    },webpush:{headers:{Urgency:'high',TTL:'86400'},fcmOptions:{link:'./index.html'}}}})
+    method:'POST', headers:{Authorization:`Bearer ${accessToken}`,'Content-Type':'application/json'}, body:JSON.stringify({message})
   });
   const detail = await res.text();
-  return {ok:res.ok,status:res.status,detail};
+  return {ok:res.ok,status:res.status,detail,platform};
 }
 
 export default {
@@ -175,7 +183,7 @@ export default {
       }
 
       const tokenDocs = await fsList(env, accessToken, `userProfiles/${encodeURIComponent(recipientUid)}/fcmTokens`);
-      const tokens = tokenDocs.map(d => field(d,'token')).filter(Boolean).slice(0,20);
+      const tokens = tokenDocs.map(d => ({token:field(d,'token'),platform:field(d,'platform') || 'web'})).filter(t=>t.token).slice(0,20);
       if (!tokens.length) {
         await fsPatchStatus(env, accessToken, coupleId, notificationId, 'no_token');
         return json(env,{ok:true,noTokens:true});
@@ -183,7 +191,7 @@ export default {
 
       const results = [];
       const hideContent = prefs.hideContent === true;
-      for (const token of tokens) results.push(await sendFcm(env, accessToken, token, notification, coupleId, notificationId, hideContent));
+      for (const tokenInfo of tokens) results.push(await sendFcm(env, accessToken, tokenInfo, notification, coupleId, notificationId, hideContent));
       const successes = results.filter(r=>r.ok).length;
       await fsPatchStatus(env, accessToken, coupleId, notificationId, successes ? 'sent' : 'failed');
       return json(env,{ok:successes>0,sent:successes,total:results.length}, successes ? 200 : 502);

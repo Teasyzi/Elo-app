@@ -15,6 +15,13 @@
       "providers": [
         "google.com"
       ]
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }

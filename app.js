@@ -26,6 +26,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         const ELO_PUSH_ENDPOINT = "https://elo-push.luisinfosu.workers.dev/push";
         const ELO_MEDIA_ENDPOINT = ELO_PUSH_ENDPOINT.replace(/\/push\/?$/, '');
         const messagingSupported = !isNativeApp && typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
+        const nativePush = isNativeApp ? window.Capacitor?.Plugins?.PushNotifications : null;
+        let nativePushInitialized = false;
+        let nativePushToken = '';
+        const NATIVE_PUSH_CHANNELS = {
+            messages: 'elo_messages', gifts: 'elo_gifts', streak: 'elo_streak', general: 'elo_general'
+        };
         const DEFAULT_NOTIFICATION_PREFS = {
             messages: true,
             quests: true,
@@ -1769,6 +1775,90 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         };
 
+        const stopSessionListeners = () => {
+            if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+            if (unsubscribeNotifications) { unsubscribeNotifications(); unsubscribeNotifications = null; }
+            if (unsubscribeMoments) { unsubscribeMoments(); unsubscribeMoments = null; }
+            if (unsubscribeSocialChat) { unsubscribeSocialChat(); unsubscribeSocialChat = null; }
+            if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+        };
+
+        const removeCurrentDevicePushToken = async () => {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            try {
+                if (isNativeApp && nativePushToken) {
+                    await deleteDoc(doc(db, 'userProfiles', uid, 'fcmTokens', encodeURIComponent(nativePushToken)));
+                    nativePushToken = '';
+                    return;
+                }
+                if (!isNativeApp && messagingSupported && Notification.permission === 'granted') {
+                    const registration = await navigator.serviceWorker.ready;
+                    const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
+                    if (token) await deleteDoc(doc(db, 'userProfiles', uid, 'fcmTokens', encodeURIComponent(token)));
+                }
+            } catch (e) {
+                // Logout nunca deve ficar bloqueado por falha ao limpar push.
+                console.warn('Não foi possível remover o token deste aparelho:', e);
+            }
+        };
+
+        const performAccountLogout = async () => {
+            if (!currentUser) return;
+            const loading = document.getElementById('loading-screen');
+            if (loading) loading.classList.remove('hidden');
+            try {
+                await removeCurrentDevicePushToken();
+                stopSessionListeners();
+
+                // O Elo permanece salvo no perfil Firebase. Limpamos apenas o estado
+                // deste aparelho para que outra conta não herde a sessão anterior.
+                localStorage.removeItem('elo_coupleId');
+                localStorage.removeItem('elo_pending_native_notification');
+                coupleId = null;
+                coupleData = null;
+                chatMessages = [];
+                chatInitialized = false;
+                chatRecentInitialized = false;
+                chatRenderedMessageIds = new Set();
+                chatUnreadCount = 0;
+                resetMomentsPagination();
+                socialView = 'list';
+                socialChatFriendId = '';
+                socialChatMessages = [];
+                socialChatReady = false;
+                lastRelationshipRenderSignature = '';
+
+                // No APK encerramos também o estado mantido pelo bridge nativo.
+                if (isNativeApp) {
+                    try {
+                        const nativeAuth = getNativeFirebaseAuth();
+                        if (nativeAuth?.signOut) await nativeAuth.signOut();
+                    } catch (e) { console.warn('Logout nativo:', e); }
+                }
+                await auth.signOut();
+                if (document.getElementById('profile-modal')) closeProfileModal();
+                if (document.getElementById('generic-modal')) closeGenericModal();
+                showToast('Você saiu da sua conta.', 'success');
+            } catch (e) {
+                console.error('Logout:', e);
+                showToast('Não foi possível sair da conta. Tente novamente.', 'error');
+            } finally {
+                if (loading) loading.classList.add('hidden');
+            }
+        };
+
+        window.logoutEloAccount = () => {
+            if (!currentUser) return;
+            openEloConfirm({
+                title: 'Sair da sua conta?',
+                message: 'Você será desconectado deste aparelho. Seu Elo, mensagens, Coins, Chama e progresso continuarão salvos para quando entrar novamente.',
+                confirmLabel: 'Sair da conta',
+                danger: false,
+                onConfirm: performAccountLogout
+            });
+        };
+
         window.createElo = async () => {
             if (!currentUser || currentUser.isAnonymous) {
                 return showToast('Entre com sua conta Google antes de criar um Elo.', 'error');
@@ -3341,7 +3431,131 @@ window.checkInToday = async (buttonEl = null) => {
             } catch (e) { console.error(e); showToast('Não foi possível salvar as preferências.', 'error'); }
         };
 
-        window.openPushDiagnostics=async()=>{openGenericModal(`<div class="space-y-4"><h3 class="text-xl font-black text-white">🩺 Diagnóstico de notificações</h3><div id="push-diag" class="text-sm text-slate-400">Verificando…</div><button onclick="enablePushNotifications();setTimeout(openPushDiagnostics,1200)" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Registrar/atualizar este aparelho</button></div>`);const rows=[];const add=(n,ok,d)=>rows.push([n,ok,d]);add('HTTPS',window.isSecureContext,window.isSecureContext?'OK':'Push exige HTTPS');add('Permissão','Notification'in window&&Notification.permission==='granted','Notification'in window?Notification.permission:'indisponível');let reg=null;try{reg=await navigator.serviceWorker.ready;add('Service Worker',!!reg.active,reg.active?'Ativo':'Inativo')}catch(e){add('Service Worker',false,e.message)}let token='';if(reg&&Notification.permission==='granted')try{token=await getToken(messaging,{vapidKey:FCM_VAPID_KEY,serviceWorkerRegistration:reg});add('Token FCM',!!token,token?token.slice(0,18)+'…':'Não gerado')}catch(e){add('Token FCM',false,e.message)}let saved=false;if(token&&currentUser)try{saved=(await getDoc(doc(db,'userProfiles',currentUser.uid,'fcmTokens',encodeURIComponent(token)))).exists()}catch(_){}add('Token no Firestore',saved,saved?'Registrado':'Não encontrado');const ep=!!ELO_PUSH_ENDPOINT&&!ELO_PUSH_ENDPOINT.includes('COLE_AQUI');if(!ep){add('Cloudflare Worker',false,'URL ainda não configurada')}else{try{const healthUrl=ELO_PUSH_ENDPOINT.replace(/\/push\/?$/,'/health');const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),5000);const hr=await fetch(healthUrl,{cache:'no-store',signal:ctl.signal});clearTimeout(tm);let hj=null;try{hj=await hr.json()}catch(_){}add('Cloudflare Worker',hr.ok&&hj?.ok===true,hr.ok&&hj?.ok===true?'Online e conectado ao Elo':`Health check HTTP ${hr.status}`)}catch(e){add('Cloudflare Worker',false,`Falha ao conectar: ${e?.message||'erro de rede'}`)}};const el=document.getElementById('push-diag');if(el)el.innerHTML=rows.map(r=>`<div class="flex justify-between gap-3 p-3 mb-2 rounded-xl bg-slate-900 border ${r[1]?'border-emerald-500/20':'border-rose-500/30'}"><div><b class="text-white">${escapeHTML(r[0])}</b><div class="text-[10px] text-slate-500 break-all">${escapeHTML(String(r[2]||''))}</div></div><span>${r[1]?'✅':'❌'}</span></div>`).join('')};
+        const nativeChannelForType = type => {
+            const t = String(type || '').toLowerCase();
+            if (['chat','chat_image','chat_audio','messages'].includes(t)) return NATIVE_PUSH_CHANNELS.messages;
+            if (['vouchers','gift','gifts'].includes(t)) return NATIVE_PUSH_CHANNELS.gifts;
+            if (['checkin','streak'].includes(t)) return NATIVE_PUSH_CHANNELS.streak;
+            return NATIVE_PUSH_CHANNELS.general;
+        };
+
+        const saveFcmToken = async (token, platform='web') => {
+            if (!token || !currentUser) return false;
+            await setDoc(doc(db, 'userProfiles', currentUser.uid, 'fcmTokens', encodeURIComponent(token)), {
+                token,
+                platform,
+                source: platform === 'android' ? 'capacitor-native' : 'firebase-web',
+                updatedAt: Date.now(),
+                userAgent: navigator.userAgent
+            }, {merge:true});
+            return true;
+        };
+
+        const routeNativeNotification = data => {
+            const type = String(data?.type || data?.notificationCategory || 'system').toLowerCase();
+            const target = ['chat','chat_image','chat_audio','messages','vouchers','gift','gifts'].includes(type) ? 'chat'
+                : ['quests','quest','mission'].includes(type) ? 'quests'
+                : ['friends','friend','social'].includes(type) ? 'friends'
+                : 'home';
+            if (currentUser && coupleId && typeof window.switchTab === 'function') {
+                window.switchTab(target);
+                if (target === 'home' && ['checkin','streak'].includes(type)) {
+                    setTimeout(()=>document.getElementById('elo-streak-card')?.scrollIntoView({behavior:'smooth',block:'center'}),180);
+                }
+                return true;
+            }
+            localStorage.setItem('elo_pending_native_notification', JSON.stringify({data, savedAt:Date.now()}));
+            return false;
+        };
+
+        const consumePendingNativeNotification = () => {
+            try {
+                const raw = localStorage.getItem('elo_pending_native_notification');
+                if (!raw) return;
+                const pending = JSON.parse(raw);
+                if (!pending?.data || Date.now() - Number(pending.savedAt||0) > 86400000) {
+                    localStorage.removeItem('elo_pending_native_notification'); return;
+                }
+                if (routeNativeNotification(pending.data)) localStorage.removeItem('elo_pending_native_notification');
+            } catch (_) { localStorage.removeItem('elo_pending_native_notification'); }
+        };
+
+        const createNativePushChannels = async () => {
+            if (!nativePush?.createChannel) return;
+            const channels = [
+                {id:NATIVE_PUSH_CHANNELS.messages,name:'Mensagens',description:'Mensagens do seu parceiro no Elo',importance:5,visibility:1,vibration:true},
+                {id:NATIVE_PUSH_CHANNELS.gifts,name:'Presentes e vouchers',description:'Presentes, vouchers e confirmações',importance:5,visibility:1,vibration:true},
+                {id:NATIVE_PUSH_CHANNELS.streak,name:'Chama',description:'Check-ins e alertas importantes da Chama',importance:5,visibility:1,vibration:true},
+                {id:NATIVE_PUSH_CHANNELS.general,name:'Elo',description:'Outras novidades importantes do Elo',importance:4,visibility:1,vibration:true}
+            ];
+            for (const channel of channels) {
+                try { await nativePush.createChannel(channel); } catch (e) { console.warn('Canal push:', channel.id, e); }
+            }
+        };
+
+        const initNativePush = async ({requestPermission=false, silent=false}={}) => {
+            if (!isNativeApp || !nativePush || nativePushInitialized) return false;
+            try {
+                await createNativePushChannels();
+                await nativePush.addListener('registration', async token => {
+                    nativePushToken = token?.value || '';
+                    if (nativePushToken && currentUser) {
+                        try { await saveFcmToken(nativePushToken, 'android'); }
+                        catch (e) { console.warn('Salvar token Android:', e); }
+                    }
+                });
+                await nativePush.addListener('registrationError', err => console.error('FCM Android:', err));
+                await nativePush.addListener('pushNotificationReceived', notification => {
+                    const data = notification?.data || {};
+                    if (window.activeTab === 'chat' && ['chat','chat_image','chat_audio'].includes(String(data.type||''))) return;
+                    showToast(`🔔 ${notification?.title || data.title || 'Elo'}${(notification?.body || data.body) ? ': '+(notification.body || data.body) : ''}`, 'info');
+                });
+                await nativePush.addListener('pushNotificationActionPerformed', action => {
+                    routeNativeNotification(action?.notification?.data || {});
+                });
+                let perm = await nativePush.checkPermissions();
+                if (perm.receive === 'prompt' && requestPermission) perm = await nativePush.requestPermissions();
+                if (perm.receive !== 'granted') {
+                    nativePushInitialized = false;
+                    if (!silent) showToast('Permissão de notificações não concedida.', 'info');
+                    return false;
+                }
+                nativePushInitialized = true;
+                await nativePush.register();
+                if (!silent) showToast('🔔 Notificações nativas ativadas!', 'success');
+                return true;
+            } catch (e) {
+                nativePushInitialized = false;
+                console.error('Push nativo:', e);
+                if (!silent) showToast('Não foi possível ativar as notificações nativas.', 'error');
+                return false;
+            }
+        };
+
+        window.openPushDiagnostics = async () => {
+            openGenericModal(`<div class="space-y-4"><h3 class="text-xl font-black text-white">🩺 Diagnóstico de notificações</h3><div id="push-diag" class="text-sm text-slate-400">Verificando…</div><button onclick="enablePushNotifications();setTimeout(openPushDiagnostics,1500)" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Registrar/atualizar este aparelho</button></div>`);
+            const rows=[]; const add=(n,ok,d)=>rows.push([n,ok,d]);
+            if (isNativeApp) {
+                add('Plataforma nativa', !!nativePush, nativePush ? `Android / ${nativePlatform}` : 'Plugin PushNotifications não carregado');
+                try {
+                    const perm = nativePush ? await nativePush.checkPermissions() : {receive:'indisponível'};
+                    add('Permissão Android', perm.receive === 'granted', perm.receive);
+                } catch(e) { add('Permissão Android', false, e.message); }
+                add('Token FCM Android', !!nativePushToken, nativePushToken ? nativePushToken.slice(0,18)+'…' : 'Abra/ative as notificações para registrar');
+                let saved=false;
+                if(nativePushToken&&currentUser) try{saved=(await getDoc(doc(db,'userProfiles',currentUser.uid,'fcmTokens',encodeURIComponent(nativePushToken)))).exists()}catch(_){}
+                add('Token no Firestore',saved,saved?'Android registrado':'Não encontrado');
+            } else {
+                add('HTTPS',window.isSecureContext,window.isSecureContext?'OK':'Push exige HTTPS');
+                add('Permissão','Notification'in window&&Notification.permission==='granted','Notification'in window?Notification.permission:'indisponível');
+                let reg=null; try{reg=await navigator.serviceWorker.ready;add('Service Worker',!!reg.active,reg.active?'Ativo':'Inativo')}catch(e){add('Service Worker',false,e.message)}
+                let token=''; if(reg&&Notification.permission==='granted')try{token=await getToken(messaging,{vapidKey:FCM_VAPID_KEY,serviceWorkerRegistration:reg});add('Token FCM Web',!!token,token?token.slice(0,18)+'…':'Não gerado')}catch(e){add('Token FCM Web',false,e.message)}
+                let saved=false;if(token&&currentUser)try{saved=(await getDoc(doc(db,'userProfiles',currentUser.uid,'fcmTokens',encodeURIComponent(token)))).exists()}catch(_){} add('Token no Firestore',saved,saved?'Web registrado':'Não encontrado');
+            }
+            const ep=!!ELO_PUSH_ENDPOINT&&!ELO_PUSH_ENDPOINT.includes('COLE_AQUI');
+            if(!ep){add('Cloudflare Worker',false,'URL ainda não configurada')}else{try{const healthUrl=ELO_PUSH_ENDPOINT.replace(/\/push\/?$/,'/health');const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),5000);const hr=await fetch(healthUrl,{cache:'no-store',signal:ctl.signal});clearTimeout(tm);let hj=null;try{hj=await hr.json()}catch(_){}add('Cloudflare Worker',hr.ok&&hj?.ok===true,hr.ok&&hj?.ok===true?'Online e conectado ao Elo':`Health check HTTP ${hr.status}`)}catch(e){add('Cloudflare Worker',false,`Falha ao conectar: ${e?.message||'erro de rede'}`)}}
+            const el=document.getElementById('push-diag');if(el)el.innerHTML=rows.map(r=>`<div class="flex justify-between gap-3 p-3 mb-2 rounded-xl bg-slate-900 border ${r[1]?'border-emerald-500/20':'border-rose-500/30'}"><div><b class="text-white">${escapeHTML(r[0])}</b><div class="text-[10px] text-slate-500 break-all">${escapeHTML(String(r[2]||''))}</div></div><span>${r[1]?'✅':'❌'}</span></div>`).join('');
+        };
 
         window.openNotificationSettings = () => {
             const p = {...DEFAULT_NOTIFICATION_PREFS, ...(window.notificationPrefs||{})};
@@ -3367,6 +3581,10 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
         window.enablePushNotifications = async () => {
+            if (isNativeApp) {
+                nativePushInitialized = false;
+                return initNativePush({requestPermission:true});
+            }
             if (!messagingSupported) return showToast('Este aparelho/navegador não suporta notificações push.', 'error');
             if (FCM_VAPID_KEY.includes('COLE_SUA')) return showToast('Configure a chave VAPID do Firebase antes de ativar as notificações.', 'info');
             try {
@@ -3376,7 +3594,7 @@ window.checkInToday = async (buttonEl = null) => {
                 const registration = await navigator.serviceWorker.ready;
                 const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
                 if (!token || !currentUser) throw new Error('Token FCM não disponível.');
-                await setDoc(doc(db, 'userProfiles', currentUser.uid, 'fcmTokens', encodeURIComponent(token)), { token, updatedAt: Date.now(), userAgent: navigator.userAgent }, {merge:true});
+                await saveFcmToken(token, 'web');
                 pushInitialized = true;
                 showToast('🔔 Notificações ativadas neste aparelho!', 'success');
             } catch (e) { console.error('FCM:', e); showToast('Não foi possível ativar as notificações. Verifique o FCM/VAPID.', 'error'); }
@@ -5843,6 +6061,7 @@ const centerActiveStoreCategory = (smooth = true) => {
             };
             updateGoogleAccountUI(currentUser);
             updateInviteUI();
+            if (u && isNativeApp) initNativePush({requestPermission:false, silent:true}).catch(()=>{});
 
             if (!u) {
                 coupleId = '';
@@ -5866,6 +6085,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                 const restored = await restoreCoupleFromProfile(u.uid);
                 if (restored && coupleId) {
                     setupSync();
+                    setTimeout(consumePendingNativeNotification, 500);
                     finishBoot();
                     return;
                 }

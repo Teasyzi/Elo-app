@@ -1,0 +1,9 @@
+Elo V36.4.1 — Conta / Logout
+
+- Adiciona “Sair da conta” no Perfil (PWA e APK).
+- Adiciona “Sair” no lobby quando uma conta Google já está conectada.
+- Logout NÃO apaga o Elo ou o progresso.
+- Limpa listeners e estado local da sessão.
+- Remove do Firestore o token FCM deste aparelho antes de sair, evitando notificações da conta anterior.
+- No APK também encerra o estado do FirebaseAuthentication nativo.
+- Novo cache do Service Worker e assets v36.4.1.
