@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "107299510923",
+    "project_id": "elo-app-82e6e",
+    "storage_bucket": "elo-app-82e6e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:107299510923:android:7ffb8bc42937e514bc528e",
+        "android_client_info": {
+          "package_name": "br.com.eloapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "107299510923-ak7cjh1rfpf21eo50e11t5fh8mjksm6c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.eloapp",
+            "certificate_hash": "fa5e22ec0fbc18644387f331bb64151f0902fdf1"
+          }
+        },
+        {
+          "client_id": "107299510923-k9mf02b6fgnm992t2c9jh8fr9hrlokcs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD19j3fDIQ0_boXWTvGEOMv5oibLeaAzfs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "107299510923-k9mf02b6fgnm992t2c9jh8fr9hrlokcs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

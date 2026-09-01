@@ -1,0 +1,9 @@
+Elo V36.2.2 — Chat histórico ≠ novas mensagens
+
+Correção:
+- Mensagens antigas carregadas ao subir o chat não aumentam mais o contador "novas mensagens".
+- O contador continua funcionando para mensagens realmente recebidas em tempo real enquanto o usuário está longe do final do chat.
+- A correção vale para PWA e APK porque ambos compartilham o mesmo app.js.
+
+Versão dos assets: 36.2.2
+CACHE: elo-v36-2-2-chat-history-unread-fix-20260901

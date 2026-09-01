@@ -1,0 +1,17 @@
+ELO V36.3 · AUDITORIA DE PRODUTO / UX
+
+- Presentes agora têm categoria visível na Loja.
+- Recomendados priorizam itens simples/úteis e presentes.
+- Buffs e Coringas sem mecânica real foram retirados da venda até serem implementados.
+- Loja ganhou atalho para Bolsa com badge de pendências.
+- Mobile passou de 6 para 5 destinos principais; Bolsa fica dentro da Loja.
+- Home removeu Chama duplicada do bloco “Hoje”; entrou atalho do Chat com não lidas.
+- Sinergia passa a exibir /100 e explicar o significado.
+- Presente virtual não exige texto: usa mensagem padrão se vazio.
+- Pesquisa do Chat ganhou interface do Elo e deixa claro que pesquisa mensagens carregadas.
+- Nossos Momentos ganhou prévia + legenda antes de salvar, sem prompt do navegador.
+- Exclusão de mensagem, remoção de amizade e alteração de data usam confirmação visual do Elo.
+- Onboarding: texto do apelido ficou mais claro.
+- Texto vazio da Bolsa corrigido.
+- Nome exibido do produto deixou de ser “RPG de Casal” e passou a “Elo — O espaço de vocês”.
+- Assets 36.3.0 e novo CACHE.

@@ -1,0 +1,18 @@
+# Node
+node_modules/
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+
+# Capacitor / plugins build
+**/build/
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db

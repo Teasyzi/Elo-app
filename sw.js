@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-2-store-chat-android-bridge-20260901';
+const CACHE = 'elo-v36-3-product-ux-audit-20260901';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.2.0',
-  './tailwind.css?v=36.2.0',
-  './styles.css?v=36.2.0',
+  './app.js?v=36.3.0',
+  './tailwind.css?v=36.3.0',
+  './styles.css?v=36.3.0',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
