@@ -32,6 +32,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         const NATIVE_PUSH_CHANNELS = {
             messages: 'elo_messages', gifts: 'elo_gifts', streak: 'elo_streak', general: 'elo_general'
         };
+        const nativeAvatarCacheSignatures = new Map();
+        const cacheNativeNotificationAvatars = async (users = {}) => {
+            if (!isNativeApp) return;
+            const avatarPlugin = window.Capacitor?.Plugins?.EloAvatar;
+            if (!avatarPlugin?.cacheAvatar) return;
+            for (const [uid, user] of Object.entries(users || {})) {
+                const photo = String(user?.photoUrl || '');
+                if (!uid || !photo) continue;
+                if (!photo.startsWith('data:image/') && !/^https:\/\//i.test(photo)) continue;
+                const signature = `${photo.length}:${photo.slice(0,48)}:${photo.slice(-24)}`;
+                if (nativeAvatarCacheSignatures.get(uid) === signature) continue;
+                try {
+                    await avatarPlugin.cacheAvatar({userId: uid, photo});
+                    nativeAvatarCacheSignatures.set(uid, signature);
+                } catch (error) {
+                    console.warn('Cache nativo de avatar:', error);
+                }
+            }
+        };
         const DEFAULT_NOTIFICATION_PREFS = {
             messages: true,
             quests: true,
@@ -3363,10 +3382,14 @@ window.checkInToday = async (buttonEl = null) => {
             try {
                 const senderProfile = coupleData?.users?.[currentUser.uid] || {};
                 const senderName = senderProfile.name || currentUser.displayName || 'Seu amor';
-                const rawSenderPhoto = senderProfile.photoUrl || currentUser.photoURL || '';
-                // Push remoto aceita URL http(s). Fotos personalizadas em base64 continuam no perfil,
-                // mas não são enviadas no payload do FCM para evitar exceder o limite da mensagem.
-                const senderPhotoUrl = /^https?:\/\//i.test(String(rawSenderPhoto || '')) ? String(rawSenderPhoto) : '';
+                const profilePhoto = String(senderProfile.photoUrl || '');
+                const googlePhoto = String(currentUser.photoURL || '');
+                // O FCM recebe apenas URL http(s). Se a foto personalizada do Elo for base64,
+                // usamos a foto Google como fallback remoto. A foto personalizada é cacheada
+                // nativamente nos aparelhos e usada primeiro pelo EloMessagingService.
+                const senderPhotoUrl = /^https?:\/\//i.test(profilePhoto)
+                    ? profilePhoto
+                    : (/^https?:\/\//i.test(googlePhoto) ? googlePhoto : '');
                 const notificationRef = await addDoc(collection(db, 'relationships', coupleId, 'notifications'), {
                     recipientUid,
                     senderUid: currentUser.uid,
@@ -5929,6 +5952,9 @@ const centerActiveStoreCategory = (smooth = true) => {
                                 moments: preservedMoments
                             };
                             const users = coupleData.users || {};
+                            // Cache local dos avatares para notificações Android. Isso inclui a foto
+                            // personalizada do Elo em data:image, que não cabe no payload do FCM.
+                            cacheNativeNotificationAvatars(users).catch(()=>{});
 
                             // Sincronização de foto movida do caminho crítico do login para o listener já aberto.
                             if (

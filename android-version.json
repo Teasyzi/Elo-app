@@ -1,12 +1,12 @@
 {
   "available": false,
-  "versionName": "0.3.2",
-  "versionCode": 5,
+  "versionName": "0.3.3",
+  "versionCode": 6,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Notificações Android em estilo de conversa",
-    "Avatar do remetente na notificação quando disponível",
-    "Nome e prévia da mensagem com visual nativo de mensageiro"
+    "Avatar personalizado do parceiro cacheado para notificações Android",
+    "Fallback automático para foto Google quando necessário",
+    "Avatar aplicado também como large icon para maior compatibilidade"
   ]
 }

@@ -17,6 +17,7 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 import java.io.InputStream;
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Map;
@@ -47,7 +48,10 @@ public class EloMessagingService extends FirebaseMessagingService {
         String coupleId = clean(data.get("coupleId"), "");
 
         boolean isConversation = isConversationType(type);
-        Bitmap avatar = loadHttpsBitmap(senderPhotoUrl);
+        // A foto personalizada do perfil é cacheada pelo app no aparelho do parceiro.
+        // Ela tem prioridade sobre a URL remota (ex.: foto Google).
+        Bitmap avatar = loadCachedAvatar(data.get("senderUid"));
+        if (avatar == null) avatar = loadHttpsBitmap(senderPhotoUrl);
 
         Intent openIntent = new Intent(this, MainActivity.class);
         openIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -86,6 +90,9 @@ public class EloMessagingService extends FirebaseMessagingService {
                 .setGroupConversation(false)
                 .addMessage(new NotificationCompat.MessagingStyle.Message(body, timestamp, sender));
             builder.setStyle(style).addPerson(sender);
+            // Alguns fabricantes só mostram Person.icon ao expandir. O large icon aumenta
+            // a chance do avatar aparecer também no layout compacto sem substituir o small icon do Elo.
+            if (avatar != null) builder.setLargeIcon(avatar);
         } else if (avatar != null) {
             // Presentes e demais eventos ainda podem exibir o avatar como large icon.
             builder.setLargeIcon(avatar);
@@ -106,6 +113,17 @@ public class EloMessagingService extends FirebaseMessagingService {
         if ("gift".equals(type) || "gifts".equals(type) || "vouchers".equals(type)) return "elo_gifts";
         if ("checkin".equals(type) || "streak".equals(type)) return "elo_streak";
         return DEFAULT_CHANNEL;
+    }
+
+    private Bitmap loadCachedAvatar(String senderUid) {
+        if (senderUid == null || senderUid.trim().isEmpty()) return null;
+        try {
+            File file = EloAvatarPlugin.avatarFile(this, senderUid.trim());
+            if (!file.exists() || file.length() <= 0) return null;
+            return BitmapFactory.decodeFile(file.getAbsolutePath());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     private Bitmap loadHttpsBitmap(String value) {

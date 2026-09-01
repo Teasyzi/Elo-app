@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-4-3-messaging-style-20260901';
+const CACHE = 'elo-v36-4-4-native-avatar-cache-20260901';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.4.3',
-  './tailwind.css?v=36.4.3',
-  './styles.css?v=36.4.3',
+  './app.js?v=36.4.4',
+  './tailwind.css?v=36.4.4',
+  './styles.css?v=36.4.4',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

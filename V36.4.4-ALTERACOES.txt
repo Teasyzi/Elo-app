@@ -1,0 +1,11 @@
+Elo V36.4.4 / APK 0.3.3
+
+- Corrige avatar das notificações Android.
+- Fotos personalizadas do perfil (data:image) agora são cacheadas localmente no APK para cada usuário do Elo.
+- EloMessagingService prioriza o avatar personalizado cacheado e usa URL HTTPS como fallback.
+- Foto Google é usada como fallback remoto quando o perfil personalizado está em base64.
+- MessagingStyle mantém Person.icon e também usa largeIcon para aumentar compatibilidade entre fabricantes.
+- Inclui explicitamente firebase-messaging:25.0.1 no app/build.gradle.
+- versionCode 6 / versionName 0.3.3.
+- Assets web 36.4.4.
+- CACHE: elo-v36-4-4-native-avatar-cache-20260901.
