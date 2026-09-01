@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-1-daily-missions-24h-audit-20260826';
+const CACHE = 'elo-v36-2-store-chat-android-bridge-20260901';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=35.1.0',
-  './tailwind.css?v=35.1.0',
-  './styles.css?v=35.1.0',
+  './app.js?v=36.2.0',
+  './tailwind.css?v=36.2.0',
+  './styles.css?v=36.2.0',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
@@ -24,6 +24,8 @@ self.addEventListener('activate',e=>{
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   const u=new URL(e.request.url);
+  // Manifesto de versão do APK nunca deve ficar preso no cache do PWA.
+  if(u.pathname.endsWith('/android-version.json')){e.respondWith(fetch(e.request,{cache:'no-store'}));return;}
   if(u.origin!==location.origin)return;
 
   // Navegações usam network-first para novas versões do Elo aparecerem sem

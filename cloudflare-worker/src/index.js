@@ -127,7 +127,7 @@ async function sendFcm(env, accessToken, token, notification, coupleId, notifica
       notificationId: String(notificationId),
       coupleId: String(coupleId),
       url: './index.html'
-    },webpush:{fcmOptions:{link:'./index.html'}}}})
+    },webpush:{headers:{Urgency:'high',TTL:'86400'},fcmOptions:{link:'./index.html'}}}})
   });
   const detail = await res.text();
   return {ok:res.ok,status:res.status,detail};

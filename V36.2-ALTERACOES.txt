@@ -1,0 +1,37 @@
+ELO V36.2 — LOJA, CHAT, JOGO RÁPIDO E PONTE ANDROID
+
+JOGO RÁPIDO
+- O modo 'Quem é mais provável?' agora usa os nomes reais do casal no lugar de 'Você' e 'Seu amor'.
+- Resultados e estado de espera também mostram os nomes dos perfis.
+- Rodadas antigas com 'Você/Seu amor' continuam compatíveis.
+
+LOJA / COMPRA
+- Compra de vouchers agora tem animação de conquista e vibração curta quando suportada.
+- Criada categoria Presentes com 7 presentes virtuais.
+- Presentes virtuais permitem escrever mensagem e são enviados imediatamente ao Chat.
+- Coins são verificadas e descontadas em transação do Firestore.
+
+CHAT / VOUCHERS
+- Ao usar um voucher real, ele cria um card de pendência no Chat.
+- O parceiro que deve o item pode marcar como concluído.
+- O beneficiário confirma ou escolhe 'Ainda não'.
+- Se não confirmar, o voucher volta para Pendente.
+- Só após confirmação ele fica realmente usado.
+- Bolsa ganhou área de pendências ('Você está devendo' / 'Seu parceiro está devendo').
+
+CHAT / PRESENTES
+- Cards especiais para Rosa, Carta Digital, Chocolate, Buquê, Ursinho, Coração e Chuva de Corações.
+- Mensagem personalizada fica salva junto ao presente.
+
+ANDROID
+- Preparação para Capacitor 8.
+- capacitor.config.json com appId br.com.eloapp.
+- Scripts npm para preparar/sincronizar/abrir Android.
+- android-version.json preparado para distribuição e futuras atualizações do APK.
+- O Firebase Web Messaging é desativado dentro do runtime nativo para não competir com o futuro FCM Android.
+- Web Push recebeu Urgency=high no Cloudflare Worker (melhor esforço; Chrome/Android ainda controlam som/heads-up).
+- Ainda NÃO incluímos FCM nativo nem APK nesta etapa.
+
+VERSÃO/CACHE
+- assets v36.2.0
+- CACHE: elo-v36-2-store-chat-android-bridge-20260901

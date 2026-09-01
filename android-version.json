@@ -1,0 +1,10 @@
+{
+  "available": false,
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "minimumVersionCode": 1,
+  "downloadUrl": "",
+  "changes": [
+    "Primeira versão Android experimental do Elo"
+  ]
+}

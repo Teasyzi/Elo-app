@@ -15,14 +15,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        const messaging = getMessaging(app);
+        const isNativeApp = !!window.Capacitor?.isNativePlatform?.();
+        const nativePlatform = isNativeApp ? (window.Capacitor.getPlatform?.() || 'native') : 'web';
+        window.eloRuntime = { isNativeApp, platform: nativePlatform, isPWA: !isNativeApp && (window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone === true) };
+        const messaging = isNativeApp ? null : getMessaging(app);
         // Gere a chave pública VAPID em Firebase Console > Configurações do projeto > Cloud Messaging > Configuração da Web.
         const FCM_VAPID_KEY = "BApsBO4ttWBy3UNlw-slGfsOejxggS41iSv3W54XFtA6UlbV60bdW1q9htRGKRlif3iNZMYNlnctdwo-ltRMQq4";
         // V17: endpoint gratuito do Cloudflare Worker que dispara o FCM sem Firebase Functions/Blaze.
         // Após publicar cloudflare-worker/, cole aqui a URL https://SEU-WORKER.workers.dev/push
         const ELO_PUSH_ENDPOINT = "https://elo-push.luisinfosu.workers.dev/push";
         const ELO_MEDIA_ENDPOINT = ELO_PUSH_ENDPOINT.replace(/\/push\/?$/, '');
-        const messagingSupported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
+        const messagingSupported = !isNativeApp && typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator;
         const DEFAULT_NOTIFICATION_PREFS = {
             messages: true,
             quests: true,
@@ -107,6 +110,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let pushInitialized = false;
         let foregroundPushInitialized = false;
         let googlePhotoSyncedForCouple = '';
+        // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
+        // android-version.json no mesmo site com available=true e a URL do APK.
+        const ELO_ANDROID_VERSION = { versionName:'0.0.0-web', versionCode:0 };
+        const getAndroidVersionManifestUrl = () => {
+            if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
+            // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
+            return localStorage.getItem('elo_android_manifest_url') || '';
+        };
+        const compareAndroidVersion = async ({silent=true}={}) => {
+            const manifestUrl=getAndroidVersionManifestUrl(); if(!manifestUrl)return null;
+            try{const sep=manifestUrl.includes('?')?'&':'?';const r=await fetch(`${manifestUrl}${sep}t=${Date.now()}`,{cache:'no-store'});if(!r.ok)return null;const info=await r.json();if(!info?.available)return info;
+                if(isNativeApp&&Number(info.versionCode||0)>Number(ELO_ANDROID_VERSION.versionCode||0)){
+                    const required=Number(ELO_ANDROID_VERSION.versionCode||0)<Number(info.minimumVersionCode||0);
+                    openGenericModal(`<div class="space-y-4"><div class="text-4xl">📲</div><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">Atualização do Elo</p><h3 class="text-xl font-black text-white">Versão ${escapeHTML(info.versionName||'nova')} disponível</h3></div>${Array.isArray(info.changes)&&info.changes.length?`<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300 space-y-1">${info.changes.map(x=>`<p>• ${escapeHTML(x)}</p>`).join('')}</div>`:''}<a href="${escapeHTML(info.downloadUrl||'#')}" target="_blank" rel="noopener" class="block text-center w-full py-3.5 rounded-2xl bg-pink-600 text-white font-black">Baixar atualização</a>${required?'':'<button onclick="closeGenericModal()" class="w-full py-3 rounded-xl text-slate-400 text-xs font-black">Agora não</button>'}</div>`);
+                }
+                return info;
+            }catch(e){if(!silent)showToast('Não foi possível verificar atualizações.','error');return null}
+        };
+        window.compareAndroidVersion=compareAndroidVersion;
         const chatReadWritePending = new Set();
         window.currentAvatarSeed = ''; // Seed global para a interface DiceBear
 
@@ -419,13 +441,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             return { id, category, title, desc, price: parseInt(price) };
         });
         const storeSeen = new Set();
-        const STORE_ITEMS = parsedStoreItems.filter(item => {
+        const baseStoreItems = parsedStoreItems.filter(item => {
             const key = `${item.title.trim().toLowerCase()}|${item.desc.trim().toLowerCase()}|${item.price}`;
             if (storeSeen.has(key)) return false;
             storeSeen.add(key);
             return true;
         });
+        // V36.2 · Presentes virtuais são enviados imediatamente pelo Chat e não entram na Bolsa.
+        const VIRTUAL_GIFTS = [
+            {id:'301',category:'presentes',title:'Rosa Virtual',desc:'Envie uma rosa com uma mensagem personalizada.',price:100,delivery:'chat_gift',emoji:'🌹',giftKind:'rose'},
+            {id:'302',category:'presentes',title:'Carta Digital',desc:'Uma carta de amor que chega em um envelope especial no Chat.',price:250,delivery:'chat_gift',emoji:'💌',giftKind:'letter'},
+            {id:'303',category:'presentes',title:'Chocolate Virtual',desc:'Um chocolate virtual acompanhado da sua mensagem.',price:300,delivery:'chat_gift',emoji:'🍫',giftKind:'chocolate'},
+            {id:'304',category:'presentes',title:'Buquê Virtual',desc:'Um buquê animado para marcar um momento especial.',price:500,delivery:'chat_gift',emoji:'💐',giftKind:'bouquet'},
+            {id:'305',category:'presentes',title:'Ursinho Virtual',desc:'Um ursinho carinhoso enviado diretamente no Chat.',price:750,delivery:'chat_gift',emoji:'🧸',giftKind:'teddy'},
+            {id:'306',category:'presentes',title:'Coração Especial',desc:'Um coração especial com destaque maior no Chat.',price:1000,delivery:'chat_gift',emoji:'💖',giftKind:'heart'},
+            {id:'307',category:'presentes',title:'Chuva de Corações',desc:'Um presente premium com uma chuva de corações no Chat.',price:1500,delivery:'chat_gift',emoji:'💕',giftKind:'heart_rain'}
+        ];
+        const STORE_ITEMS = [...VIRTUAL_GIFTS, ...baseStoreItems];
         const STORE_CATEGORY_INFO = {
+            presentes:{name:'Presentes', icon:'heart', purpose:'um presente virtual enviado imediatamente ao parceiro pelo Chat com uma mensagem personalizada'},
             tarefas:{name:'Tarefas', icon:'broom', purpose:'um combinado prático para aliviar ou trocar uma tarefa do dia a dia'},
             mimos:{name:'Mimos', icon:'gift', purpose:'um gesto de carinho que o parceiro realiza depois que o voucher é ativado'},
             experiencias:{name:'Rolês', icon:'ticket', purpose:'uma experiência ou programa para vocês realizarem juntos'},
@@ -438,17 +472,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         const getStoreItem = id => STORE_ITEMS.find(item => String(item.id) === String(id));
         const getStoreItemGuide = item => {
             const cat = STORE_CATEGORY_INFO[item.category] || {name:'Item', purpose:'uma recompensa para a dinâmica do casal'};
-            const activation = item.category === 'buffs'
+            const activation = item.delivery === 'chat_gift'
+                ? 'Ao comprar, você escreve uma mensagem. O presente é entregue imediatamente no Chat do casal e as Coins são descontadas no envio.'
+                : item.category === 'buffs'
                 ? 'Depois da compra, o item vai para sua Bolsa. Ative-o quando quiser usar a vantagem; o parceiro será avisado.'
                 : item.category === 'experiencias' || item.category === 'epicos'
                     ? 'Depois da compra, o voucher fica na sua Bolsa. Ao ativá-lo, vocês combinam data, limites, orçamento e detalhes antes de realizar.'
                     : 'Depois da compra, o voucher fica na sua Bolsa. Quando você ativar, o parceiro será avisado e o efeito passa a valer conforme o combinado.';
-            const rules = item.category === 'controle' || item.category === 'coringas'
+            const rules = item.delivery === 'chat_gift'
+                ? 'Presente virtual de uso imediato. Ele não cria dívida, não vai para a Bolsa e não precisa de confirmação.'
+                : item.category === 'controle' || item.category === 'coringas'
                 ? 'Vale para uma situação razoável e consensual. Não obriga ninguém a fazer algo desconfortável, perigoso, caro ou fora dos limites do casal.'
                 : item.category === 'epicos' || item.category === 'experiencias'
                     ? 'Custos externos, datas e disponibilidade devem ser combinados entre vocês. O Elo registra o voucher, mas não realiza compras ou reservas.'
                     : 'O voucher é de uso único. Depois de usado, ele sai da lista de itens disponíveis.';
-            const note = ['buffs','controle','coringas'].includes(item.category)
+            const note = item.delivery === 'chat_gift'
+                ? 'A mensagem fica registrada junto ao presente no Chat. Capriche: esta é a parte que o parceiro vai guardar.'
+                : ['buffs','controle','coringas'].includes(item.category)
                 ? 'O efeito é um combinado entre vocês: o Elo registra a compra/uso e avisa o parceiro, mas não força nem executa a ação automaticamente.'
                 : 'Ao usar o voucher, ele fica registrado como utilizado na sua Bolsa.';
             return {categoryName:cat.name,purpose:`Este item representa ${cat.purpose}.`,activation,rules,result:`Na prática: ${item.desc}`,note};
@@ -1943,26 +1983,122 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
         // --- SISTEMA DE JOGO (LOJA, INVENTÁRIO, MISSÕES, CHAT) ---
-        window.buyStoreItem = async (id, price, title) => {
-            if (!coupleData || !currentUser) return;
-            const balance = getUserCoins(coupleData, currentUser.uid);
-            if (balance < price) return showToast("Moedas insuficientes!", "error");
+        const getProfileName = uid => coupleData?.users?.[uid]?.name || (uid === currentUser?.uid ? currentUser?.displayName : '') || 'Amor';
+        const getPartnerProfile = () => { const uid=partnerUidOf(); return {uid,name:uid?getProfileName(uid):'Seu amor'}; };
 
-            await updateDoc(doc(db, 'relationships', coupleId), {
-                [`users.${currentUser.uid}.coins`]: increment(-price),
-                inventory: arrayUnion({ id: Date.now().toString(), itemId: id, title, owner: currentUser.uid, status: 'available' })
-            });
-            showToast("Item comprado! Olhe na sua Bolsa.", "success");
+        const showPurchaseCelebration = (item, subtitle='Agora é seu!') => {
+            if (!item) return;
+            document.getElementById('elo-purchase-celebration')?.remove();
+            const el=document.createElement('div');
+            el.id='elo-purchase-celebration';
+            el.className='elo-purchase-celebration';
+            const icon=item.emoji || (item.delivery==='chat_gift'?'💝':'🎟️');
+            el.innerHTML=`<div class="elo-purchase-burst">${Array.from({length:10},(_,i)=>`<i style="--i:${i}">✦</i>`).join('')}</div><div class="elo-purchase-card"><div class="elo-purchase-icon">${icon}</div><p class="elo-purchase-kicker">CONQUISTADO!</p><h3>${escapeHTML(item.title)}</h3><p>${escapeHTML(subtitle)}</p></div>`;
+            document.body.appendChild(el);
+            try { if (navigator.vibrate) navigator.vibrate([25,35,45]); } catch(_){}
+            requestAnimationFrame(()=>el.classList.add('is-visible'));
+            setTimeout(()=>{el.classList.remove('is-visible');setTimeout(()=>el.remove(),350)},1800);
         };
 
-        window.useInventoryItem = async (invId, title) => {
-            if (!coupleData || !coupleData.inventory) return;
-            const newInv = coupleData.inventory.map(i => i.id === invId ? {...i, status: 'used'} : i);
-            
-            await updateDoc(doc(db, 'relationships', coupleId), {
-                inventory: newInv
-            });
-            showToast("Voucher Ativado! O parceiro vai ser notificado.", "reward");
+        window.buyStoreItem = async (id, price, title) => {
+            if (!coupleData || !currentUser) return;
+            const item=getStoreItem(id) || {id,title,price};
+            if (item.delivery === 'chat_gift') return openVirtualGiftComposer(item.id);
+            const balance = getUserCoins(coupleData, currentUser.uid);
+            if (balance < price) return showToast("Moedas insuficientes!", "error");
+            try {
+                const inventoryId=`inv_${Date.now()}_${currentUser.uid.slice(0,6)}`;
+                await runTransaction(db, async tx => {
+                    const ref=doc(db,'relationships',coupleId); const snap=await tx.get(ref);
+                    if(!snap.exists()) throw new Error('Elo não encontrado.');
+                    const data=snap.data(); const coins=Number(data?.users?.[currentUser.uid]?.coins||0);
+                    if(coins < Number(price||0)) throw new Error('Moedas insuficientes!');
+                    const inventory=Array.isArray(data.inventory)?data.inventory.slice():[];
+                    inventory.push({id:inventoryId,itemId:String(id),title,owner:currentUser.uid,status:'available',purchasedAt:Date.now(),price:Number(price||0)});
+                    tx.update(ref,{[`users.${currentUser.uid}.coins`]:coins-Number(price||0),inventory});
+                });
+                showPurchaseCelebration(item,'Guardado na sua Bolsa');
+                showToast("Item comprado! Olhe na sua Bolsa.", "success");
+            } catch(e){ console.error(e); showToast(e.message||'Não foi possível comprar.','error'); }
+        };
+
+        window.openVirtualGiftComposer = id => {
+            const item=getStoreItem(id); if(!item||item.delivery!=='chat_gift')return;
+            const partner=getPartnerProfile(); const balance=getUserCoins(coupleData,currentUser.uid);
+            openGenericModal(`<div class="space-y-4 elo-gift-compose"><div class="flex justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">Presente para ${escapeHTML(partner.name)}</p><h3 class="text-2xl font-black text-white">${item.emoji||'💝'} ${escapeHTML(item.title)}</h3></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-900 text-slate-400"><i class="ph-bold ph-x"></i></button></div><div class="elo-gift-preview"><span>${item.emoji||'💝'}</span><p>${escapeHTML(item.desc)}</p></div><textarea id="virtual-gift-message" maxlength="500" class="w-full h-28 bg-slate-900 border border-slate-800 rounded-2xl p-3 text-white text-sm outline-none focus:border-pink-500" placeholder="Escreva uma mensagem para acompanhar o presente..."></textarea><div class="flex items-center justify-between text-xs"><span class="text-slate-500">Seu saldo: <b class="text-yellow-400">${balance.toLocaleString('pt-BR')} Coins</b></span><span class="font-black text-pink-300">${item.price.toLocaleString('pt-BR')} Coins</span></div><button ${balance<item.price?'disabled':''} onclick="sendVirtualGift('${item.id}')" class="w-full py-3.5 rounded-2xl font-black ${balance>=item.price?'bg-pink-600 text-white active:scale-[.98]':'bg-slate-800 text-slate-500'}">${balance>=item.price?'Enviar presente ❤️':'Coins insuficientes'}</button></div>`);
+            setTimeout(()=>document.getElementById('virtual-gift-message')?.focus(),120);
+        };
+
+        window.sendVirtualGift = async id => {
+            const item=getStoreItem(id); const partner=getPartnerProfile();
+            if(!item||item.delivery!=='chat_gift'||!partner.uid)return;
+            const note=(document.getElementById('virtual-gift-message')?.value||'').trim();
+            if(!note)return showToast('Escreva uma mensagem para acompanhar o presente.','error');
+            const msgRef=doc(chatCollection()); const now=Date.now();
+            try{
+                await runTransaction(db,async tx=>{
+                    const relRef=doc(db,'relationships',coupleId); const snap=await tx.get(relRef);
+                    if(!snap.exists())throw new Error('Elo não encontrado.');
+                    const coins=Number(snap.data()?.users?.[currentUser.uid]?.coins||0);
+                    if(coins<item.price)throw new Error('Moedas insuficientes!');
+                    tx.update(relRef,{[`users.${currentUser.uid}.coins`]:coins-item.price});
+                    tx.set(msgRef,{id:msgRef.id,senderId:currentUser.uid,recipientUid:partner.uid,type:'gift',text:note,timestamp:now,reactions:{},readBy:{[currentUser.uid]:true},gift:{itemId:item.id,title:item.title,emoji:item.emoji||'💝',kind:item.giftKind||'gift',price:item.price,message:note}});
+                });
+                closeGenericModal();
+                chatMessages=mergeChatMessages(chatMessages,[normalizeMessage({id:msgRef.id,senderId:currentUser.uid,recipientUid:partner.uid,type:'gift',text:note,timestamp:now,gift:{itemId:item.id,title:item.title,emoji:item.emoji||'💝',kind:item.giftKind||'gift',price:item.price,message:note},readBy:{[currentUser.uid]:true}})]);
+                showPurchaseCelebration(item,`Enviado para ${partner.name}`);
+                createPartnerNotification({title:`${item.emoji||'💝'} Você recebeu ${item.title}`,body:note,type:'vouchers',data:{chatMessageId:msgRef.id,gift:true}});
+                if(window.activeTab==='chat')renderChatOnly();
+            }catch(e){console.error(e);showToast(e.message||'Não foi possível enviar o presente.','error')}
+        };
+
+        window.useInventoryItem = async (invId, title = '') => {
+            if (!coupleData || !currentUser || !coupleData.inventory) return;
+            const partner=getPartnerProfile(); if(!partner.uid)return showToast('Seu Elo ainda não tem parceiro.','error');
+            const item=coupleData.inventory.find(i=>i.id===invId&&i.owner===currentUser.uid);
+            if(!item||item.status!=='available')return showToast('Este voucher não está mais disponível.','error');
+            title=item.title||title||'Voucher do Elo';
+            const msgRef=doc(chatCollection()); const now=Date.now();
+            try{
+                await runTransaction(db,async tx=>{
+                    const relRef=doc(db,'relationships',coupleId); const snap=await tx.get(relRef);
+                    if(!snap.exists())throw new Error('Elo não encontrado.');
+                    const inventory=(snap.data().inventory||[]).map(i=>i.id===invId?{...i,status:'pending',activatedAt:now,voucherMessageId:msgRef.id,beneficiaryUid:currentUser.uid,debtorUid:partner.uid}:i);
+                    tx.update(relRef,{inventory});
+                    tx.set(msgRef,{id:msgRef.id,senderId:currentUser.uid,type:'voucher',text:title,timestamp:now,reactions:{},readBy:{[currentUser.uid]:true},voucher:{invId,itemId:item.itemId||'',title,status:'pending',beneficiaryUid:currentUser.uid,debtorUid:partner.uid,activatedAt:now}});
+                });
+                showPurchaseCelebration(getStoreItem(item.itemId)||{title},`${partner.name} recebeu a pendência`);
+                createPartnerNotification({title:'🎟️ Novo voucher usado',body:`Você está devendo: ${title}`,type:'vouchers',data:{chatMessageId:msgRef.id,voucher:true}});
+                showToast("Voucher ativado e enviado ao Chat!", "reward");
+            }catch(e){console.error(e);showToast(e.message||'Não foi possível ativar o voucher.','error')}
+        };
+
+        window.markVoucherCompleted = async messageId => {
+            try{
+                const ref=messageDoc(messageId); await runTransaction(db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error('Voucher não encontrado.');const m=snap.data();if(m?.voucher?.debtorUid!==currentUser.uid||m?.voucher?.status!=='pending')throw new Error('Esta pendência mudou.');tx.update(ref,{'voucher.status':'awaiting_confirmation','voucher.claimedCompletedAt':Date.now()});});
+                createPartnerNotification({title:'✅ Voucher marcado como realizado',body:`${getProfileName(currentUser.uid)} informou que cumpriu o combinado. Confirme no Chat.`,type:'vouchers',data:{chatMessageId:messageId,voucherReview:true}});
+                showToast('Agora falta a confirmação do parceiro.','success');
+            }catch(e){showToast(e.message||'Não foi possível atualizar.','error')}
+        };
+
+        window.reviewVoucherCompletion = async (messageId, accepted) => {
+            try{
+                await runTransaction(db,async tx=>{
+                    const msgRef=messageDoc(messageId); const relRef=doc(db,'relationships',coupleId);
+                    const [msgSnap,relSnap]=await Promise.all([tx.get(msgRef),tx.get(relRef)]);
+                    if(!msgSnap.exists()||!relSnap.exists())throw new Error('Voucher não encontrado.');
+                    const m=msgSnap.data(); if(m?.voucher?.beneficiaryUid!==currentUser.uid||m?.voucher?.status!=='awaiting_confirmation')throw new Error('Esta confirmação mudou.');
+                    if(accepted){
+                        tx.update(msgRef,{'voucher.status':'completed','voucher.completedAt':Date.now()});
+                        const inventory=(relSnap.data().inventory||[]).map(i=>i.id===m.voucher.invId?{...i,status:'used',usedAt:Date.now()}:i);
+                        tx.update(relRef,{inventory});
+                    }else{
+                        tx.update(msgRef,{'voucher.status':'pending','voucher.rejectedAt':Date.now()});
+                    }
+                });
+                createPartnerNotification({title:accepted?'❤️ Voucher concluído':'↩️ Ainda está pendente',body:accepted?'O combinado foi confirmado.':'O parceiro informou que o combinado ainda não foi concluído.',type:'vouchers',data:{chatMessageId:messageId}});
+                showToast(accepted?'Voucher concluído! ❤️':'Voltou para pendente.','reward');
+            }catch(e){showToast(e.message||'Não foi possível confirmar.','error')}
         };
 
         const chatCollection = () => collection(db, 'relationships', coupleId, 'messages');
@@ -2914,8 +3050,24 @@ window.checkInToday = async (buttonEl = null) => {
                             ? '<span class="elo-audio-state"><i class="ph-bold ph-spinner-gap elo-spin"></i> sincronizando</span>'
                             : '<span class="elo-audio-state sent"><i class="ph-bold ph-check"></i> áudio</span>';
                     content=`<div class="elo-audio-player ${m._uploading?'is-uploading':''} ${m._failed?'is-failed':''}" data-duration="${Number(m.duration||0)}" data-media-holder><button class="elo-audio-play" onclick="event.stopPropagation();toggleChatAudio(this,'${escapeHTML(m.mediaKey||'')}')"><i class="ph-fill ph-play"></i></button><div class="elo-audio-main"><div class="elo-audio-wave" aria-hidden="true">${[8,14,20,11,17,24,13,19,10,22,15,8,18,25,12,20,9,16].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="elo-audio-track" onclick="seekChatAudio(event,this)"><div class="elo-audio-progress"></div></div><div class="elo-audio-info"><span data-audio-time>${duration}</span>${audioState}</div></div><button class="elo-audio-speed" onclick="event.stopPropagation();cycleChatAudioSpeed(this)">1x</button><audio ${localSrc?`src="${localSrc}"`:''} data-private-media-key="${escapeHTML(m.mediaKey||'')}" preload="metadata"></audio></div>`;
+                } else if(m.type==='gift') {
+                    const g=m.gift||{}; const senderName=getProfileName(m.senderId); const giftText=g.message||m.text||'';
+                    content=`<div class="elo-chat-gift elo-gift-${escapeHTML(g.kind||'gift')}"><div class="elo-chat-gift-sparkles"><i>✦</i><i>♡</i><i>✦</i></div><div class="elo-chat-gift-emoji">${escapeHTML(g.emoji||'💝')}</div><p class="elo-chat-gift-label">${escapeHTML(senderName)} enviou</p><h4>${escapeHTML(g.title||'Um presente')}</h4><div class="elo-chat-gift-note">“${escapeHTML(giftText)}”</div></div>`;
+                    mediaClass=' media special-card';
                 } else if(m.type==='voucher') {
-                    content=`<div class="rounded-xl bg-black/10 p-2.5"><div class="font-black">${escapeHTML(m.text)}</div><div class="text-[10px] opacity-70 mt-1">Voucher do Elo</div></div>`;
+                    const v=m.voucher||{}; const status=v.status||'pending'; const debtorName=getProfileName(v.debtorUid); const beneficiaryName=getProfileName(v.beneficiaryUid); const isDebtor=currentUser?.uid===v.debtorUid; const isBeneficiary=currentUser?.uid===v.beneficiaryUid;
+                    let statusHtml='',actions='';
+                    if(status==='pending'){
+                        statusHtml=`<span class="elo-voucher-status pending">● Pendente</span><p>${escapeHTML(debtorName)} está devendo <b>${escapeHTML(v.title||m.text)}</b> para ${escapeHTML(beneficiaryName)}.</p>`;
+                        if(isDebtor)actions=`<button onclick="event.stopPropagation();markVoucherCompleted('${m.id}')" class="elo-voucher-action primary">Marcar como concluído</button>`;
+                    }else if(status==='awaiting_confirmation'){
+                        statusHtml=`<span class="elo-voucher-status waiting">● Aguardando confirmação</span><p>${escapeHTML(debtorName)} marcou como realizado. ${escapeHTML(beneficiaryName)} precisa confirmar.</p>`;
+                        if(isBeneficiary)actions=`<div class="elo-voucher-actions"><button onclick="event.stopPropagation();reviewVoucherCompletion('${m.id}',false)" class="elo-voucher-action secondary">Ainda não</button><button onclick="event.stopPropagation();reviewVoucherCompletion('${m.id}',true)" class="elo-voucher-action primary">Confirmar ❤️</button></div>`;
+                    }else{
+                        statusHtml=`<span class="elo-voucher-status completed">✓ Concluído</span><p>Combinado realizado e confirmado por vocês.</p>`;
+                    }
+                    content=`<div class="elo-chat-voucher"><div class="elo-chat-voucher-icon">🎟️</div><div class="elo-chat-voucher-title">${escapeHTML(v.title||m.text)}</div>${statusHtml}${actions}</div>`;
+                    mediaClass=' media special-card';
                 } else {
                     content=`<div class="elo-message-text">${escapeHTML(m.text).replace(/\n/g,'<br>')}</div>`;
                 }
@@ -4285,7 +4437,7 @@ const centerActiveStoreCategory = (smooth = true) => {
             setStoreSearch('');
             if (input) input.focus({preventScroll:true});
         };
-        window.buyStoreItemFromDetails = (id) => { const item=getStoreItem(id); if(!item)return; closeGenericModal(); buyStoreItem(item.id,item.price,item.title); };
+        window.buyStoreItemFromDetails = (id) => { const item=getStoreItem(id); if(!item)return; if(item.delivery==='chat_gift'){closeGenericModal();return openVirtualGiftComposer(item.id);} closeGenericModal(); buyStoreItem(item.id,item.price,item.title); };
         window.openStoreItemDetails = (id) => {
             const item = getStoreItem(id);
             if (!item) return showToast('Item não encontrado.', 'error');
@@ -4313,7 +4465,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                         <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4"><p class="text-xs font-black text-white flex items-center gap-2"><i class="ph-fill ph-shield-check text-cyan-400"></i> Regras</p><p class="text-xs text-slate-400 mt-1.5 leading-relaxed">${escapeHTML(guide.rules)}</p></div>
                         <div class="bg-purple-500/5 border border-purple-500/15 rounded-2xl p-4"><p class="text-xs font-black text-purple-300 flex items-center gap-2"><i class="ph-fill ph-lightbulb"></i> Importante</p><p class="text-xs text-slate-400 mt-1.5 leading-relaxed">${escapeHTML(guide.note)}</p></div>
                     </div>
-                    <button ${canBuy ? '' : 'disabled'} onclick="buyStoreItemFromDetails('${item.id}')" class="w-full py-3.5 rounded-2xl font-black ${canBuy ? 'bg-purple-600 text-white active:scale-[.98]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} transition-transform">${canBuy ? 'Comprar por '+item.price.toLocaleString('pt-BR')+' Coins' : 'Elo Coins insuficientes'}</button>
+                    <button ${canBuy ? '' : 'disabled'} onclick="buyStoreItemFromDetails('${item.id}')" class="w-full py-3.5 rounded-2xl font-black ${canBuy ? 'bg-purple-600 text-white active:scale-[.98]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'} transition-transform">${canBuy ? (item.delivery==='chat_gift'?'Personalizar e enviar · ':'Comprar por ')+item.price.toLocaleString('pt-BR')+' Coins' : 'Elo Coins insuficientes'}</button>
                 </div>`);
         };
 
@@ -4802,10 +4954,30 @@ const centerActiveStoreCategory = (smooth = true) => {
             know:{title:'Você me conhece?',subtitle:'Tentem combinar a resposta',rounds:[['Doce 🍫','Salgado 🍟'],['Manhã ☀️','Noite 🌙'],['Sair 🎉','Ficar em casa 🏠'],['Presente 🎁','Experiência ✈️']]}
         };
         const quickGameRef=()=>doc(db,'relationships',coupleId);
-        const quickGameHtml=game=>{const choices=game?.choices||{};const myChoice=choices[currentUser?.uid];const ids=Object.keys(coupleData?.users||{});const partnerUid=ids.find(id=>id!==currentUser?.uid);const partnerChoice=partnerUid?choices[partnerUid]:undefined;const both=myChoice!==undefined&&partnerChoice!==undefined;const same=both&&myChoice===partnerChoice;const mode=QUICK_GAME_MODES[game?.mode]||QUICK_GAME_MODES.either;const opts=game?.options||mode.rounds[0].slice(0,2);return `<div id="quick-game-content" class="text-center space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i})" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Sua resposta foi registrada. ${partnerChoice!==undefined?'Seu amor já respondeu!':'Aguardando seu amor…'}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">Você: ${escapeHTML(opts[myChoice])} · Seu amor: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}')" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`};
+        const quickGameNames = () => { const ids=Object.keys(coupleData?.users||{}); const partnerUid=ids.find(id=>id!==currentUser?.uid); return {myUid:currentUser?.uid,myName:getProfileName(currentUser?.uid),partnerUid,partnerName:partnerUid?getProfileName(partnerUid):'Seu amor'}; };
+        const quickGameResolvedOptions = game => {
+            const mode=QUICK_GAME_MODES[game?.mode]||QUICK_GAME_MODES.either;
+            const raw=game?.options||mode.rounds[0].slice(0,2);
+            if(game?.mode!=='likely')return raw;
+            if(Array.isArray(game.optionUserIds)&&game.optionUserIds.length===2)return game.optionUserIds.map(uid=>getProfileName(uid));
+            // Compatibilidade com rodadas antigas: "Você" era quem criou a rodada.
+            const creator=game?.createdBy||currentUser?.uid; const ids=Object.keys(coupleData?.users||{}); const other=ids.find(id=>id!==creator);
+            return [getProfileName(creator),other?getProfileName(other):'Seu amor'];
+        };
+        const quickGameHtml=game=>{
+            const choices=game?.choices||{}; const myChoice=choices[currentUser?.uid]; const names=quickGameNames();
+            const partnerChoice=names.partnerUid?choices[names.partnerUid]:undefined; const both=myChoice!==undefined&&partnerChoice!==undefined; const same=both&&myChoice===partnerChoice;
+            const mode=QUICK_GAME_MODES[game?.mode]||QUICK_GAME_MODES.either; const opts=quickGameResolvedOptions(game);
+            return `<div id="quick-game-content" class="text-center space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i})" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}')" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
+        };
         const renderCoupleGameModal=()=>{if(document.getElementById('quick-game-content')&&coupleData?.quickGame)document.getElementById('quick-game-content').outerHTML=quickGameHtml(coupleData.quickGame)};
         window.openCoupleGame=()=>{const game=coupleData?.quickGame;if(game)return openGenericModal(quickGameHtml(game));openGenericModal(`<div class="space-y-4"><div class="flex justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Escolha um modo</p><h3 class="text-xl font-black text-white">Jogo Rápido</h3></div><button onclick="closeGenericModal()">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}')" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left"><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></button>`).join('')}</div>`)};
-        window.newCoupleGame=async(modeId='either')=>{if(quickGameCreating)return;quickGameCreating=true;const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;const round=mode.rounds[Math.floor(Math.random()*mode.rounds.length)];const candidate={id:`${Date.now()}_${currentUser.uid}`,mode:modeId,options:round.slice(0,2),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid};let selected=candidate;try{await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const existing=snap.data()?.quickGame;if(existing&&existing.status==='open'){selected=existing;return;}tx.update(ref,{quickGame:candidate});});coupleData={...coupleData,quickGame:selected};openGenericModal(quickGameHtml(selected));if(selected.id!==candidate.id)showToast('Seu amor já iniciou uma rodada. Entrei na mesma pergunta ❤️','info')}catch(e){console.error(e);showToast('Não foi possível iniciar o jogo.','error')}finally{quickGameCreating=false}};
+        window.newCoupleGame=async(modeId='either')=>{
+            if(quickGameCreating)return; quickGameCreating=true; const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either; const round=mode.rounds[Math.floor(Math.random()*mode.rounds.length)];
+            const names=quickGameNames(); const optionUserIds=modeId==='likely'?[currentUser.uid,names.partnerUid].filter(Boolean):null;
+            const candidate={id:`${Date.now()}_${currentUser.uid}`,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid}; let selected=candidate;
+            try{await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const existing=snap.data()?.quickGame;if(existing&&existing.status==='open'){selected=existing;return;}tx.update(ref,{quickGame:candidate});});coupleData={...coupleData,quickGame:selected};openGenericModal(quickGameHtml(selected));if(selected.id!==candidate.id)showToast(`${getProfileName(selected.createdBy)} já iniciou uma rodada. Você entrou na mesma pergunta ❤️`,'info')}catch(e){console.error(e);showToast('Não foi possível iniciar o jogo.','error')}finally{quickGameCreating=false}
+        };
         window.chooseCoupleGame=async index=>{const localGame=coupleData?.quickGame;if(!localGame||localGame.status==='done'||localGame.choices?.[currentUser.uid]!==undefined)return;try{let next=null;await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const data=snap.data();const game=data.quickGame;if(!game||game.id!==localGame.id||game.status==='done')throw new Error('A rodada mudou. Abra o jogo novamente.');if(game.choices?.[currentUser.uid]!==undefined){next=game;return;}const ids=Object.keys(data.users||{});const partnerUid=ids.find(id=>id!==currentUser.uid);const partnerAnswered=!!partnerUid&&game.choices?.[partnerUid]!==undefined;const same=partnerAnswered&&game.choices?.[partnerUid]===index;const choices={...(game.choices||{}),[currentUser.uid]:index};next={...game,choices,status:partnerAnswered?'done':'open',...(partnerAnswered?{finishedAt:Date.now()}:{})};const updates={[`quickGame.choices.${currentUser.uid}`]:index};if(partnerAnswered){updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1)}tx.update(ref,updates);});coupleData={...coupleData,quickGame:next};openGenericModal(quickGameHtml(next))}catch(e){console.error(e);showToast(e.message||'Não foi possível registrar sua escolha.','error')}};
         const updateNotificationDot=()=>{const dot=document.getElementById('notification-dot');const n=(window.eloNotifications||[]).filter(item=>!item.read).length;if(dot){dot.textContent=n>9?'9+':String(n);dot.classList.toggle('hidden',!n);dot.classList.toggle('flex',!!n);}};
 
@@ -5400,23 +5572,19 @@ const centerActiveStoreCategory = (smooth = true) => {
                 </div>`;
             }
             else if (activeTab === 'inventory') {
-                const myItems = (coupleData.inventory || []).filter(i => i.owner === currentUser.uid && i.status === 'available');
+                const inventory = coupleData.inventory || [];
+                const myItems = inventory.filter(i => i.owner === currentUser.uid && i.status === 'available');
+                const requestedByMe = inventory.filter(i => i.beneficiaryUid === currentUser.uid && i.status === 'pending');
+                const iOwe = inventory.filter(i => i.debtorUid === currentUser.uid && i.status === 'pending');
+                const pendingCount=requestedByMe.length+iOwe.length;
+                const pendingCard=(item,label,accent='pink')=>`<button onclick="switchTab('chat')" class="w-full text-left bg-slate-900 border border-${accent}-500/20 rounded-2xl p-4 flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-${accent}-500/10 text-${accent}-300 grid place-items-center">🎟️</div><div class="min-w-0 flex-1"><p class="text-[9px] uppercase tracking-widest font-black text-${accent}-400">${label}</p><p class="text-sm font-black text-white truncate">${escapeHTML(item.title)}</p><p class="text-[9px] text-slate-500 mt-1">Acompanhe e conclua pelo Chat</p></div><i class="ph-bold ph-chat-circle-text text-slate-500"></i></button>`;
                 html = `
-                <div class="space-y-4 pb-4">
-                    <h2 class="font-black text-xl text-white mb-4 flex items-center gap-2"><i class="ph-fill ph-backpack text-pink-500"></i> Minha Bolsa</h2>
-                    ${myItems.length === 0 ? `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center text-slate-500"><i class="ph-fill ph-ghost text-4xl mb-3 mx-auto"></i><p class="text-sm font-bold">Sua bolsa está vazia.</p><p class="text-xs mt-1">Compre mimos na loja!</p></div>` : ''}
-                    <div class="space-y-3">
-                        ${myItems.map(item => `
-                            <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 border border-pink-500/20 shadow-lg flex items-center gap-4">
-                                <div class="w-12 h-12 bg-pink-500/10 rounded-xl border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0"><i class="ph-fill ph-gift text-2xl"></i></div>
-                                <div class="flex-1">
-                                    <h4 class="font-bold text-slate-100 text-sm leading-tight">${item.title}</h4>
-                                    <p class="text-[10px] text-slate-400 mt-0.5">Voucher guardado</p>
-                                </div>
-                                <button onclick="useInventoryItem('${item.id}', '${item.title}')" class="bg-pink-600 hover:bg-pink-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all">Usar Mimo</button>
-                            </div>
-                        `).join('')}
-                    </div>
+                <div class="space-y-5 pb-4">
+                    <div class="flex items-center justify-between"><div><p class="text-[9px] uppercase tracking-widest font-black text-pink-400">Vouchers do casal</p><h2 class="font-black text-xl text-white flex items-center gap-2"><i class="ph-fill ph-backpack text-pink-500"></i> Minha Bolsa</h2></div>${pendingCount?`<span class="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-black">${pendingCount} pendente${pendingCount>1?'s':''}</span>`:''}</div>
+                    ${(requestedByMe.length||iOwe.length)?`<section class="space-y-2"><p class="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Pendências</p>${iOwe.map(i=>pendingCard(i,'Você está devendo','amber')).join('')}${requestedByMe.map(i=>pendingCard(i,'Seu parceiro está devendo','pink')).join('')}</section>`:''}
+                    <section class="space-y-2"><p class="text-[10px] uppercase tracking-widest font-black text-slate-500 px-1">Disponíveis para usar</p>
+                    ${myItems.length === 0 ? `<div class="bg-slate-900 border border-slate-800 rounded-3xl p-7 text-center text-slate-500"><i class="ph-fill ph-ghost text-4xl mb-3 mx-auto"></i><p class="text-sm font-bold">Nenhum voucher disponível.</p><p class="text-xs mt-1">Compre um mimo na Loja para guardar aqui.</p></div>` : `<div class="space-y-3">${myItems.map(item => `<div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 border border-pink-500/20 shadow-lg flex items-center gap-4"><div class="w-12 h-12 bg-pink-500/10 rounded-xl border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0"><i class="ph-fill ph-gift text-2xl"></i></div><div class="flex-1 min-w-0"><h4 class="font-bold text-slate-100 text-sm leading-tight truncate">${escapeHTML(item.title)}</h4><p class="text-[10px] text-slate-400 mt-0.5">Ao usar, vira uma pendência no Chat</p></div><button onclick="useInventoryItem('${item.id}')" class="bg-pink-600 hover:bg-pink-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all">Usar</button></div>`).join('')}</div>`}
+                    </section>
                 </div>`;
             }
 
@@ -5674,3 +5842,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                 finishBoot();
             }
         });
+
+
+// V36.2 · verificação leve do manifesto Android quando aplicável.
+setTimeout(()=>{ try{ compareAndroidVersion({silent:true}); }catch(_){} }, 2500);
