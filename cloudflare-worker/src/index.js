@@ -135,6 +135,7 @@ async function sendFcm(env, accessToken, tokenInfo, notification, coupleId, noti
     notificationId:String(notificationId),
     coupleId:String(coupleId),
     senderName: hideContent ? '' : senderName,
+    senderUid: hideContent ? '' : String(field(notification,'senderUid') || ''),
     senderPhotoUrl,
     url:'./index.html'
   };
@@ -143,22 +144,15 @@ async function sendFcm(env, accessToken, tokenInfo, notification, coupleId, noti
     : ['checkin','streak'].includes(type) ? 'elo_streak' : 'elo_general';
   const message = {token:tokenInfo.token,data};
   if (platform === 'android' || platform === 'native') {
-    // Notification payload garante exibição pelo Android mesmo com o APK encerrado.
-    // A foto remota vira imagem da notificação quando houver URL http(s) disponível.
-    message.notification = {title,body};
-    if (senderPhotoUrl) message.notification.image = senderPhotoUrl;
+    // APK 0.3.2: Android recebe data-only em alta prioridade.
+    // O EloMessagingService nativo monta NotificationCompat.MessagingStyle,
+    // permitindo avatar real do remetente em vez de usar a imagem como banner.
     message.android = {
       priority:'high',
-      ttl:'86400s',
-      notification:{
-        channel_id:channelId,
-        notification_priority:'PRIORITY_HIGH',
-        default_sound:true,
-        default_vibrate_timings:true,
-        color:'#ec4899',
-        ...(senderPhotoUrl ? {image:senderPhotoUrl} : {})
-      }
+      ttl:'86400s'
     };
+    data.channelId = channelId;
+    data.sentAt = String(Date.now());
   } else {
     // Web/PWA permanece data-only para o service worker ser a única camada que exibe a notificação.
     message.webpush = {headers:{Urgency:'high',TTL:'86400'},fcmOptions:{link:'./index.html'}};

@@ -1,13 +1,12 @@
 {
   "available": false,
-  "versionName": "0.3.1",
-  "versionCode": 4,
+  "versionName": "0.3.2",
+  "versionCode": 5,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Notificações mais bonitas no Android e no PWA",
-    "Nome do parceiro em destaque nas mensagens",
-    "Foto de perfil nas notificações quando houver URL compatível",
-    "Health check do Cloudflare Worker corrigido"
+    "Notificações Android em estilo de conversa",
+    "Avatar do remetente na notificação quando disponível",
+    "Nome e prévia da mensagem com visual nativo de mensageiro"
   ]
 }

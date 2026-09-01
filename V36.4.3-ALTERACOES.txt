@@ -1,0 +1,12 @@
+Elo V36.4.3 / APK 0.3.2
+
+- Android passa a usar NotificationCompat.MessagingStyle para mensagens.
+- Avatar HTTPS do remetente é carregado pelo APK e associado à Person da conversa.
+- Nome e texto aparecem no formato nativo de mensageiro.
+- Worker envia push Android data-only em alta prioridade para o EloMessagingService.
+- Toque na notificação continua abrindo o Elo com os dados da notificação.
+- PWA mantém o fluxo atual de Web Push.
+- APK: versionName 0.3.2 / versionCode 5.
+- Cache: elo-v36-4-3-messaging-style-20260901.
+
+Observação: o ícone pequeno continua sendo o ícone atual do Elo de propósito. A identidade visual Akai Ito será tratada separadamente.
