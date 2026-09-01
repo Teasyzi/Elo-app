@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Elo — O espaço de vocês</title>
-    <meta name="elo-version" content="36.4-apk03-native-push">
+    <meta name="elo-version" content="36.4.2-rich-notifications">
     <!-- V35: conexões antecipadas reduzem o tempo de primeira abertura sem mudar a stack. -->
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,8 +19,8 @@
     <!-- Tailwind continua compatível com a base atual; o Phosphor pode carregar sem bloquear o parser. -->
     <script defer src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap">
-    <link rel="stylesheet" href="./tailwind.css?v=36.4.0">
-    <link rel="stylesheet" href="./styles.css?v=36.4.0">
+    <link rel="stylesheet" href="./tailwind.css?v=36.4.2">
+    <link rel="stylesheet" href="./styles.css?v=36.4.2">
 
 
     <meta name="theme-color" content="#0f172a">
@@ -78,6 +78,9 @@
                                 <p id="google-account-name" class="text-sm font-bold text-white truncate"></p>
                                 <p id="google-account-email" class="text-[10px] text-slate-500 truncate"></p>
                             </div>
+                            <button type="button" onclick="logoutEloAccount()" class="shrink-0 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-[10px] font-black text-slate-300 hover:text-white active:scale-95 transition-all" title="Sair desta conta">
+                                <i class="ph-bold ph-sign-out mr-1"></i> Sair
+                            </button>
                         </div>
                     </div>
                     <div id="invite-banner" class="hidden bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-2xl p-4 text-left">
@@ -224,10 +227,14 @@
                 </div>
             </div>
             
-            <div class="p-4 bg-slate-900 border-t border-slate-800">
+            <div class="p-4 bg-slate-900 border-t border-slate-800 space-y-2">
                 <button onclick="saveProfile()" class="w-full bg-slate-100 hover:bg-white text-slate-900 font-black py-3.5 rounded-xl transition-all shadow-lg active:scale-95">
                     Salvar Alterações
                 </button>
+                <button type="button" onclick="logoutEloAccount()" class="w-full bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white font-black py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-sign-out"></i> Sair da conta
+                </button>
+                <p class="text-[9px] text-center text-slate-600">Sair não apaga seu Elo nem o progresso do casal.</p>
             </div>
         </div>
     </div>
@@ -313,7 +320,7 @@
         </div>
     </nav>
 
-    <script type="module" src="./app.js?v=36.4.0"></script>
+    <script type="module" src="./app.js?v=36.4.2"></script>
 
     
 <script>

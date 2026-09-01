@@ -1,0 +1,9 @@
+Elo V36.4.2 / APK 0.3.1
+
+- Notificações de chat com nome do remetente em destaque.
+- Foto do perfil enviada ao push quando o perfil usa URL HTTPS (ex.: foto Google).
+- Android usa a foto como imagem rica da notificação e mantém som/vibração em alta prioridade.
+- PWA usa a foto do remetente como ícone/imagem quando suportado pelo navegador.
+- Fotos em base64 não são colocadas no FCM para respeitar o limite de payload; nesses casos há fallback para o ícone Elo.
+- GET /health do Cloudflare Worker agora responde 200, corrigindo o falso erro HTTP 405 do diagnóstico.
+- Cache do Service Worker atualizado para elo-v36-4-2-rich-notifications-20260901.

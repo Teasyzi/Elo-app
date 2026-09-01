@@ -3361,11 +3361,19 @@ window.checkInToday = async (buttonEl = null) => {
             const recipientUid = partnerUidOf();
             if (!recipientUid || !coupleId || !currentUser) return;
             try {
+                const senderProfile = coupleData?.users?.[currentUser.uid] || {};
+                const senderName = senderProfile.name || currentUser.displayName || 'Seu amor';
+                const rawSenderPhoto = senderProfile.photoUrl || currentUser.photoURL || '';
+                // Push remoto aceita URL http(s). Fotos personalizadas em base64 continuam no perfil,
+                // mas não são enviadas no payload do FCM para evitar exceder o limite da mensagem.
+                const senderPhotoUrl = /^https?:\/\//i.test(String(rawSenderPhoto || '')) ? String(rawSenderPhoto) : '';
                 const notificationRef = await addDoc(collection(db, 'relationships', coupleId, 'notifications'), {
                     recipientUid,
                     senderUid: currentUser.uid,
-                    senderName: coupleData?.users?.[currentUser.uid]?.name || currentUser.displayName || 'Seu amor',
-                    title, body, type, data,
+                    senderName,
+                    senderPhotoUrl,
+                    title, body, type,
+                    data: {...data, senderName, senderPhotoUrl},
                     notificationCategory: type || 'system',
                     createdAt: Date.now(), read: false,
                     pushStatus: 'pending'

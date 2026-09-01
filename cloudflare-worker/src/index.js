@@ -117,19 +117,48 @@ function unwrap(v){
 }
 
 async function sendFcm(env, accessToken, tokenInfo, notification, coupleId, notificationId, hideContent=false) {
-  const token = tokenInfo.token;
   const platform = String(tokenInfo.platform || 'web').toLowerCase();
-  const type = String(field(notification,'type') || 'system');
-  const title = hideContent ? 'Elo 💕' : String(field(notification,'title') || 'Elo 💕');
-  const body = hideContent ? 'Você recebeu uma nova notificação no Elo.' : String(field(notification,'body') || 'Você tem uma novidade do seu amor.');
-  const data = {title,body,type,notificationId:String(notificationId),coupleId:String(coupleId),url:'./index.html'};
+  const type = String(field(notification,'type') || 'system').toLowerCase();
+  const senderName = String(field(notification,'senderName') || 'Seu amor').slice(0,80);
+  const rawPhoto = String(field(notification,'senderPhotoUrl') || '');
+  const senderPhotoUrl = (!hideContent && /^https?:\/\//i.test(rawPhoto) && rawPhoto.length <= 1800) ? rawPhoto : '';
+  const originalTitle = String(field(notification,'title') || 'Elo 💕');
+  const originalBody = String(field(notification,'body') || 'Você tem uma novidade do seu amor.');
+  const isMessage = ['chat','chat_image','chat_audio','messages'].includes(type);
+  const title = hideContent ? 'Elo 💕' : (isMessage ? senderName : originalTitle);
+  const body = hideContent ? 'Você recebeu uma nova notificação no Elo.' : originalBody;
+  const data = {
+    title,
+    body,
+    type,
+    notificationCategory:String(field(notification,'notificationCategory') || type),
+    notificationId:String(notificationId),
+    coupleId:String(coupleId),
+    senderName: hideContent ? '' : senderName,
+    senderPhotoUrl,
+    url:'./index.html'
+  };
   const channelId = ['chat','chat_image','chat_audio','messages'].includes(type) ? 'elo_messages'
     : ['vouchers','gift','gifts'].includes(type) ? 'elo_gifts'
     : ['checkin','streak'].includes(type) ? 'elo_streak' : 'elo_general';
-  const message = {token,data};
+  const message = {token:tokenInfo.token,data};
   if (platform === 'android' || platform === 'native') {
+    // Notification payload garante exibição pelo Android mesmo com o APK encerrado.
+    // A foto remota vira imagem da notificação quando houver URL http(s) disponível.
     message.notification = {title,body};
-    message.android = {priority:'high',ttl:'86400s',notification:{channel_id:channelId,notification_priority:'PRIORITY_HIGH',default_sound:true,default_vibrate_timings:true}};
+    if (senderPhotoUrl) message.notification.image = senderPhotoUrl;
+    message.android = {
+      priority:'high',
+      ttl:'86400s',
+      notification:{
+        channel_id:channelId,
+        notification_priority:'PRIORITY_HIGH',
+        default_sound:true,
+        default_vibrate_timings:true,
+        color:'#ec4899',
+        ...(senderPhotoUrl ? {image:senderPhotoUrl} : {})
+      }
+    };
   } else {
     // Web/PWA permanece data-only para o service worker ser a única camada que exibe a notificação.
     message.webpush = {headers:{Urgency:'high',TTL:'86400'},fcmOptions:{link:'./index.html'}};
@@ -144,8 +173,11 @@ async function sendFcm(env, accessToken, tokenInfo, notification, coupleId, noti
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, {status:204, headers:corsHeaders(env)});
-    if (request.method !== 'POST') return json(env,{ok:false,error:'Use POST /push'},405);
     const url = new URL(request.url);
+    if (request.method === 'GET' && url.pathname === '/health') {
+      return json(env,{ok:true,service:'elo-push',project:env.FIREBASE_PROJECT_ID || ''},200);
+    }
+    if (request.method !== 'POST') return json(env,{ok:false,error:'Use POST /push ou GET /health'},405);
     if (url.pathname !== '/push') return json(env,{ok:false,error:'Rota não encontrada'},404);
 
     try {

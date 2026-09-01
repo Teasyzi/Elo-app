@@ -1775,6 +1775,90 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
             }
         };
 
+        const stopSessionListeners = () => {
+            if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
+            if (unsubscribeNotifications) { unsubscribeNotifications(); unsubscribeNotifications = null; }
+            if (unsubscribeMoments) { unsubscribeMoments(); unsubscribeMoments = null; }
+            if (unsubscribeSocialChat) { unsubscribeSocialChat(); unsubscribeSocialChat = null; }
+            if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+        };
+
+        const removeCurrentDevicePushToken = async () => {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            try {
+                if (isNativeApp && nativePushToken) {
+                    await deleteDoc(doc(db, 'userProfiles', uid, 'fcmTokens', encodeURIComponent(nativePushToken)));
+                    nativePushToken = '';
+                    return;
+                }
+                if (!isNativeApp && messagingSupported && Notification.permission === 'granted') {
+                    const registration = await navigator.serviceWorker.ready;
+                    const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
+                    if (token) await deleteDoc(doc(db, 'userProfiles', uid, 'fcmTokens', encodeURIComponent(token)));
+                }
+            } catch (e) {
+                // Logout nunca deve ficar bloqueado por falha ao limpar push.
+                console.warn('Não foi possível remover o token deste aparelho:', e);
+            }
+        };
+
+        const performAccountLogout = async () => {
+            if (!currentUser) return;
+            const loading = document.getElementById('loading-screen');
+            if (loading) loading.classList.remove('hidden');
+            try {
+                await removeCurrentDevicePushToken();
+                stopSessionListeners();
+
+                // O Elo permanece salvo no perfil Firebase. Limpamos apenas o estado
+                // deste aparelho para que outra conta não herde a sessão anterior.
+                localStorage.removeItem('elo_coupleId');
+                localStorage.removeItem('elo_pending_native_notification');
+                coupleId = null;
+                coupleData = null;
+                chatMessages = [];
+                chatInitialized = false;
+                chatRecentInitialized = false;
+                chatRenderedMessageIds = new Set();
+                chatUnreadCount = 0;
+                resetMomentsPagination();
+                socialView = 'list';
+                socialChatFriendId = '';
+                socialChatMessages = [];
+                socialChatReady = false;
+                lastRelationshipRenderSignature = '';
+
+                // No APK encerramos também o estado mantido pelo bridge nativo.
+                if (isNativeApp) {
+                    try {
+                        const nativeAuth = getNativeFirebaseAuth();
+                        if (nativeAuth?.signOut) await nativeAuth.signOut();
+                    } catch (e) { console.warn('Logout nativo:', e); }
+                }
+                await auth.signOut();
+                if (document.getElementById('profile-modal')) closeProfileModal();
+                if (document.getElementById('generic-modal')) closeGenericModal();
+                showToast('Você saiu da sua conta.', 'success');
+            } catch (e) {
+                console.error('Logout:', e);
+                showToast('Não foi possível sair da conta. Tente novamente.', 'error');
+            } finally {
+                if (loading) loading.classList.add('hidden');
+            }
+        };
+
+        window.logoutEloAccount = () => {
+            if (!currentUser) return;
+            openEloConfirm({
+                title: 'Sair da sua conta?',
+                message: 'Você será desconectado deste aparelho. Seu Elo, mensagens, Coins, Chama e progresso continuarão salvos para quando entrar novamente.',
+                confirmLabel: 'Sair da conta',
+                danger: false,
+                onConfirm: performAccountLogout
+            });
+        };
+
         window.createElo = async () => {
             if (!currentUser || currentUser.isAnonymous) {
                 return showToast('Entre com sua conta Google antes de criar um Elo.', 'error');
@@ -3277,11 +3361,19 @@ window.checkInToday = async (buttonEl = null) => {
             const recipientUid = partnerUidOf();
             if (!recipientUid || !coupleId || !currentUser) return;
             try {
+                const senderProfile = coupleData?.users?.[currentUser.uid] || {};
+                const senderName = senderProfile.name || currentUser.displayName || 'Seu amor';
+                const rawSenderPhoto = senderProfile.photoUrl || currentUser.photoURL || '';
+                // Push remoto aceita URL http(s). Fotos personalizadas em base64 continuam no perfil,
+                // mas não são enviadas no payload do FCM para evitar exceder o limite da mensagem.
+                const senderPhotoUrl = /^https?:\/\//i.test(String(rawSenderPhoto || '')) ? String(rawSenderPhoto) : '';
                 const notificationRef = await addDoc(collection(db, 'relationships', coupleId, 'notifications'), {
                     recipientUid,
                     senderUid: currentUser.uid,
-                    senderName: coupleData?.users?.[currentUser.uid]?.name || currentUser.displayName || 'Seu amor',
-                    title, body, type, data,
+                    senderName,
+                    senderPhotoUrl,
+                    title, body, type,
+                    data: {...data, senderName, senderPhotoUrl},
                     notificationCategory: type || 'system',
                     createdAt: Date.now(), read: false,
                     pushStatus: 'pending'

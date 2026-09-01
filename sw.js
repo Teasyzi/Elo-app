@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-4-1-account-logout-20260901';
+const CACHE = 'elo-v36-4-2-rich-notifications-20260901';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.4.1',
-  './tailwind.css?v=36.4.1',
-  './styles.css?v=36.4.1',
+  './app.js?v=36.4.2',
+  './tailwind.css?v=36.4.2',
+  './styles.css?v=36.4.2',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
@@ -61,9 +61,10 @@ messaging.onBackgroundMessage(payload => {
   // O Cloudflare Worker envia DATA-ONLY para impedir que o FCM/Chrome
   // crie uma segunda notificação automaticamente.
   const data = payload.data || {};
-  const title = data.title || 'Elo 💕';
+  const title = data.title || data.senderName || 'Elo 💕';
   const body = data.body || 'Você tem uma novidade do seu amor.';
-  const icon = './icons/icon-192.png';
+  const appIcon = './icons/icon-192.png';
+  const senderPhoto = /^https?:\/\//i.test(data.senderPhotoUrl || '') ? data.senderPhotoUrl : '';
 
   const notificationId =
     data.notificationId ||
@@ -71,8 +72,11 @@ messaging.onBackgroundMessage(payload => {
 
   return self.registration.showNotification(title, {
     body,
-    icon,
-    badge: icon,
+    // Chrome/Android pode usar a foto do remetente como imagem principal do aviso.
+    // Quando não existe URL pública, usamos a identidade visual do Elo.
+    icon: senderPhoto || appIcon,
+    badge: appIcon,
+    ...(senderPhoto ? {image: senderPhoto} : {}),
 
     // Um identificador por notificação evita duplicação e permite que
     // uma atualização real volte a alertar o usuário.

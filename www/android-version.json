@@ -1,13 +1,13 @@
 {
   "available": false,
-  "versionName": "0.3.0",
-  "versionCode": 3,
+  "versionName": "0.3.1",
+  "versionCode": 4,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Notificações nativas FCM no Android",
-    "Canais de alta importância para Chat, Presentes, Chama e Elo",
-    "Toque na notificação abre a área correspondente",
-    "Tokens Android separados dos tokens Web/PWA"
+    "Notificações mais bonitas no Android e no PWA",
+    "Nome do parceiro em destaque nas mensagens",
+    "Foto de perfil nas notificações quando houver URL compatível",
+    "Health check do Cloudflare Worker corrigido"
   ]
 }
