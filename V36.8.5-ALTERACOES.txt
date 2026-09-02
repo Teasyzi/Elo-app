@@ -1,0 +1,10 @@
+ELO V36.8.5 / APK 0.7.5
+
+- Chat inicia instantaneamente no fim, sem animação/rolagem das mensagens antigas.
+- Âncora inicial absorve mudanças tardias de mídia no APK e é cancelada assim que o usuário toca/rola.
+- Carregamento normal de imagens não força mais scroll para baixo.
+- Conclusões de upload de lote são agrupadas para reduzir tremelique.
+- Chat usa toda a altura útil até próximo do menu inferior no mobile e até o rodapé no desktop.
+- APK: primeiro Voltar na Home mostra aviso; segundo toque em até 1,8 s sai.
+- Jogo Rápido usa atualização otimista: opção e troca de modo aparecem imediatamente, com Firestore sincronizando em seguida.
+- CACHE e assets atualizados para 36.8.5.

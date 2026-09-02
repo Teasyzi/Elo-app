@@ -990,7 +990,7 @@ body[data-elo-tab="chat"] #main-header{display:none!important}
 body[data-elo-tab="chat"] #main-content{padding-top:.45rem!important}
 body[data-elo-tab="chat"] .elo-chat-shell{transition:height .24s ease,transform .2s ease,box-shadow .2s ease}
 body[data-elo-tab="chat"] .elo-chat-header{margin-top:0!important;transition:background .2s ease,border-color .2s ease}
-body[data-elo-tab="chat"] .elo-chat-messages{scroll-behavior:smooth}
+body[data-elo-tab="chat"] .elo-chat-messages{scroll-behavior:auto}
 .elo-message-stack.elo-swipe-reset{transition:transform .24s cubic-bezier(.22,.9,.27,1.15)!important}
 .elo-message-row.reply-ready .elo-swipe-reply-cue{transform:scale(1.08);filter:drop-shadow(0 4px 10px rgba(236,72,153,.24))}
 .elo-swipe-reply-cue{transition:opacity .14s ease,transform .18s ease}
@@ -1022,4 +1022,18 @@ body[data-elo-tab="chat"] .elo-chat-messages{scroll-behavior:smooth}
   body[data-elo-tab="chat"] .elo-chat-composer{margin:0 8px 8px!important}
   body[data-elo-tab="chat"] .elo-message-stack{max-width:min(68%,820px)!important}
   .elo-image-group{width:min(24rem,34vw)!important}
+}
+
+
+/* ===== ELO V36.8.5 · CHAT VIEWPORT / INSTANT ENTRY ===== */
+body[data-elo-tab="chat"] #main-content{overflow:hidden!important}
+@media(max-width:1023px){
+  body[data-elo-tab="chat"] #main-content{padding-bottom:calc(4.55rem + env(safe-area-inset-bottom))!important}
+  body[data-elo-tab="chat"] .elo-chat-shell{height:100%!important;max-height:none!important;margin-bottom:0!important}
+  body[data-elo-tab="chat"].elo-keyboard-open #main-content{padding-bottom:max(.15rem,env(safe-area-inset-bottom))!important}
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-shell{height:100%!important;max-height:none!important}
+}
+@media(min-width:1024px){
+  body[data-elo-tab="chat"] #main-content{height:100dvh!important;min-height:0!important;padding:6px 8px 6px 8px!important;overflow:hidden!important}
+  body[data-elo-tab="chat"] .elo-chat-shell{height:100%!important;max-height:none!important;margin:0 0 0 4px!important}
 }

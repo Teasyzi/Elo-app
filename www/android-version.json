@@ -1,12 +1,14 @@
 {
   "available": false,
-  "versionName": "0.7.4",
-  "versionCode": 20,
+  "versionName": "0.7.5",
+  "versionCode": 21,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Voltar físico do Android fecha telas internas antes de sair",
-    "Uploads de fotos não puxam mais o usuário para o fim da conversa",
-    "Jogo Rápido permite trocar de modo a qualquer momento"
+    "Chat abre diretamente nas mensagens mais recentes, sem rolagem visual de entrada.",
+    "Chat ocupa melhor a altura disponível no celular e no desktop.",
+    "Envio em lote de fotos não força novas rolagens durante hidratação/conclusão.",
+    "Na Home, Voltar exige dois toques para sair do APK.",
+    "Jogo Rápido responde imediatamente ao escolher opção ou trocar de modo."
   ]
 }

@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.4';
+        const ELO_WEB_VERSION = '36.8.5';
         const ELO_RELEASE_NOTES = [
             'O botão Voltar físico do Android agora fecha telas internas do Elo antes de sair do aplicativo.',
             'O Chat não força mais a rolagem para baixo enquanto fotos em lote terminam de enviar.',
@@ -113,6 +113,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let chatAudioMimeType = '';
         let chatInitialized = false;
         let chatForceBottomOnOpen = false;
+        let chatEntryAnchorActive = false;
+        let chatEntryAnchorTimer = null;
+        let androidBackExitArmedAt = 0;
         let chatUserAwayFromBottom = false;
         let chatNewMessagesWhileAway = 0;
         let chatRenderedMessageIds = new Set();
@@ -170,7 +173,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.4', versionCode:20 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.5', versionCode:21 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2983,7 +2986,13 @@ window.checkInToday = async (buttonEl = null) => {
                 if (!el.isConnected) return;
 
                 el.addEventListener('load',()=>{
-                    if(!chatUserAwayFromBottom) scrollChatToBottom(false);
+                    // Na entrada do Chat, mantenha o último conteúdo ancorado enquanto as mídias
+                    // terminam de definir suas dimensões. Em uso normal, carregar uma imagem nunca
+                    // deve puxar a conversa para baixo.
+                    if(chatEntryAnchorActive && !chatUserAwayFromBottom){
+                        const list=document.getElementById('chat-messages');
+                        if(list) list.scrollTop=list.scrollHeight;
+                    }
                 },{once:true});
 
                 el.src = src;
@@ -3254,7 +3263,9 @@ window.checkInToday = async (buttonEl = null) => {
                         reactions:{},readBy:{[currentUser.uid]:true},sendState:'sent'
                     };
                     chatMessages=chatMessages.map(m=>m.id===id?{...finalMsg,localMediaUrl:localUrl}:m);
-                    renderChatOnly();
+                    // Um lote pode concluir vários uploads quase ao mesmo tempo. Renderizar o Chat
+                    // para cada arquivo causa tremelique; agrupamos as atualizações.
+                    if (batchMeta?.id) scheduleChatMediaRender(130); else renderChatOnly();
                     await setDoc(messageDoc(id),finalMsg);
                     backgroundChatTask(createPartnerNotification({
                         title:`${coupleData?.users?.[currentUser.uid]?.name || 'Seu amor'} enviou uma foto`,
@@ -3569,6 +3580,13 @@ window.checkInToday = async (buttonEl = null) => {
         const bindChatScrollBehavior = el => {
             if (!el || el.dataset.eloScrollBound === '1') return;
             el.dataset.eloScrollBound = '1';
+            const cancelEntryAnchor = () => {
+                chatEntryAnchorActive = false;
+                if (chatEntryAnchorTimer) { clearTimeout(chatEntryAnchorTimer); chatEntryAnchorTimer = null; }
+            };
+            el.addEventListener('pointerdown', cancelEntryAnchor, {passive:true});
+            el.addEventListener('touchstart', cancelEntryAnchor, {passive:true});
+            el.addEventListener('wheel', cancelEntryAnchor, {passive:true});
             el.addEventListener('scroll', () => {
                 const nearBottom = isChatNearBottom(el);
                 chatUserAwayFromBottom = !nearBottom;
@@ -3605,28 +3623,36 @@ window.checkInToday = async (buttonEl = null) => {
         const forceChatToLatestOnEntry = () => {
             if (window.activeTab !== 'chat') return;
             chatForceBottomOnOpen = true;
+            chatEntryAnchorActive = true;
             chatUserAwayFromBottom = false;
             chatNewMessagesWhileAway = 0;
+            if (chatEntryAnchorTimer) clearTimeout(chatEntryAnchorTimer);
+
             const apply = () => {
                 const el = document.getElementById('chat-messages');
-                if (!el || window.activeTab !== 'chat') return;
+                if (!el || window.activeTab !== 'chat' || !chatEntryAnchorActive) return;
                 el.scrollTop = el.scrollHeight;
                 chatWasNearBottom = true;
                 chatUserAwayFromBottom = false;
                 chatNewMessagesWhileAway = 0;
                 updateChatNewMessagesButton();
             };
+
             const el = document.getElementById('chat-messages');
             if (el) el.style.visibility = 'hidden';
-            requestAnimationFrame(() => {
+            [0, 24, 70, 150, 280, 480, 760].forEach(delay => setTimeout(apply, delay));
+            setTimeout(() => {
                 apply();
-                requestAnimationFrame(() => {
-                    apply();
-                    const current = document.getElementById('chat-messages');
-                    if (current) current.style.visibility = 'visible';
-                    chatForceBottomOnOpen = false;
-                });
-            });
+                const current = document.getElementById('chat-messages');
+                if (current) current.style.visibility = 'visible';
+                chatForceBottomOnOpen = false;
+            }, 80);
+            chatEntryAnchorTimer = setTimeout(() => {
+                apply();
+                chatEntryAnchorActive = false;
+                chatEntryAnchorTimer = null;
+                chatForceBottomOnOpen = false;
+            }, 950);
         };
 
         const updateChatPresenceOnly = () => {
@@ -3829,7 +3855,7 @@ window.checkInToday = async (buttonEl = null) => {
                 }
                 const reactions=reactionsFor(m);
                 const reactHTML=Object.entries(reactions).map(([e,n])=>`<button onclick="event.stopPropagation();reactChatMessage('${m.id}','${e}')" class="elo-reaction-pill">${e}${n>1?` ${n}`:''}</button>`).join('');
-                const isNewVisual=chatRenderedMessageIds.size>0 && !chatRenderedMessageIds.has(m.id);
+                const isNewVisual=chatRenderedMessageIds.size>0 && !chatForceBottomOnOpen && !chatRenderedMessageIds.has(m.id);
                 const selected=chatSelectedMessageIds.has(m.id);
                 const rowClasses=[isMe?'me':'them',groupedPrev?'grouped grouped-prev':'',groupedNext?'grouped-next':'',isNewVisual?'elo-message-enter':'',selected?'is-selected':'',chatSelectionMode?'selection-mode':''].filter(Boolean).join(' ');
                 const deliveryMeta=isMe
@@ -6174,12 +6200,68 @@ const centerActiveStoreCategory = (smooth = true) => {
         window.openQuickGameModePicker=()=>openGenericModal(quickGameModePickerHtml());
         window.openCoupleGame=()=>{const game=coupleData?.quickGame;if(game)return openGenericModal(quickGameHtml(game));window.openQuickGameModePicker();};
         window.newCoupleGame=async(modeId='either',forceMode=false)=>{
-            if(quickGameCreating)return; quickGameCreating=true; const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either; const round=mode.rounds[Math.floor(Math.random()*mode.rounds.length)];
-            const names=quickGameNames(); const optionUserIds=modeId==='likely'?[currentUser.uid,names.partnerUid].filter(Boolean):null;
-            const candidate={id:`${Date.now()}_${currentUser.uid}`,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid}; let selected=candidate;
-            try{await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const existing=snap.data()?.quickGame;if(existing&&existing.status==='open'&&!forceMode){selected=existing;return;}tx.update(ref,{quickGame:candidate});});coupleData={...coupleData,quickGame:selected};openGenericModal(quickGameHtml(selected));if(selected.id!==candidate.id)showToast(`${getProfileName(selected.createdBy)} já iniciou uma rodada. Você entrou na mesma pergunta ❤️`,'info')}catch(e){console.error(e);showToast('Não foi possível iniciar o jogo.','error')}finally{quickGameCreating=false}
+            if(quickGameCreating)return;
+            quickGameCreating=true;
+            const previous=coupleData?.quickGame||null;
+            const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;
+            const round=mode.rounds[Math.floor(Math.random()*mode.rounds.length)];
+            const names=quickGameNames();
+            const optionUserIds=modeId==='likely'?[currentUser.uid,names.partnerUid].filter(Boolean):null;
+            const candidate={id:`${Date.now()}_${currentUser.uid}`,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid};
+            coupleData={...coupleData,quickGame:candidate};
+            openGenericModal(quickGameHtml(candidate));
+            try{
+                let selected=candidate;
+                await runTransaction(db,async tx=>{
+                    const ref=quickGameRef();const snap=await tx.get(ref);
+                    if(!snap.exists())throw new Error('Elo não encontrado.');
+                    const existing=snap.data()?.quickGame;
+                    if(existing&&existing.status==='open'&&!forceMode){selected=existing;return;}
+                    tx.update(ref,{quickGame:candidate});
+                });
+                coupleData={...coupleData,quickGame:selected};
+                renderCoupleGameModal();
+                if(selected.id!==candidate.id)showToast(`${getProfileName(selected.createdBy)} já iniciou uma rodada. Você entrou na mesma pergunta ❤️`,'info');
+            }catch(e){
+                console.error(e);
+                if(previous) coupleData={...coupleData,quickGame:previous};
+                showToast('Não foi possível iniciar o jogo.','error');
+                renderCoupleGameModal();
+            }finally{quickGameCreating=false}
         };
-        window.chooseCoupleGame=async index=>{const localGame=coupleData?.quickGame;if(!localGame||localGame.status==='done'||localGame.choices?.[currentUser.uid]!==undefined)return;try{let next=null;await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const data=snap.data();const game=data.quickGame;if(!game||game.id!==localGame.id||game.status==='done')throw new Error('A rodada mudou. Abra o jogo novamente.');if(game.choices?.[currentUser.uid]!==undefined){next=game;return;}const ids=Object.keys(data.users||{});const partnerUid=ids.find(id=>id!==currentUser.uid);const partnerAnswered=!!partnerUid&&game.choices?.[partnerUid]!==undefined;const same=partnerAnswered&&game.choices?.[partnerUid]===index;const choices={...(game.choices||{}),[currentUser.uid]:index};next={...game,choices,status:partnerAnswered?'done':'open',...(partnerAnswered?{finishedAt:Date.now()}:{})};const updates={[`quickGame.choices.${currentUser.uid}`]:index};if(partnerAnswered){updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1)}tx.update(ref,updates);});coupleData={...coupleData,quickGame:next};openGenericModal(quickGameHtml(next))}catch(e){console.error(e);showToast(e.message||'Não foi possível registrar sua escolha.','error')}};
+        window.chooseCoupleGame=async index=>{
+            const localGame=coupleData?.quickGame;
+            if(!localGame||localGame.status==='done'||localGame.choices?.[currentUser.uid]!==undefined)return;
+            const previous={...localGame,choices:{...(localGame.choices||{})}};
+            const optimistic={...localGame,choices:{...(localGame.choices||{}),[currentUser.uid]:index}};
+            coupleData={...coupleData,quickGame:optimistic};
+            renderCoupleGameModal();
+            try{
+                let next=null;
+                await runTransaction(db,async tx=>{
+                    const ref=quickGameRef();const snap=await tx.get(ref);
+                    if(!snap.exists())throw new Error('Elo não encontrado.');
+                    const data=snap.data();const game=data.quickGame;
+                    if(!game||game.id!==localGame.id||game.status==='done')throw new Error('A rodada mudou. Abra o jogo novamente.');
+                    if(game.choices?.[currentUser.uid]!==undefined){next=game;return;}
+                    const ids=Object.keys(data.users||{});const partnerUid=ids.find(id=>id!==currentUser.uid);
+                    const partnerAnswered=!!partnerUid&&game.choices?.[partnerUid]!==undefined;
+                    const same=partnerAnswered&&game.choices?.[partnerUid]===index;
+                    const choices={...(game.choices||{}),[currentUser.uid]:index};
+                    next={...game,choices,status:partnerAnswered?'done':'open',...(partnerAnswered?{finishedAt:Date.now()}:{})};
+                    const updates={[`quickGame.choices.${currentUser.uid}`]:index};
+                    if(partnerAnswered){updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1)}
+                    tx.update(ref,updates);
+                });
+                coupleData={...coupleData,quickGame:next};
+                renderCoupleGameModal();
+            }catch(e){
+                console.error(e);
+                coupleData={...coupleData,quickGame:previous};
+                renderCoupleGameModal();
+                showToast(e.message||'Não foi possível registrar sua escolha.','error');
+            }
+        };
         const updateNotificationDot=()=>{const dot=document.getElementById('notification-dot');if(dot)dot.classList.add('hidden');};
 
         const mergeMoments = (...groups) => {
@@ -6465,8 +6547,18 @@ const centerActiveStoreCategory = (smooth = true) => {
             if(attach){ attach.remove(); return true; }
             if(profileModal && !profileModal.classList.contains('hidden')){ closeGenericModal(); return true; }
             if(window.activeTab && window.activeTab!=='home'){
+                androidBackExitArmedAt = 0;
                 window.switchTab?.('home');
                 return true;
+            }
+            if(isNativeApp){
+                const now=Date.now();
+                if(now-androidBackExitArmedAt>1800){
+                    androidBackExitArmedAt=now;
+                    showToast('Pressione voltar novamente para sair do Elo.','info');
+                    return true;
+                }
+                androidBackExitArmedAt=0;
             }
             return false;
         };
