@@ -1,14 +1,14 @@
 {
   "available": false,
-  "versionName": "0.8.2",
-  "versionCode": 26,
+  "versionName": "0.8.3",
+  "versionCode": 27,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Home totalmente reformulada na identidade Akai Ito.",
-    "Temas agora alteram fundos, superfícies, cards, navegação, modais, bordas, brilho e detalhes por todo o Elo.",
-    "Sakura, Midnight e Cozy ganharam atmosferas visuais próprias e bem mais distintas.",
-    "Prévia antes da compra continua gratuita e agora mostra uma diferença real entre os temas.",
-    "Área segura do futuro Pet flutuante preservada na nova Home."
+    "Temas agora atravessam Home, Chat, Missões, Loja, Perfil, modais e componentes legados do Elo.",
+    "Sakura, Midnight, Cozy e o novo Celestial ganharam atmosferas e animações próprias; temas premium ficaram mais valiosos.",
+    "O criador de temas agora atualiza a prévia ao vivo conforme cada cor é alterada.",
+    "Chat ganhou personalização independente: papel de parede e cores das bolhas, sem perder o tema global.",
+    "O visual padrão do Chat também passa a acompanhar automaticamente o tema ativo."
   ]
 }

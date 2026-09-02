@@ -1218,3 +1218,67 @@ body[class*="elo-theme-"]::before{background:linear-gradient(116deg,transparent 
 @media(min-width:1180px){
   .elo-home-v2{grid-template-columns:minmax(0,1.4fr) minmax(22rem,.75fr);gap:1rem}.elo-home-cover{min-height:34rem}.elo-home-cover h2{font-size:2.15rem}.elo-home-activity{min-height:7rem}
 }
+
+/* ===== ELO V36.9.3 · FULL APP THEMES + PREMIUM FX + CHAT PERSONALIZATION ===== */
+:root{
+  --elo-chat-me:var(--elo-primary);
+  --elo-chat-them:var(--elo-surface-2);
+  --elo-chat-wallpaper:var(--elo-home-pattern);
+  --elo-chat-wallpaper-overlay:rgba(8,6,9,.36);
+}
+body.elo-theme-akai{--elo-chat-me:#c52f47;--elo-chat-them:#28161c;--elo-chat-wallpaper:radial-gradient(circle at 15% 8%,rgba(223,51,79,.10),transparent 28%),radial-gradient(circle at 84% 82%,rgba(123,33,52,.10),transparent 30%)}
+body.elo-theme-sakura{--elo-chat-me:#ee7898;--elo-chat-them:#533042;--elo-chat-wallpaper:radial-gradient(circle at 15% 10%,rgba(255,208,220,.15) 0 2px,transparent 3px),radial-gradient(circle at 75% 30%,rgba(255,208,220,.11) 0 2px,transparent 3px),linear-gradient(145deg,#301823,#442434)}
+body.elo-theme-midnight{--elo-chat-me:#665be8;--elo-chat-them:#18203a;--elo-chat-wallpaper:radial-gradient(circle at 10% 15%,rgba(255,255,255,.18) 0 1px,transparent 2px),radial-gradient(circle at 75% 35%,rgba(121,215,255,.14) 0 1px,transparent 2px),radial-gradient(circle at 42% 80%,rgba(255,255,255,.1) 0 1px,transparent 2px),linear-gradient(160deg,#070915,#11162b)}
+body.elo-theme-cozy{--elo-chat-me:#b96e3e;--elo-chat-them:#4b2d21;--elo-chat-wallpaper:radial-gradient(circle at 20% 20%,rgba(243,189,128,.07) 0 2px,transparent 3px),linear-gradient(160deg,#21130e,#332016)}
+body.elo-theme-celestial{--elo-primary:#b96cff;--elo-secondary:#4b3bb8;--elo-accent:#66e4ff;--elo-bg:#070716;--elo-bg-2:#101027;--elo-surface:#15152f;--elo-surface-2:#1f2042;--elo-surface-3:#292b55;--elo-text:#fbf8ff;--elo-muted:#bfc2e3;--elo-border:rgba(185,108,255,.24);--elo-thread:#d489ff;--elo-glow:rgba(102,228,255,.24);--elo-radius-card:1.65rem;--elo-home-pattern:radial-gradient(circle at 18% 4%,rgba(185,108,255,.26),transparent 31%),radial-gradient(circle at 82% 15%,rgba(102,228,255,.16),transparent 34%),radial-gradient(circle at 50% 75%,rgba(75,59,184,.14),transparent 38%);--elo-card-pattern:linear-gradient(125deg,rgba(102,228,255,.04),transparent 42%);--elo-chat-me:#8f55e8;--elo-chat-them:#202143;--elo-chat-wallpaper:radial-gradient(circle at 12% 12%,rgba(255,255,255,.24) 0 1px,transparent 2px),radial-gradient(circle at 78% 34%,rgba(102,228,255,.20) 0 1px,transparent 2px),radial-gradient(circle at 54% 76%,rgba(212,137,255,.18) 0 1px,transparent 2px),linear-gradient(145deg,#080717,#181334)}
+
+/* Bridge legacy Tailwind utilities into the active Elo theme across every tab/modal. */
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.bg-slate-950,.bg-gray-950,.bg-zinc-950){background-color:var(--elo-bg)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.bg-slate-900,.bg-gray-900,.bg-zinc-900){background-color:var(--elo-surface)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.bg-slate-800,.bg-gray-800,.bg-zinc-800){background-color:var(--elo-surface-2)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.bg-slate-700,.bg-gray-700,.bg-zinc-700){background-color:var(--elo-surface-3)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.bg-pink-500,.bg-pink-600,.bg-rose-500,.bg-rose-600,.bg-fuchsia-600,.bg-purple-600){background-color:var(--elo-primary)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.text-pink-300,.text-pink-400,.text-pink-500,.text-rose-300,.text-rose-400,.text-fuchsia-400,.text-purple-400){color:var(--elo-primary)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.text-slate-300,.text-slate-400,.text-gray-300,.text-gray-400){color:var(--elo-muted)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.border-slate-700,.border-slate-800,.border-gray-700,.border-gray-800,.border-zinc-700,.border-zinc-800){border-color:var(--elo-border)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) :is(.ring-pink-500,.ring-rose-500){--tw-ring-color:var(--elo-primary)!important}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) #main-content>section,
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) .modal-content{color:var(--elo-text)}
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) input:not([type=color]),
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) textarea,
+body:is(.elo-theme-akai,.elo-theme-sakura,.elo-theme-midnight,.elo-theme-cozy,.elo-theme-celestial,.elo-theme-custom) select{accent-color:var(--elo-primary)}
+
+/* Chat uses theme defaults, while individual chat overrides remain independent. */
+body[data-elo-tab="chat"] .elo-chat-shell{background:var(--elo-bg)!important;border-color:var(--elo-border)!important}
+body[data-elo-tab="chat"] .elo-chat-header{background:color-mix(in srgb,var(--elo-surface) 94%,transparent)!important;border-color:var(--elo-border)!important}
+body[data-elo-tab="chat"] #chat-messages{position:relative;background-color:var(--elo-bg)!important;background-image:linear-gradient(var(--elo-chat-wallpaper-overlay),var(--elo-chat-wallpaper-overlay)),var(--elo-chat-wallpaper)!important;background-size:cover,cover!important;background-position:center!important;background-attachment:local!important}
+body[data-elo-tab="chat"] .elo-message-row.me .elo-message-bubble:not(.special-card){background:var(--elo-chat-me)!important;color:#fff!important}
+body[data-elo-tab="chat"] .elo-message-row.them .elo-message-bubble:not(.special-card){background:var(--elo-chat-them)!important;color:var(--elo-text)!important;border-color:var(--elo-border)!important}
+body[data-elo-tab="chat"] .elo-chat-composer,body[data-elo-tab="chat"] .elo-chat-replybar{background:var(--elo-surface-2)!important;border-color:var(--elo-border)!important}
+body[data-elo-tab="chat"] .elo-chat-input-wrap{background:var(--elo-bg-2)!important}
+body[data-elo-tab="chat"] .elo-chat-tool{color:var(--elo-primary)!important}
+body[data-elo-tab="chat"] .elo-chat-send{background:var(--elo-primary)!important}
+
+/* Live custom-theme preview. */
+.elo-custom-live-preview{--draft-primary:#b4233f;--draft-bg:#130d10;--draft-surface:#21161a;--draft-thread:#d52c49;display:block!important;text-align:left!important;background:linear-gradient(145deg,var(--draft-bg),color-mix(in srgb,var(--draft-primary) 16%,var(--draft-bg)))!important;border-color:color-mix(in srgb,var(--draft-thread) 55%,transparent)!important;transition:background .18s,border-color .18s}
+.elo-custom-preview-top{display:flex;align-items:center;gap:.5rem;color:var(--draft-primary)}.elo-custom-preview-top b{color:#fff;flex:1}.elo-custom-preview-top span{font-size:1.3rem;color:var(--draft-thread)}
+.elo-custom-preview-card{margin-top:.7rem;padding:.75rem;border-radius:1rem;background:var(--draft-surface);border:1px solid color-mix(in srgb,var(--draft-primary) 30%,transparent)}.elo-custom-preview-card strong,.elo-custom-preview-card small{display:block}.elo-custom-preview-card strong{color:#fff;font-size:.75rem}.elo-custom-preview-card small{color:color-mix(in srgb,#fff 62%,var(--draft-surface));font-size:.56rem;margin-top:.18rem}.elo-custom-preview-card button{margin-top:.7rem;border:0;border-radius:.8rem;background:var(--draft-primary);color:white;padding:.5rem .7rem;font-size:.58rem;font-weight:900}
+.elo-premium-tag{display:inline-flex;margin-left:.35rem;padding:.15rem .3rem;border-radius:.4rem;background:linear-gradient(120deg,var(--elo-primary),var(--elo-accent));color:#fff;font-size:.42rem;font-weight:950;letter-spacing:.06em;vertical-align:middle}
+
+/* Chat appearance studio. */
+.elo-chat-preview-mini{--preview-me:var(--elo-chat-me);--preview-them:var(--elo-chat-them);min-height:8.5rem;padding:.85rem;border-radius:1.2rem;background-color:var(--elo-bg);background-image:var(--elo-chat-wallpaper);background-size:cover;background-position:center;display:flex;flex-direction:column;gap:.5rem;justify-content:center;border:1px solid var(--elo-border)}
+.elo-chat-preview-mini>div{max-width:78%;padding:.5rem .65rem;border-radius:.9rem;color:#fff;font-size:.65rem;box-shadow:0 4px 12px rgba(0,0,0,.15)}.elo-chat-preview-mini .them{align-self:flex-start;background:var(--preview-them);border-bottom-left-radius:.25rem}.elo-chat-preview-mini .me{align-self:flex-end;background:var(--preview-me);border-bottom-right-radius:.25rem}
+.elo-chat-color-row{display:grid;grid-template-columns:1fr 1fr;gap:.55rem}.elo-chat-color-row label{padding:.65rem;border-radius:1rem;background:var(--elo-surface);border:1px solid var(--elo-border)}.elo-chat-color-row span{display:block;font-size:.55rem;font-weight:900;color:var(--elo-muted);margin-bottom:.35rem}.elo-chat-color-row input{width:100%;height:2rem;border:0;background:transparent}
+.elo-chat-setting-title{font-size:.62rem;font-weight:950;color:var(--elo-text);margin:0 0 .45rem}.elo-chat-wallpaper-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem}.elo-chat-wallpaper-presets button{padding:.55rem .35rem;border-radius:.7rem;background:var(--elo-surface-2);border:1px solid var(--elo-border);color:var(--elo-text);font-size:.52rem;font-weight:850}
+.elo-chat-wallpaper-upload{margin-top:.55rem;display:grid;grid-template-columns:2rem 1fr;gap:.55rem;align-items:center;padding:.65rem;border-radius:.9rem;background:var(--elo-surface);border:1px dashed color-mix(in srgb,var(--elo-primary) 42%,transparent);cursor:pointer}.elo-chat-wallpaper-upload>i{font-size:1.2rem;color:var(--elo-primary)}.elo-chat-wallpaper-upload b,.elo-chat-wallpaper-upload small{display:block}.elo-chat-wallpaper-upload b{font-size:.62rem}.elo-chat-wallpaper-upload small{font-size:.5rem;color:var(--elo-muted);margin-top:.1rem}.elo-chat-wallpaper-upload input{display:none}
+
+/* Premium theme ambient effects: pointer-events none, home-only and light enough for mobile. */
+.elo-theme-fx{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;display:none}.elo-theme-fx i{position:absolute;display:block;will-change:transform,opacity}
+body[data-elo-tab="home"] .elo-theme-fx{display:block}
+.fx-sakura i{left:calc(var(--x)*1%);top:-8vh;width:.55rem;height:.38rem;border-radius:80% 15% 70% 20%;background:linear-gradient(135deg,#ffd6e1,#ed86a5);opacity:.72;animation:eloSakuraFall var(--d) linear var(--delay) infinite;filter:drop-shadow(0 2px 3px rgba(120,30,65,.18))}
+@keyframes eloSakuraFall{0%{transform:translate3d(0,-8vh,0) rotate(0deg);opacity:0}8%{opacity:.75}50%{transform:translate3d(4vw,52vh,0) rotate(190deg)}100%{transform:translate3d(-3vw,112vh,0) rotate(380deg);opacity:.12}}
+.fx-stars i,.fx-celestial i{left:calc(var(--x)*1%);top:calc(((var(--i)*53)%92)*1%);width:2px;height:2px;border-radius:50%;background:#fff;box-shadow:0 0 8px currentColor;color:var(--elo-accent);animation:eloStarTwinkle var(--d) ease-in-out var(--delay) infinite}.fx-celestial i:nth-child(3n){width:4px;height:4px;color:#d489ff}.fx-celestial:before{content:"";position:absolute;inset:-15%;background:radial-gradient(ellipse at 20% 30%,rgba(185,108,255,.10),transparent 35%),radial-gradient(ellipse at 80% 25%,rgba(102,228,255,.08),transparent 38%);animation:eloAurora 9s ease-in-out infinite alternate}
+@keyframes eloStarTwinkle{50%{opacity:.2;transform:scale(.55)}0%,100%{opacity:.9;transform:scale(1.15)}}@keyframes eloAurora{to{transform:translate3d(3%,2%,0) scale(1.05)}}
+.fx-fireflies i{left:calc(var(--x)*1%);top:calc(((var(--i)*47)%86 + 8)*1%);width:4px;height:4px;border-radius:50%;background:#ffd797;box-shadow:0 0 12px #e8a761;animation:eloFirefly var(--d) ease-in-out var(--delay) infinite}
+@keyframes eloFirefly{0%,100%{opacity:.12;transform:translate(0,0)}35%{opacity:.78;transform:translate(18px,-12px)}70%{opacity:.32;transform:translate(-12px,10px)}}
+@media(prefers-reduced-motion:reduce){.elo-theme-fx{display:none!important}.elo-custom-live-preview{transition:none}}

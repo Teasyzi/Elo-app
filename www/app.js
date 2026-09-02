@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.2';
+        const ELO_WEB_VERSION = '36.9.3';
         const ELO_RELEASE_NOTES = [
             '🎨 TEMAS agora transformam de verdade o Elo inteiro: fundos, cards, navegação, modais, detalhes, brilho e identidade visual.',
             '🧵 HOME totalmente refeita na linguagem Akai Ito, com o fio do destino conectando os personagens e uma hierarquia muito mais limpa.',
@@ -176,7 +176,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.2', versionCode:26 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.3', versionCode:27 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2101,15 +2101,43 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
         const ELO_THEME_CATALOG = {
-            akai: {name:'Akai Ito', icon:'🧵', price:0, className:'elo-theme-akai', description:'Creme quente, vermelho profundo e o fio do destino.'},
-            sakura: {name:'Sakura', icon:'🌸', price:300, className:'elo-theme-sakura', description:'Rosa suave e um clima leve de primavera.'},
-            midnight: {name:'Midnight', icon:'🌙', price:500, className:'elo-theme-midnight', description:'Noite profunda, violeta e brilho discreto.'},
-            cozy: {name:'Cozy', icon:'🧸', price:500, className:'elo-theme-cozy', description:'Tons quentes e aconchegantes para o cantinho de vocês.'}
+            akai: {name:'Akai Ito', icon:'🧵', price:0, className:'elo-theme-akai', description:'Vermelho profundo, fio do destino e atmosfera romântica.', effect:'thread'},
+            sakura: {name:'Sakura', icon:'🌸', price:1200, className:'elo-theme-sakura', description:'Primavera japonesa com pétalas animadas e chat rosado.', premium:true, effect:'sakura'},
+            midnight: {name:'Midnight', icon:'🌙', price:1500, className:'elo-theme-midnight', description:'Noite violeta com estrelas suaves e brilho lunar.', premium:true, effect:'stars'},
+            cozy: {name:'Cozy', icon:'🧸', price:800, className:'elo-theme-cozy', description:'Âmbar, madeira e pequenos brilhos aconchegantes.', effect:'fireflies'},
+            celestial: {name:'Celestial', icon:'✨', price:2200, className:'elo-theme-celestial', description:'Tema premium com aurora, estrelas e partículas.', premium:true, effect:'celestial'}
         };
-        const ELO_CUSTOM_THEME_PRICE = 500;
+        const ELO_CUSTOM_THEME_PRICE = 900;
         const eloThemeKey = () => `elo_theme_${currentUser?.uid || 'device'}`;
         const eloThemeOwnedKey = () => `elo_theme_owned_${currentUser?.uid || 'device'}`;
         const eloCustomThemeKey = () => `elo_theme_custom_${currentUser?.uid || 'device'}`;
+        const eloChatAppearanceKey = () => `elo_chat_appearance_${currentUser?.uid || 'device'}`;
+        const colorMixHex = (hex, amount=0, fallback='#111827') => {
+            const raw=hexSafe(hex,fallback).slice(1), n=parseInt(raw,16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+            const target=amount<0?0:255, p=Math.min(1,Math.abs(amount));
+            r=Math.round(r+(target-r)*p); g=Math.round(g+(target-g)*p); b=Math.round(b+(target-b)*p);
+            return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+        };
+        const renderThemeFx = id => {
+            document.getElementById('elo-theme-fx')?.remove();
+            const theme=ELO_THEME_CATALOG[id]; if(!theme?.effect || theme.effect==='thread') return;
+            const fx=document.createElement('div'); fx.id='elo-theme-fx'; fx.className=`elo-theme-fx fx-${theme.effect}`; fx.setAttribute('aria-hidden','true');
+            const count=theme.effect==='sakura'?14:theme.effect==='celestial'?18:12;
+            fx.innerHTML=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--d:${8+(i%7)*1.35}s;--delay:${-(i%9)*1.15}s"></i>`).join('');
+            document.body.appendChild(fx);
+        };
+        const applyChatAppearance = () => {
+            let cfg={}; try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){}
+            const root=document.documentElement;
+            ['--elo-chat-me','--elo-chat-them','--elo-chat-wallpaper','--elo-chat-wallpaper-overlay'].forEach(k=>root.style.removeProperty(k));
+            if(cfg.me) root.style.setProperty('--elo-chat-me',hexSafe(cfg.me,'#c52f47'));
+            if(cfg.them) root.style.setProperty('--elo-chat-them',hexSafe(cfg.them,'#28161c'));
+            if(cfg.wallpaper){root.style.setProperty('--elo-chat-wallpaper',`url("${String(cfg.wallpaper).replace(/"/g,'')}")`);root.style.setProperty('--elo-chat-wallpaper-overlay', cfg.overlay || 'rgba(8,6,9,.52)');}
+            else if(cfg.preset==='hearts') root.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 18% 20%,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at 72% 62%,rgba(255,255,255,.06) 0 2px,transparent 3px),radial-gradient(circle at 42% 84%,rgba(255,255,255,.05) 0 2px,transparent 3px)');
+            else if(cfg.preset==='night') root.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 20% 20%,rgba(255,255,255,.20) 0 1px,transparent 2px),radial-gradient(circle at 80% 40%,rgba(255,255,255,.12) 0 1px,transparent 2px),linear-gradient(#070915,#15122b)');
+            else if(cfg.preset==='clean') root.style.setProperty('--elo-chat-wallpaper','linear-gradient(var(--elo-bg),var(--elo-bg))');
+            else if(cfg.wallpaperColor) root.style.setProperty('--elo-chat-wallpaper',`linear-gradient(${hexSafe(cfg.wallpaperColor,'#10090c')},${hexSafe(cfg.wallpaperColor,'#10090c')})`);
+        };
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
         const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
         const hexSafe = (v, fallback) => /^#[0-9a-f]{6}$/i.test(String(v||'')) ? v : fallback;
@@ -2119,14 +2147,27 @@ window.checkInToday = async (buttonEl = null) => {
             if (id === 'custom') {
                 let cfg={}; try { cfg=JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}'); } catch(_) {}
                 document.body.classList.add('elo-theme-custom');
-                document.documentElement.style.setProperty('--elo-primary', hexSafe(cfg.primary,'#b4233f'));
-                document.documentElement.style.setProperty('--elo-bg', hexSafe(cfg.background,'#130d10'));
-                document.documentElement.style.setProperty('--elo-surface', hexSafe(cfg.surface,'#21161a'));
-                document.documentElement.style.setProperty('--elo-thread', hexSafe(cfg.thread,cfg.primary||'#b4233f'));
+                const primary=hexSafe(cfg.primary,'#b4233f'), bg=hexSafe(cfg.background,'#130d10'), surface=hexSafe(cfg.surface,'#21161a'), thread=hexSafe(cfg.thread,cfg.primary||'#b4233f');
+                document.documentElement.style.setProperty('--elo-primary', primary);
+                document.documentElement.style.setProperty('--elo-secondary', colorMixHex(primary,-.35));
+                document.documentElement.style.setProperty('--elo-accent', colorMixHex(primary,.45));
+                document.documentElement.style.setProperty('--elo-bg', bg);
+                document.documentElement.style.setProperty('--elo-bg-2', colorMixHex(bg,.08));
+                document.documentElement.style.setProperty('--elo-surface', surface);
+                document.documentElement.style.setProperty('--elo-surface-2', colorMixHex(surface,.09));
+                document.documentElement.style.setProperty('--elo-surface-3', colorMixHex(surface,.16));
+                document.documentElement.style.setProperty('--elo-border', `${primary}44`);
+                document.documentElement.style.setProperty('--elo-thread', thread);
+                document.documentElement.style.setProperty('--elo-glow', `${primary}38`);
+                document.documentElement.style.setProperty('--elo-chat-me', primary);
+                document.documentElement.style.setProperty('--elo-chat-them', colorMixHex(surface,.08));
+                renderThemeFx(null);
             } else {
-                document.documentElement.style.removeProperty('--elo-primary'); document.documentElement.style.removeProperty('--elo-bg'); document.documentElement.style.removeProperty('--elo-surface'); document.documentElement.style.removeProperty('--elo-thread');
+                ['--elo-primary','--elo-secondary','--elo-accent','--elo-bg','--elo-bg-2','--elo-surface','--elo-surface-2','--elo-surface-3','--elo-border','--elo-thread','--elo-glow','--elo-chat-me','--elo-chat-them'].forEach(k=>document.documentElement.style.removeProperty(k));
                 document.body.classList.add(ELO_THEME_CATALOG[id]?.className || 'elo-theme-akai');
+                renderThemeFx(id);
             }
+            applyChatAppearance();
         };
         window.applyEloTheme = (id = null) => {
             id = id || localStorage.getItem(eloThemeKey()) || 'akai';
@@ -2181,9 +2222,32 @@ window.checkInToday = async (buttonEl = null) => {
             }
             eloThemePreviewState=null; removeEloThemePreviewDock(); applyEloTheme(id); closeGenericModal(); updateUI(); setTimeout(()=>openThemeStudio(),80);
         };
+        window.updateCustomThemeDraft = () => {
+            const card=document.getElementById('elo-custom-live-preview'); if(!card) return;
+            const primary=document.getElementById('elo-theme-primary')?.value||'#b4233f', background=document.getElementById('elo-theme-background')?.value||'#130d10', surface=document.getElementById('elo-theme-surface')?.value||'#21161a', thread=document.getElementById('elo-theme-thread')?.value||primary;
+            card.style.setProperty('--draft-primary',primary); card.style.setProperty('--draft-bg',background); card.style.setProperty('--draft-surface',surface); card.style.setProperty('--draft-thread',thread);
+        };
+        window.openChatAppearance = () => {
+            let cfg={}; try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){}
+            const me=hexSafe(cfg.me,getComputedStyle(document.documentElement).getPropertyValue('--elo-chat-me').trim()||'#c52f47');
+            const them=hexSafe(cfg.them,getComputedStyle(document.documentElement).getPropertyValue('--elo-chat-them').trim()||'#28161c');
+            openGenericModal(`<div class="space-y-4 elo-chat-appearance-studio"><div><p class="elo-kicker">💬 Só para você</p><h3>Visual da conversa</h3><p>O tema define o visual padrão do chat, mas você pode substituir apenas o fundo e as cores das mensagens sem perder o tema.</p></div><div class="elo-chat-preview-mini"><div class="them">Oi, amor ❤️</div><div class="me">Amei nosso Elo!</div></div><div class="elo-chat-color-row"><label><span>Minha mensagem</span><input id="elo-chat-me-color" type="color" value="${me}" oninput="previewChatAppearanceDraft()"></label><label><span>Mensagem recebida</span><input id="elo-chat-them-color" type="color" value="${them}" oninput="previewChatAppearanceDraft()"></label></div><div><p class="elo-chat-setting-title">Papel de parede</p><div class="elo-chat-wallpaper-presets"><button onclick="setChatWallpaperPreset('theme')">Tema</button><button onclick="setChatWallpaperPreset('hearts')">Corações</button><button onclick="setChatWallpaperPreset('night')">Noite</button><button onclick="setChatWallpaperPreset('clean')">Liso</button></div><label class="elo-chat-wallpaper-upload"><i class="ph-bold ph-image"></i><span><b>Escolher uma imagem</b><small>Como no WhatsApp: use uma foto só como fundo do chat.</small></span><input id="elo-chat-wallpaper-file" type="file" accept="image/*" onchange="chooseChatWallpaper(event)"></label></div><div class="grid grid-cols-2 gap-2"><button onclick="resetChatAppearance()" class="elo-secondary-action">Usar padrão do tema</button><button onclick="saveChatAppearance()" class="elo-primary-action">Salvar chat</button></div></div>`);
+            window.__eloChatDraft={...cfg,me,them}; requestAnimationFrame(previewChatAppearanceDraft);
+        };
+        window.previewChatAppearanceDraft = () => {
+            const draft=window.__eloChatDraft||{}; const me=document.getElementById('elo-chat-me-color')?.value||draft.me, them=document.getElementById('elo-chat-them-color')?.value||draft.them;
+            draft.me=me; draft.them=them; window.__eloChatDraft=draft;
+            const box=document.querySelector('.elo-chat-preview-mini'); if(box){box.style.setProperty('--preview-me',me);box.style.setProperty('--preview-them',them); if(draft.wallpaper) box.style.backgroundImage=`linear-gradient(${draft.overlay||'rgba(8,6,9,.42)'},${draft.overlay||'rgba(8,6,9,.42)'}),url("${draft.wallpaper}")`; else if(draft.preset==='hearts') box.style.backgroundImage='radial-gradient(circle at 20% 20%,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at 70% 60%,rgba(255,255,255,.06) 0 2px,transparent 3px)'; else if(draft.preset==='night') box.style.backgroundImage='radial-gradient(circle at 20% 20%,rgba(255,255,255,.2) 0 1px,transparent 2px),linear-gradient(#070915,#15122b)'; else box.style.backgroundImage='none';}
+        };
+        window.setChatWallpaperPreset = preset => { window.__eloChatDraft={...(window.__eloChatDraft||{}),preset,wallpaper:null,wallpaperColor:null}; previewChatAppearanceDraft(); };
+        window.chooseChatWallpaper = event => { const file=event?.target?.files?.[0]; if(!file)return; if(!file.type.startsWith('image/'))return showToast('Escolha uma imagem válida.','error'); const img=new Image(), reader=new FileReader(); reader.onload=()=>{img.onload=()=>{const max=1280, scale=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height); const data=c.toDataURL('image/jpeg',.76);window.__eloChatDraft={...(window.__eloChatDraft||{}),wallpaper:data,preset:'custom',overlay:'rgba(8,6,9,.52)'};previewChatAppearanceDraft();};img.src=reader.result;};reader.readAsDataURL(file); };
+        window.saveChatAppearance = () => { const d=window.__eloChatDraft||{}; d.me=document.getElementById('elo-chat-me-color')?.value||d.me; d.them=document.getElementById('elo-chat-them-color')?.value||d.them; try{localStorage.setItem(eloChatAppearanceKey(),JSON.stringify(d))}catch(e){return showToast('A imagem ficou grande demais. Tente outra menor.','error')} applyChatAppearance();closeGenericModal();updateUI();showToast('💬 Visual do chat salvo!','success'); };
+        window.resetChatAppearance = () => { localStorage.removeItem(eloChatAppearanceKey());window.__eloChatDraft=null;applyChatAppearance();closeGenericModal();updateUI();showToast('Chat voltou ao visual do tema.','success'); };
         window.openCustomThemeCreator = () => {
             let cfg={primary:'#b4233f',background:'#130d10',surface:'#21161a',thread:'#d52c49'}; try{cfg={...cfg,...JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}')}}catch(_){}
-            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div><p class="elo-kicker">🎨 Seu próprio Elo</p><h3>Crie seu tema</h3><p>Uma criação custa <b>${ELO_CUSTOM_THEME_PRICE} Elo Coins</b>. Depois de criada, você pode editar e usar quando quiser.</p></div><div class="elo-theme-color-grid">${[['primary','Cor principal'],['background','Fundo'],['surface','Cards'],['thread','Fio do Elo']].map(([k,l])=>`<label><span>${l}</span><input id="elo-theme-${k}" type="color" value="${hexSafe(cfg[k],'#b4233f')}"></label>`).join('')}</div><div class="elo-theme-preview"><i class="ph-fill ph-heart"></i><b>Prévia do seu tema</b><span>Seu cantinho, do seu jeito.</span></div><button onclick="saveCustomEloTheme()" class="elo-primary-action">Criar por ${ELO_CUSTOM_THEME_PRICE} 🪙</button><button onclick="closeGenericModal();setTimeout(openThemeStudio,80)" class="elo-secondary-action">Voltar</button></div>`);
+            const exists=!!localStorage.getItem(eloCustomThemeKey());
+            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div><p class="elo-kicker">🎨 Seu próprio Elo</p><h3>Crie seu tema</h3><p>${exists?'Edite seu tema sem custo.':`A criação custa <b>${ELO_CUSTOM_THEME_PRICE} Elo Coins</b>.`} As cores abaixo atualizam a prévia em tempo real.</p></div><div class="elo-theme-color-grid">${[['primary','Cor principal'],['background','Fundo'],['surface','Cards'],['thread','Fio do Elo']].map(([k,l])=>`<label><span>${l}</span><input id="elo-theme-${k}" type="color" value="${hexSafe(cfg[k],'#b4233f')}" oninput="updateCustomThemeDraft()"></label>`).join('')}</div><div id="elo-custom-live-preview" class="elo-theme-preview elo-custom-live-preview"><div class="elo-custom-preview-top"><i class="ph-fill ph-heart"></i><b>Seu Elo</b><span>∞</span></div><div class="elo-custom-preview-card"><strong>Um cantinho só de vocês</strong><small>Cards, botões e o fio mudam junto com suas cores.</small><button>Mensagem de exemplo</button></div></div><button onclick="saveCustomEloTheme()" class="elo-primary-action">${exists?'Salvar alterações':`Criar por ${ELO_CUSTOM_THEME_PRICE} 🪙`}</button><button onclick="closeGenericModal();setTimeout(openThemeStudio,80)" class="elo-secondary-action">Voltar</button></div>`);
+            requestAnimationFrame(updateCustomThemeDraft);
         };
         window.saveCustomEloTheme = async () => {
             const existing=localStorage.getItem(eloCustomThemeKey());
@@ -2198,10 +2262,10 @@ window.checkInToday = async (buttonEl = null) => {
             const current=localStorage.getItem(eloThemeKey())||'akai', owned=ownedThemes(), hasCustom=!!localStorage.getItem(eloCustomThemeKey());
             const rows=Object.entries(ELO_THEME_CATALOG).map(([id,t])=>{
                 const isOwned=owned.has(id);
-                if(isOwned) return `<button onclick="selectEloTheme('${id}')" class="elo-theme-choice ${current===id?'is-selected':''}"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.description}</small></span><em>${current===id?'Usando':'Usar'}</em></button>`;
-                return `<div class="elo-theme-choice elo-theme-choice-locked"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.description}</small></span><div class="elo-theme-actions"><button type="button" onclick="previewEloTheme('${id}')"><i class="ph-bold ph-eye"></i> Testar</button><button type="button" class="is-buy" onclick="selectEloTheme('${id}')">${t.price} 🪙</button></div></div>`;
+                if(isOwned) return `<button onclick="selectEloTheme('${id}')" class="elo-theme-choice ${current===id?'is-selected':''}"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}${t.premium?' <mark class="elo-premium-tag">PREMIUM</mark>':''}</b><small>${t.description}</small></span><em>${current===id?'Usando':'Usar'}</em></button>`;
+                return `<div class="elo-theme-choice elo-theme-choice-locked"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}${t.premium?' <mark class="elo-premium-tag">PREMIUM</mark>':''}</b><small>${t.description}</small></span><div class="elo-theme-actions"><button type="button" onclick="previewEloTheme('${id}')"><i class="ph-bold ph-eye"></i> Testar</button><button type="button" class="is-buy" onclick="selectEloTheme('${id}')">${t.price} 🪙</button></div></div>`;
             }).join('');
-            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div class="elo-theme-hero"><div class="elo-thread-mark">∞</div><div><p class="elo-kicker">Aparência individual</p><h3>Temas do Elo</h3><p>Teste qualquer tema antes de gastar suas Elo Coins. O tema muda apenas para você.</p></div></div><div class="elo-theme-test-note"><i class="ph-bold ph-eye"></i><span><b>Teste antes de comprar</b><small>A prévia muda o Elo inteiro temporariamente. Você pode navegar normalmente e sair sem gastar nada.</small></span></div><div class="elo-theme-list">${rows}</div>${hasCustom?`<button onclick="applyEloTheme('custom');closeGenericModal();updateUI()" class="elo-theme-choice ${current==='custom'?'is-selected':''}"><span class="elo-theme-icon">🎨</span><span><b>Meu tema</b><small>Sua criação personalizada.</small></span><em>${current==='custom'?'Usando':'Usar'}</em></button>`:''}<button onclick="openCustomThemeCreator()" class="elo-primary-action">${hasCustom?'Editar meu tema':'Criar meu tema · 500 🪙'}</button></div>`);
+            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div class="elo-theme-hero"><div class="elo-thread-mark">∞</div><div><p class="elo-kicker">Aparência individual</p><h3>Temas do Elo</h3><p>Teste qualquer tema antes de gastar suas Elo Coins. O tema muda apenas para você.</p></div></div><div class="elo-theme-test-note"><i class="ph-bold ph-eye"></i><span><b>Teste antes de comprar</b><small>A prévia muda o Elo inteiro temporariamente. Você pode navegar normalmente e sair sem gastar nada.</small></span></div><div class="elo-theme-list">${rows}</div>${hasCustom?`<button onclick="applyEloTheme('custom');closeGenericModal();updateUI()" class="elo-theme-choice ${current==='custom'?'is-selected':''}"><span class="elo-theme-icon">🎨</span><span><b>Meu tema</b><small>Sua criação personalizada.</small></span><em>${current==='custom'?'Usando':'Usar'}</em></button>`:''}<button onclick="openCustomThemeCreator()" class="elo-primary-action">${hasCustom?'Editar meu tema':`Criar meu tema · ${ELO_CUSTOM_THEME_PRICE} 🪙`}</button></div>`);
         };
         applyEloTheme();
 
@@ -4117,7 +4181,7 @@ window.checkInToday = async (buttonEl = null) => {
                 return;
             }
 
-            main.innerHTML=`<div class="elo-chat-shell">${selectionBar}<div class="elo-chat-header ${chatSelectionMode?'selection-hidden':''}"><button type="button" onclick="openPartnerChatProfile()" class="contents" aria-label="Abrir perfil de ${escapeHTML(partner?.name||'seu amor')}"><div id="elo-chat-partner-avatar" class="elo-chat-avatar">${partnerAvatar}</div><div class="flex-1 min-w-0 text-left"><p id="elo-chat-partner-name" class="font-black text-white text-[15px] truncate">${escapeHTML(partner?.name||'Seu amor')}</p><div class="flex items-center gap-1.5"><span id="elo-chat-partner-dot" class="w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}"></span><p id="elo-chat-partner-status" class="text-[10px] ${statusClass}">${statusText}</p></div></div></button><button onclick="searchChatMessages()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Pesquisar conversa"><i class="ph-bold ph-magnifying-glass"></i></button><button onclick="openPartnerChatProfile()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Dados da conversa"><i class="ph-bold ph-dots-three-vertical"></i></button></div>${pinnedBar}<div class="relative flex-1 min-h-0"><div class="elo-chat-messages hide-scrollbar h-full" id="chat-messages">${historyHTML}${renderedMessagesHTML||emptyHTML}</div><button id="chat-new-messages" onclick="scrollChatToLatest()" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-pink-600 text-white text-xs font-black px-4 py-2 shadow-xl active:scale-95 whitespace-nowrap">↓ 1 nova mensagem</button></div><div id="elo-chat-reply-slot">${replyBar}</div><div class="elo-chat-composer"><div id="chat-compose-normal" class="elo-compose-row"><button type="button" onclick="openChatAttachmentMenu()" class="elo-chat-tool elo-attach-action" title="Anexar" aria-label="Anexar ao chat"><i class="ph-bold ph-plus text-xl"></i></button><input id="elo-chat-image-input" type="file" accept="image/*" multiple class="hidden" onchange="sendChatImage(event)"><input id="elo-chat-file-input" type="file" class="hidden" onchange="sendChatFile(event)"><div class="elo-chat-input-wrap"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Mensagem" oninput="handleChatComposerInput(this)" onfocus="setChatFocusState(true)" onblur="setChatFocusState(false)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}">${escapeHTML(chatDraft)}</textarea><i class="ph-bold ph-smiley elo-compose-smile" aria-hidden="true"></i></div><button id="chat-mic-action" onclick="startChatAudioRecording()" class="elo-chat-send elo-mic-primary" aria-label="Gravar áudio" title="Gravar áudio"><i class="ph-fill ph-microphone text-xl"></i></button><button id="chat-send-action" data-chat-send onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="sendChatMessage()" class="elo-chat-send hidden" aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div><div id="chat-recording-panel" class="elo-chat-recording" style="display:none"><button onclick="cancelChatAudioRecording()" class="elo-rec-trash" aria-label="Cancelar gravação"><i class="ph-bold ph-trash text-lg"></i></button><span class="elo-rec-dot"></span><div class="min-w-0 flex-1"><div class="elo-rec-wave">${[10,18,13,23,16,9,20,14,25,12,18,8,22,15,11,19].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="flex items-center justify-between gap-2"><div id="chat-record-time" class="elo-rec-time">0:00</div><div class="elo-rec-label">Gravando…</div></div></div><button onclick="finishChatAudioRecording()" class="elo-rec-send-round" aria-label="Enviar áudio"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div></div></div>`;
+            main.innerHTML=`<div class="elo-chat-shell">${selectionBar}<div class="elo-chat-header ${chatSelectionMode?'selection-hidden':''}"><button type="button" onclick="openPartnerChatProfile()" class="contents" aria-label="Abrir perfil de ${escapeHTML(partner?.name||'seu amor')}"><div id="elo-chat-partner-avatar" class="elo-chat-avatar">${partnerAvatar}</div><div class="flex-1 min-w-0 text-left"><p id="elo-chat-partner-name" class="font-black text-white text-[15px] truncate">${escapeHTML(partner?.name||'Seu amor')}</p><div class="flex items-center gap-1.5"><span id="elo-chat-partner-dot" class="w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}"></span><p id="elo-chat-partner-status" class="text-[10px] ${statusClass}">${statusText}</p></div></div></button><button onclick="searchChatMessages()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Pesquisar conversa"><i class="ph-bold ph-magnifying-glass"></i></button><button onclick="openChatAppearance()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Personalizar conversa" title="Personalizar conversa"><i class="ph-bold ph-palette"></i></button><button onclick="openPartnerChatProfile()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Dados da conversa"><i class="ph-bold ph-dots-three-vertical"></i></button></div>${pinnedBar}<div class="relative flex-1 min-h-0"><div class="elo-chat-messages hide-scrollbar h-full" id="chat-messages">${historyHTML}${renderedMessagesHTML||emptyHTML}</div><button id="chat-new-messages" onclick="scrollChatToLatest()" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-pink-600 text-white text-xs font-black px-4 py-2 shadow-xl active:scale-95 whitespace-nowrap">↓ 1 nova mensagem</button></div><div id="elo-chat-reply-slot">${replyBar}</div><div class="elo-chat-composer"><div id="chat-compose-normal" class="elo-compose-row"><button type="button" onclick="openChatAttachmentMenu()" class="elo-chat-tool elo-attach-action" title="Anexar" aria-label="Anexar ao chat"><i class="ph-bold ph-plus text-xl"></i></button><input id="elo-chat-image-input" type="file" accept="image/*" multiple class="hidden" onchange="sendChatImage(event)"><input id="elo-chat-file-input" type="file" class="hidden" onchange="sendChatFile(event)"><div class="elo-chat-input-wrap"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Mensagem" oninput="handleChatComposerInput(this)" onfocus="setChatFocusState(true)" onblur="setChatFocusState(false)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}">${escapeHTML(chatDraft)}</textarea><i class="ph-bold ph-smiley elo-compose-smile" aria-hidden="true"></i></div><button id="chat-mic-action" onclick="startChatAudioRecording()" class="elo-chat-send elo-mic-primary" aria-label="Gravar áudio" title="Gravar áudio"><i class="ph-fill ph-microphone text-xl"></i></button><button id="chat-send-action" data-chat-send onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="sendChatMessage()" class="elo-chat-send hidden" aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div><div id="chat-recording-panel" class="elo-chat-recording" style="display:none"><button onclick="cancelChatAudioRecording()" class="elo-rec-trash" aria-label="Cancelar gravação"><i class="ph-bold ph-trash text-lg"></i></button><span class="elo-rec-dot"></span><div class="min-w-0 flex-1"><div class="elo-rec-wave">${[10,18,13,23,16,9,20,14,25,12,18,8,22,15,11,19].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="flex items-center justify-between gap-2"><div id="chat-record-time" class="elo-rec-time">0:00</div><div class="elo-rec-label">Gravando…</div></div></div><button onclick="finishChatAudioRecording()" class="elo-rec-send-round" aria-label="Enviar áudio"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div></div></div>`;
 
             const c=document.getElementById('chat-messages');
             if(c){

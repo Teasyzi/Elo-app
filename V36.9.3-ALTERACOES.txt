@@ -1,0 +1,16 @@
+ELO V36.9.3 / APK 0.8.3
+
+- Sistema de temas ampliado para toda a interface, incluindo telas e componentes que ainda usavam cores Tailwind fixas.
+- Sakura: pétalas animadas na Home.
+- Midnight: estrelas suaves animadas.
+- Cozy: pequenos brilhos/fireflies.
+- Novo tema premium Celestial com aurora e partículas.
+- Preços reajustados: Sakura 1200, Midnight 1500, Cozy 800, Celestial 2200 Elo Coins.
+- Criador de tema: 900 Elo Coins na primeira criação; edições posteriores gratuitas.
+- Prévia do criador agora reage em tempo real às cores selecionadas.
+- Chat agora herda fundo e cores de bolha do tema ativo.
+- Nova personalização individual do Chat: cor das minhas mensagens, cor das recebidas e papel de parede.
+- Papel de parede do Chat pode ser padrão do tema, presets ou imagem escolhida pelo usuário.
+- Customização do Chat sobrepõe apenas o Chat e pode coexistir com qualquer tema global.
+- Efeitos visuais respeitam prefers-reduced-motion e não capturam toques.
+- CACHE e versões de assets atualizados.
