@@ -1,13 +1,14 @@
 {
   "available": false,
-  "versionName": "0.6.2",
-  "versionCode": 15,
+  "versionName": "0.7.0",
+  "versionCode": 16,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Gestos do Chat refeitos para responder e reagir",
-    "Teclado não sobrepõe mais o campo de mensagem",
-    "Preparação guiada de permissões no primeiro uso",
-    "Seleção de mensagens pela linha inteira"
+    "Chat ocupa corretamente a área acima do teclado no Android/iPhone",
+    "Permissões do sistema solicitadas diretamente no primeiro uso",
+    "Áudios com waveform, seek, velocidades e confirmação de ouvido",
+    "Seleção e revisão de várias fotos antes do envio",
+    "Encaminhamento para chats de Elos amigos e reações mais fluidas"
   ]
 }

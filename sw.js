@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-7-2-chat-touch-keyboard-permissions-20260902';
+const CACHE = 'elo-v36-8-chat-finalization-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.7.2',
-  './tailwind.css?v=36.7.2',
-  './styles.css?v=36.7.2',
+  './app.js?v=36.8.0',
+  './tailwind.css?v=36.8.0',
+  './styles.css?v=36.8.0',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

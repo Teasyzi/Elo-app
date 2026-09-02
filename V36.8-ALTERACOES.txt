@@ -1,0 +1,21 @@
+ELO V36.8 / APK 0.7.0 — CHAT FINALIZATION
+
+- Permissões iniciais: removida a tela interna "Permissões do Elo".
+- APK tenta abrir diretamente os prompts nativos de notificação e microfone no primeiro uso autenticado.
+- Web/PWA tenta o prompt nativo do navegador; armazenamento geral não é solicitado porque arquivos/fotos usam seletor seguro.
+- Android MainActivity usa windowSoftInputMode=adjustResize e RECORD_AUDIO no manifest.
+- Teclado do Chat: detecção por foco + VisualViewport + baseline; main-header/nav somem e o Chat ocupa o viewport visível.
+- Chat mantém o cabeçalho da conversa e principalmente o composer acima do teclado.
+- Áudio: waveform com progresso, seek por arraste, thumb, 1x/1.5x/2x, tempo atual/total e heardBy.
+- Gravação: waveform animada durante a captura.
+- Fotos: input multiple, revisão em lote, remoção antes do envio, até 10 imagens e legenda do lote.
+- Encaminhar: mensagem principal pode ser encaminhada a um Elo amigo pelo chat social.
+- Indicador "digitando" aparece no fluxo da conversa.
+- Reações menores e animação ao escolher emoji.
+- Transições das mensagens e interações refinadas.
+
+VERSÕES
+Web 36.8.0
+APK 0.7.0
+versionCode 16
+CACHE elo-v36-8-chat-finalization-20260902
