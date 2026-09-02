@@ -1,0 +1,10 @@
+ELO V36.9.4 / APK 0.8.4
+
+- Galáxia Celestial: nebulosas, estrelas e meteoros.
+- Midnight ganhou lua, estrelas e meteoros; Cozy ganhou vagalumes e folhas quentes.
+- Chat: corrigida prioridade das cores das bolhas e papel de parede escolhidos.
+- Tema global e personalização individual do Chat coexistem.
+- Criador de tema: partículas animadas opcionais (corações, pétalas, estrelas, bolhas e faíscas), com cor personalizada e custo em Elo Coins.
+- Prévia do criador reage em tempo real.
+- Home: fio Akai Ito conecta os dois avatares e forma um coração no centro.
+- Cache e versões atualizados.

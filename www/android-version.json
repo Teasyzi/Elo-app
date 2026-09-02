@@ -1,14 +1,14 @@
 {
   "available": false,
-  "versionName": "0.8.3",
-  "versionCode": 27,
+  "versionName": "0.8.4",
+  "versionCode": 28,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Temas agora atravessam Home, Chat, Missões, Loja, Perfil, modais e componentes legados do Elo.",
-    "Sakura, Midnight, Cozy e o novo Celestial ganharam atmosferas e animações próprias; temas premium ficaram mais valiosos.",
-    "O criador de temas agora atualiza a prévia ao vivo conforme cada cor é alterada.",
-    "Chat ganhou personalização independente: papel de parede e cores das bolhas, sem perder o tema global.",
-    "O visual padrão do Chat também passa a acompanhar automaticamente o tema ativo."
+    "Galáxia Celestial redesenhada com nebulosas, estrelas e meteoros.",
+    "Midnight e Cozy ganharam animações próprias mais marcantes.",
+    "Corrigida a personalização do Chat: cores das bolhas e papel de parede agora têm prioridade sobre o tema.",
+    "Criador de temas ganhou partículas animadas opcionais com cor personalizada e desbloqueios por Elo Coins.",
+    "O fio Akai Ito da Home agora conecta os dois avatares e forma um coração no centro."
   ]
 }

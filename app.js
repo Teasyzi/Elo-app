@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.3';
+        const ELO_WEB_VERSION = '36.9.4';
         const ELO_RELEASE_NOTES = [
             '🎨 TEMAS agora transformam de verdade o Elo inteiro: fundos, cards, navegação, modais, detalhes, brilho e identidade visual.',
             '🧵 HOME totalmente refeita na linguagem Akai Ito, com o fio do destino conectando os personagens e uma hierarquia muito mais limpa.',
@@ -176,7 +176,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.3', versionCode:27 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.4', versionCode:28 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2105,12 +2105,21 @@ window.checkInToday = async (buttonEl = null) => {
             sakura: {name:'Sakura', icon:'🌸', price:1200, className:'elo-theme-sakura', description:'Primavera japonesa com pétalas animadas e chat rosado.', premium:true, effect:'sakura'},
             midnight: {name:'Midnight', icon:'🌙', price:1500, className:'elo-theme-midnight', description:'Noite violeta com estrelas suaves e brilho lunar.', premium:true, effect:'stars'},
             cozy: {name:'Cozy', icon:'🧸', price:800, className:'elo-theme-cozy', description:'Âmbar, madeira e pequenos brilhos aconchegantes.', effect:'fireflies'},
-            celestial: {name:'Celestial', icon:'✨', price:2200, className:'elo-theme-celestial', description:'Tema premium com aurora, estrelas e partículas.', premium:true, effect:'celestial'}
+            celestial: {name:'Galáxia Celestial', icon:'🌌', price:2600, className:'elo-theme-celestial', description:'Uma galáxia viva: nebulosas, estrelas e meteoros atravessando o Elo.', premium:true, effect:'galaxy'}
         };
         const ELO_CUSTOM_THEME_PRICE = 900;
+        const ELO_CUSTOM_PARTICLES = {
+            none: {name:'Sem partículas', icon:'○', price:0, effect:null},
+            hearts: {name:'Corações', icon:'♥', price:250, effect:'custom-hearts'},
+            petals: {name:'Pétalas', icon:'🌸', price:350, effect:'custom-petals'},
+            stars: {name:'Estrelas', icon:'✦', price:400, effect:'custom-stars'},
+            bubbles: {name:'Bolhas', icon:'○', price:300, effect:'custom-bubbles'},
+            sparks: {name:'Faíscas', icon:'✧', price:450, effect:'custom-sparks'}
+        };
         const eloThemeKey = () => `elo_theme_${currentUser?.uid || 'device'}`;
         const eloThemeOwnedKey = () => `elo_theme_owned_${currentUser?.uid || 'device'}`;
         const eloCustomThemeKey = () => `elo_theme_custom_${currentUser?.uid || 'device'}`;
+        const eloCustomParticleOwnedKey = () => `elo_theme_custom_particles_${currentUser?.uid || 'device'}`;
         const eloChatAppearanceKey = () => `elo_chat_appearance_${currentUser?.uid || 'device'}`;
         const colorMixHex = (hex, amount=0, fallback='#111827') => {
             const raw=hexSafe(hex,fallback).slice(1), n=parseInt(raw,16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255;
@@ -2118,25 +2127,34 @@ window.checkInToday = async (buttonEl = null) => {
             r=Math.round(r+(target-r)*p); g=Math.round(g+(target-g)*p); b=Math.round(b+(target-b)*p);
             return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
         };
-        const renderThemeFx = id => {
+        const renderThemeFx = (id, customCfg = null) => {
             document.getElementById('elo-theme-fx')?.remove();
-            const theme=ELO_THEME_CATALOG[id]; if(!theme?.effect || theme.effect==='thread') return;
-            const fx=document.createElement('div'); fx.id='elo-theme-fx'; fx.className=`elo-theme-fx fx-${theme.effect}`; fx.setAttribute('aria-hidden','true');
-            const count=theme.effect==='sakura'?14:theme.effect==='celestial'?18:12;
-            fx.innerHTML=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--d:${8+(i%7)*1.35}s;--delay:${-(i%9)*1.15}s"></i>`).join('');
+            let effect = null;
+            let particleColor = null;
+            if(id === 'custom'){
+                const cfg = customCfg || (()=>{try{return JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}')}catch(_){return {}}})();
+                const p = ELO_CUSTOM_PARTICLES[cfg.particle || 'none'];
+                effect = p?.effect || null;
+                particleColor = hexSafe(cfg.particleColor, cfg.primary || '#df334f');
+            } else effect = ELO_THEME_CATALOG[id]?.effect || null;
+            if(!effect || effect==='thread') return;
+            const fx=document.createElement('div');
+            fx.id='elo-theme-fx'; fx.className=`elo-theme-fx fx-${effect}`; fx.setAttribute('aria-hidden','true');
+            if(particleColor) fx.style.setProperty('--elo-fx-color', particleColor);
+            const count = effect==='sakura'?18 : effect==='galaxy'?26 : effect==='stars'?22 : effect==='fireflies'?18 : 20;
+            fx.innerHTML=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--y:${(i*53)%97};--d:${7+(i%8)*1.25}s;--delay:${-(i%11)*1.05}s;--size:${3+(i%4)}px"></i>`).join('');
             document.body.appendChild(fx);
         };
         const applyChatAppearance = () => {
             let cfg={}; try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){}
-            const root=document.documentElement;
-            ['--elo-chat-me','--elo-chat-them','--elo-chat-wallpaper','--elo-chat-wallpaper-overlay'].forEach(k=>root.style.removeProperty(k));
-            if(cfg.me) root.style.setProperty('--elo-chat-me',hexSafe(cfg.me,'#c52f47'));
-            if(cfg.them) root.style.setProperty('--elo-chat-them',hexSafe(cfg.them,'#28161c'));
-            if(cfg.wallpaper){root.style.setProperty('--elo-chat-wallpaper',`url("${String(cfg.wallpaper).replace(/"/g,'')}")`);root.style.setProperty('--elo-chat-wallpaper-overlay', cfg.overlay || 'rgba(8,6,9,.52)');}
-            else if(cfg.preset==='hearts') root.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 18% 20%,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at 72% 62%,rgba(255,255,255,.06) 0 2px,transparent 3px),radial-gradient(circle at 42% 84%,rgba(255,255,255,.05) 0 2px,transparent 3px)');
-            else if(cfg.preset==='night') root.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 20% 20%,rgba(255,255,255,.20) 0 1px,transparent 2px),radial-gradient(circle at 80% 40%,rgba(255,255,255,.12) 0 1px,transparent 2px),linear-gradient(#070915,#15122b)');
-            else if(cfg.preset==='clean') root.style.setProperty('--elo-chat-wallpaper','linear-gradient(var(--elo-bg),var(--elo-bg))');
-            else if(cfg.wallpaperColor) root.style.setProperty('--elo-chat-wallpaper',`linear-gradient(${hexSafe(cfg.wallpaperColor,'#10090c')},${hexSafe(cfg.wallpaperColor,'#10090c')})`);
+            const target=document.body;
+            ['--elo-chat-me','--elo-chat-them','--elo-chat-wallpaper','--elo-chat-wallpaper-overlay'].forEach(k=>target.style.removeProperty(k));
+            if(cfg.me) target.style.setProperty('--elo-chat-me',hexSafe(cfg.me,'#c52f47'));
+            if(cfg.them) target.style.setProperty('--elo-chat-them',hexSafe(cfg.them,'#28161c'));
+            if(cfg.wallpaper){target.style.setProperty('--elo-chat-wallpaper',`url("${String(cfg.wallpaper).replace(/"/g,'')}")`);target.style.setProperty('--elo-chat-wallpaper-overlay',cfg.overlay||'rgba(8,6,9,.38)');}
+            else if(cfg.preset==='hearts'){target.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 18% 20%,rgba(255,255,255,.09) 0 2px,transparent 3px),radial-gradient(circle at 72% 62%,rgba(255,255,255,.07) 0 2px,transparent 3px),radial-gradient(circle at 42% 84%,rgba(255,255,255,.06) 0 2px,transparent 3px)');target.style.setProperty('--elo-chat-wallpaper-overlay','rgba(8,6,9,.12)');}
+            else if(cfg.preset==='night'){target.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 20% 20%,rgba(255,255,255,.20) 0 1px,transparent 2px),radial-gradient(circle at 80% 40%,rgba(255,255,255,.12) 0 1px,transparent 2px),linear-gradient(#070915,#15122b)');target.style.setProperty('--elo-chat-wallpaper-overlay','rgba(0,0,0,.08)');}
+            else if(cfg.preset==='clean'){target.style.setProperty('--elo-chat-wallpaper','linear-gradient(var(--elo-bg),var(--elo-bg))');target.style.setProperty('--elo-chat-wallpaper-overlay','rgba(0,0,0,0)');}
         };
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
         const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
@@ -2161,7 +2179,7 @@ window.checkInToday = async (buttonEl = null) => {
                 document.documentElement.style.setProperty('--elo-glow', `${primary}38`);
                 document.documentElement.style.setProperty('--elo-chat-me', primary);
                 document.documentElement.style.setProperty('--elo-chat-them', colorMixHex(surface,.08));
-                renderThemeFx(null);
+                renderThemeFx('custom', cfg);
             } else {
                 ['--elo-primary','--elo-secondary','--elo-accent','--elo-bg','--elo-bg-2','--elo-surface','--elo-surface-2','--elo-surface-3','--elo-border','--elo-thread','--elo-glow','--elo-chat-me','--elo-chat-them'].forEach(k=>document.documentElement.style.removeProperty(k));
                 document.body.classList.add(ELO_THEME_CATALOG[id]?.className || 'elo-theme-akai');
@@ -2225,12 +2243,18 @@ window.checkInToday = async (buttonEl = null) => {
         window.updateCustomThemeDraft = () => {
             const card=document.getElementById('elo-custom-live-preview'); if(!card) return;
             const primary=document.getElementById('elo-theme-primary')?.value||'#b4233f', background=document.getElementById('elo-theme-background')?.value||'#130d10', surface=document.getElementById('elo-theme-surface')?.value||'#21161a', thread=document.getElementById('elo-theme-thread')?.value||primary;
-            card.style.setProperty('--draft-primary',primary); card.style.setProperty('--draft-bg',background); card.style.setProperty('--draft-surface',surface); card.style.setProperty('--draft-thread',thread);
+            const particle=document.getElementById('elo-theme-particle')?.value||'none', particleColor=document.getElementById('elo-theme-particle-color')?.value||primary;
+            card.style.setProperty('--draft-primary',primary);card.style.setProperty('--draft-bg',background);card.style.setProperty('--draft-surface',surface);card.style.setProperty('--draft-thread',thread);card.style.setProperty('--draft-particle',particleColor);
+            const fx=card.querySelector('.elo-custom-preview-particles');
+            if(fx){fx.className=`elo-custom-preview-particles preview-${particle}`;fx.style.setProperty('--draft-particle',particleColor);fx.innerHTML=particle==='none'?'':Array.from({length:12},(_,i)=>`<i style="--i:${i};--x:${(i*31)%100};--delay:${-(i%7)*.55}s"></i>`).join('');}
+            const owned=(()=>{try{return new Set(JSON.parse(localStorage.getItem(eloCustomParticleOwnedKey())||'[]'))}catch(_){return new Set()}})();
+            const note=document.getElementById('elo-custom-particle-price'), price=ELO_CUSTOM_PARTICLES[particle]?.price||0;
+            if(note) note.textContent=particle==='none'||owned.has(particle)?'Já disponível':`+ ${price} Elo Coins`;
         };
         window.openChatAppearance = () => {
             let cfg={}; try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){}
-            const me=hexSafe(cfg.me,getComputedStyle(document.documentElement).getPropertyValue('--elo-chat-me').trim()||'#c52f47');
-            const them=hexSafe(cfg.them,getComputedStyle(document.documentElement).getPropertyValue('--elo-chat-them').trim()||'#28161c');
+            const me=hexSafe(cfg.me,getComputedStyle(document.body).getPropertyValue('--elo-chat-me').trim()||'#c52f47');
+            const them=hexSafe(cfg.them,getComputedStyle(document.body).getPropertyValue('--elo-chat-them').trim()||'#28161c');
             openGenericModal(`<div class="space-y-4 elo-chat-appearance-studio"><div><p class="elo-kicker">💬 Só para você</p><h3>Visual da conversa</h3><p>O tema define o visual padrão do chat, mas você pode substituir apenas o fundo e as cores das mensagens sem perder o tema.</p></div><div class="elo-chat-preview-mini"><div class="them">Oi, amor ❤️</div><div class="me">Amei nosso Elo!</div></div><div class="elo-chat-color-row"><label><span>Minha mensagem</span><input id="elo-chat-me-color" type="color" value="${me}" oninput="previewChatAppearanceDraft()"></label><label><span>Mensagem recebida</span><input id="elo-chat-them-color" type="color" value="${them}" oninput="previewChatAppearanceDraft()"></label></div><div><p class="elo-chat-setting-title">Papel de parede</p><div class="elo-chat-wallpaper-presets"><button onclick="setChatWallpaperPreset('theme')">Tema</button><button onclick="setChatWallpaperPreset('hearts')">Corações</button><button onclick="setChatWallpaperPreset('night')">Noite</button><button onclick="setChatWallpaperPreset('clean')">Liso</button></div><label class="elo-chat-wallpaper-upload"><i class="ph-bold ph-image"></i><span><b>Escolher uma imagem</b><small>Como no WhatsApp: use uma foto só como fundo do chat.</small></span><input id="elo-chat-wallpaper-file" type="file" accept="image/*" onchange="chooseChatWallpaper(event)"></label></div><div class="grid grid-cols-2 gap-2"><button onclick="resetChatAppearance()" class="elo-secondary-action">Usar padrão do tema</button><button onclick="saveChatAppearance()" class="elo-primary-action">Salvar chat</button></div></div>`);
             window.__eloChatDraft={...cfg,me,them}; requestAnimationFrame(previewChatAppearanceDraft);
         };
@@ -2244,19 +2268,21 @@ window.checkInToday = async (buttonEl = null) => {
         window.saveChatAppearance = () => { const d=window.__eloChatDraft||{}; d.me=document.getElementById('elo-chat-me-color')?.value||d.me; d.them=document.getElementById('elo-chat-them-color')?.value||d.them; try{localStorage.setItem(eloChatAppearanceKey(),JSON.stringify(d))}catch(e){return showToast('A imagem ficou grande demais. Tente outra menor.','error')} applyChatAppearance();closeGenericModal();updateUI();showToast('💬 Visual do chat salvo!','success'); };
         window.resetChatAppearance = () => { localStorage.removeItem(eloChatAppearanceKey());window.__eloChatDraft=null;applyChatAppearance();closeGenericModal();updateUI();showToast('Chat voltou ao visual do tema.','success'); };
         window.openCustomThemeCreator = () => {
-            let cfg={primary:'#b4233f',background:'#130d10',surface:'#21161a',thread:'#d52c49'}; try{cfg={...cfg,...JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}')}}catch(_){}
+            let cfg={primary:'#b4233f',background:'#130d10',surface:'#21161a',thread:'#d52c49',particle:'none',particleColor:'#ffd0dc'};try{cfg={...cfg,...JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}')}}catch(_){}
             const exists=!!localStorage.getItem(eloCustomThemeKey());
-            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div><p class="elo-kicker">🎨 Seu próprio Elo</p><h3>Crie seu tema</h3><p>${exists?'Edite seu tema sem custo.':`A criação custa <b>${ELO_CUSTOM_THEME_PRICE} Elo Coins</b>.`} As cores abaixo atualizam a prévia em tempo real.</p></div><div class="elo-theme-color-grid">${[['primary','Cor principal'],['background','Fundo'],['surface','Cards'],['thread','Fio do Elo']].map(([k,l])=>`<label><span>${l}</span><input id="elo-theme-${k}" type="color" value="${hexSafe(cfg[k],'#b4233f')}" oninput="updateCustomThemeDraft()"></label>`).join('')}</div><div id="elo-custom-live-preview" class="elo-theme-preview elo-custom-live-preview"><div class="elo-custom-preview-top"><i class="ph-fill ph-heart"></i><b>Seu Elo</b><span>∞</span></div><div class="elo-custom-preview-card"><strong>Um cantinho só de vocês</strong><small>Cards, botões e o fio mudam junto com suas cores.</small><button>Mensagem de exemplo</button></div></div><button onclick="saveCustomEloTheme()" class="elo-primary-action">${exists?'Salvar alterações':`Criar por ${ELO_CUSTOM_THEME_PRICE} 🪙`}</button><button onclick="closeGenericModal();setTimeout(openThemeStudio,80)" class="elo-secondary-action">Voltar</button></div>`);
+            const owned=(()=>{try{return new Set(JSON.parse(localStorage.getItem(eloCustomParticleOwnedKey())||'[]'))}catch(_){return new Set()}})();
+            const particleOptions=Object.entries(ELO_CUSTOM_PARTICLES).map(([id,p])=>`<option value="${id}" ${cfg.particle===id?'selected':''}>${p.icon} ${p.name}${p.price&&!owned.has(id)?` · +${p.price} 🪙`:''}</option>`).join('');
+            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div><p class="elo-kicker">🎨 Seu próprio Elo</p><h3>Crie seu tema</h3><p>${exists?'Edite suas cores sem custo.':`A criação custa <b>${ELO_CUSTOM_THEME_PRICE} Elo Coins</b>.`} Partículas animadas são opcionais e, depois de compradas, ficam liberadas.</p></div><div class="elo-theme-color-grid">${[['primary','Cor principal'],['background','Fundo'],['surface','Cards'],['thread','Fio do Elo']].map(([k,l])=>`<label><span>${l}</span><input id="elo-theme-${k}" type="color" value="${hexSafe(cfg[k],'#b4233f')}" oninput="updateCustomThemeDraft()"></label>`).join('')}</div><div class="elo-custom-animation-box"><div><p class="elo-chat-setting-title">✨ Tema animado</p><small>Escolha o que flutua pela Home.</small></div><label><span>Partícula</span><select id="elo-theme-particle" onchange="updateCustomThemeDraft()">${particleOptions}</select></label><label><span>Cor da partícula</span><input id="elo-theme-particle-color" type="color" value="${hexSafe(cfg.particleColor,cfg.primary)}" oninput="updateCustomThemeDraft()"></label><b id="elo-custom-particle-price"></b></div><div id="elo-custom-live-preview" class="elo-theme-preview elo-custom-live-preview"><div class="elo-custom-preview-particles"></div><div class="elo-custom-preview-top"><i class="ph-fill ph-heart"></i><b>Seu Elo</b><span>∞</span></div><div class="elo-custom-preview-thread"><span></span><i class="ph-fill ph-heart"></i><span></span></div><div class="elo-custom-preview-card"><strong>Um cantinho só de vocês</strong><small>Fundo, cards, botões, fio e partículas respondem ao vivo.</small><button>Mensagem de exemplo</button></div></div><button onclick="saveCustomEloTheme()" class="elo-primary-action">${exists?'Salvar alterações':`Criar por ${ELO_CUSTOM_THEME_PRICE} 🪙`}</button><button onclick="closeGenericModal();setTimeout(openThemeStudio,80)" class="elo-secondary-action">Voltar</button></div>`);
             requestAnimationFrame(updateCustomThemeDraft);
         };
         window.saveCustomEloTheme = async () => {
-            const existing=localStorage.getItem(eloCustomThemeKey());
-            const cfg={primary:document.getElementById('elo-theme-primary')?.value,background:document.getElementById('elo-theme-background')?.value,surface:document.getElementById('elo-theme-surface')?.value,thread:document.getElementById('elo-theme-thread')?.value};
-            if(!existing){
-                if(getSpendableCoins(coupleData,currentUser.uid)<ELO_CUSTOM_THEME_PRICE)return showToast('Elo Coins insuficientes para criar o tema.','error');
-                try{const ref=doc(db,'relationships',coupleId);await runTransaction(db,async tx=>{const snap=await tx.get(ref);const data=snap.data();const balance=Number(data?.users?.[currentUser.uid]?.coins||0);if(balance<ELO_CUSTOM_THEME_PRICE)throw new Error('coins');tx.update(ref,{[`users.${currentUser.uid}.coins`]:balance-ELO_CUSTOM_THEME_PRICE});});}catch(e){return showToast('Não foi possível criar o tema.','error');}
-            }
-            localStorage.setItem(eloCustomThemeKey(),JSON.stringify(cfg)); applyEloTheme('custom'); closeGenericModal(); updateUI(); showToast('🎨 Seu tema foi criado e aplicado!','success');
+            const existing=localStorage.getItem(eloCustomThemeKey()), particle=document.getElementById('elo-theme-particle')?.value||'none';
+            const cfg={primary:document.getElementById('elo-theme-primary')?.value,background:document.getElementById('elo-theme-background')?.value,surface:document.getElementById('elo-theme-surface')?.value,thread:document.getElementById('elo-theme-thread')?.value,particle,particleColor:document.getElementById('elo-theme-particle-color')?.value};
+            const owned=(()=>{try{return new Set(JSON.parse(localStorage.getItem(eloCustomParticleOwnedKey())||'[]'))}catch(_){return new Set()}})();
+            const particlePrice=particle==='none'||owned.has(particle)?0:Number(ELO_CUSTOM_PARTICLES[particle]?.price||0), total=(existing?0:ELO_CUSTOM_THEME_PRICE)+particlePrice;
+            if(total>0){if(getSpendableCoins(coupleData,currentUser.uid)<total)return showToast(`Você precisa de ${total} Elo Coins para salvar esta criação.`,'error');try{const ref=doc(db,'relationships',coupleId);await runTransaction(db,async tx=>{const snap=await tx.get(ref),data=snap.data(),balance=Number(data?.users?.[currentUser.uid]?.coins||0);if(balance<total)throw new Error('coins');tx.update(ref,{[`users.${currentUser.uid}.coins`]:balance-total});});}catch(e){return showToast('Não foi possível concluir a criação do tema.','error');}}
+            if(particlePrice>0){owned.add(particle);localStorage.setItem(eloCustomParticleOwnedKey(),JSON.stringify([...owned]));}
+            localStorage.setItem(eloCustomThemeKey(),JSON.stringify(cfg));applyEloTheme('custom');closeGenericModal();updateUI();showToast(total?`🎨 Tema salvo! ${total} Elo Coins utilizados.`:'🎨 Seu tema foi atualizado!','success');
         };
         window.openThemeStudio = () => {
             const current=localStorage.getItem(eloThemeKey())||'akai', owned=ownedThemes(), hasCustom=!!localStorage.getItem(eloCustomThemeKey());
@@ -6961,6 +6987,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                             </div>
 
                             <div class="elo-home-couple-scene">
+                                <svg class="elo-home-akai-thread" viewBox="0 0 340 150" preserveAspectRatio="none" aria-hidden="true"><path class="elo-home-akai-thread-main" d="M4 112 C54 102 79 82 115 94 C140 103 146 79 160 69 C166 64 169 60 170 55 C171 60 174 64 180 69 C194 79 200 103 225 94 C261 82 286 102 336 112"/><path class="elo-home-akai-thread-heart" d="M170 55 C153 35 132 51 138 70 C144 89 170 101 170 101 C170 101 196 89 202 70 C208 51 187 35 170 55"/></svg>
                                 <div class="elo-home-person is-me">
                                     <div class="elo-home-avatar">${renderAvatar(myData.character, currentUser?.uid)}</div>
                                     <span>${escapeHTML(myData.name || 'Você')}</span>

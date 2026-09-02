@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-9-3-full-themes-premium-chat-20260902';
+const CACHE = 'elo-v36-9-4-galaxy-chat-custom-particles-thread-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.9.3',
-  './tailwind.css?v=36.9.3',
-  './styles.css?v=36.9.3',
+  './app.js?v=36.9.4',
+  './tailwind.css?v=36.9.4',
+  './styles.css?v=36.9.4',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
