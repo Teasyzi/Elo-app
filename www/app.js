@@ -67,11 +67,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.5';
+        const ELO_WEB_VERSION = '36.8.6';
         const ELO_RELEASE_NOTES = [
-            'O botão Voltar físico do Android agora fecha telas internas do Elo antes de sair do aplicativo.',
-            'O Chat não força mais a rolagem para baixo enquanto fotos em lote terminam de enviar.',
-            'O Jogo Rápido ganhou troca de modo a qualquer momento, sem ficar preso na modalidade atual.'
+            'Jogo Rápido agora usa uma única rodada compartilhada: mesma pergunta, mesmas opções e resultado sincronizado para os dois.',
+            'Áudios voltaram a sincronizar no Chat e o APK passou a pedir/validar o microfone pelo Android antes de gravar.',
+            'Falhas de áudio agora mostram o motivo real para facilitar o diagnóstico sem esconder o erro.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -173,7 +173,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.5', versionCode:21 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.6', versionCode:22 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -3089,8 +3089,30 @@ window.checkInToday = async (buttonEl = null) => {
 
         const preferredAudioMimeType = () => {
             if(!window.MediaRecorder)return '';
-            const candidates=['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg'];
+            // Android/Chrome/WebView são mais estáveis com Opus/WebM. Safari/iPhone prefere MP4.
+            const candidates=isIOSWebRuntime()
+                ? ['audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm;codecs=opus','audio/webm']
+                : ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4;codecs=mp4a.40.2','audio/mp4'];
             return candidates.find(type=>MediaRecorder.isTypeSupported?.(type)) || '';
+        };
+        const normalizeRecordedAudioBlob = (chunks, mime='') => {
+            let type=String(mime||chunks?.[0]?.type||'audio/webm').toLowerCase();
+            // Alguns Android WebViews devolvem video/webm mesmo com stream somente de áudio.
+            // O conteúdo continua sendo Opus/WebM; normalizamos o MIME antes do upload.
+            if(type.startsWith('video/webm')) type='audio/webm';
+            else if(type.startsWith('video/mp4')) type='audio/mp4';
+            else if(!type.startsWith('audio/')) type='audio/webm';
+            type=type.split(';')[0];
+            return new Blob(chunks,{type});
+        };
+        const requestNativeMicrophoneAccess = async () => {
+            if(!isNativeApp)return true;
+            try{
+                const plugin=window.Capacitor?.Plugins?.EloDevicePermissions;
+                if(!plugin?.requestMicrophone)return true;
+                const result=await plugin.requestMicrophone();
+                return result?.granted===true;
+            }catch(e){console.warn('Permissão nativa de microfone:',e);return false;}
         };
         const updateRecordingUI = () => {
             const normal=document.getElementById('chat-compose-normal'), rec=document.getElementById('chat-recording-panel');
@@ -3110,6 +3132,10 @@ window.checkInToday = async (buttonEl = null) => {
             if(chatAudioRecorder?.state==='recording')return;
             if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return showToast('Gravação de áudio não é suportada neste aparelho.','error');
             try{
+                if(isNativeApp){
+                    const nativeAllowed=await requestNativeMicrophoneAccess();
+                    if(!nativeAllowed)return showToast('Permita o microfone nas configurações do Elo para gravar áudio.','error');
+                }
                 chatAudioStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
                 chatAudioMimeType=preferredAudioMimeType(); chatAudioChunks=[]; chatAudioStartedAt=Date.now();
                 const options={audioBitsPerSecond:32000}; if(chatAudioMimeType)options.mimeType=chatAudioMimeType;
@@ -3122,7 +3148,7 @@ window.checkInToday = async (buttonEl = null) => {
                     const shouldSend=chatAudioRecorder?._eloSend!==false; const duration=Math.max(1,(Date.now()-chatAudioStartedAt)/1000); const mime=chatAudioRecorder?.mimeType||chatAudioMimeType||chatAudioChunks[0]?.type||'audio/webm';
                     const chunks=chatAudioChunks.slice(); stopRecordingTracks();clearAudioTimer();chatAudioRecorder=null;chatAudioChunks=[];updateRecordingUI();
                     if(!shouldSend||!chunks.length)return;
-                    const blob=new Blob(chunks,{type:mime});
+                    const blob=normalizeRecordedAudioBlob(chunks,mime);
                     if(blob.size>8*1024*1024)return showToast('O áudio ficou grande demais. Grave uma mensagem menor.','error');
                     await sendRecordedChatAudio(blob,duration);
                 };
@@ -3167,7 +3193,8 @@ window.checkInToday = async (buttonEl = null) => {
             // Upload + Firestore acontecem fora do caminho crítico da interface.
             backgroundChatTask((async()=>{
                 try{
-                    const uploaded=await uploadChatMedia(blob,'audio');
+                    const audioExt=blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm';
+                    const uploaded=await uploadChatMedia(blob,'audio',`audio.${audioExt}`);
                     // Reaproveita o blob local: se o usuário apertar Play, não baixa o mesmo áudio do R2 de novo.
                     cacheChatMediaObjectUrl(uploaded.key,localUrl);
 
@@ -3188,7 +3215,7 @@ window.checkInToday = async (buttonEl = null) => {
                     };
 
                     chatMessages=chatMessages.map(m=>m.id===id?{...finalMsg,localMediaUrl:localUrl}:m);
-                    if (batchMeta?.id) scheduleChatMediaRender(90); else renderChatOnly();
+                    renderChatOnly();
                     await setDoc(messageDoc(id),finalMsg);
 
                     backgroundChatTask(createPartnerNotification({
@@ -3202,7 +3229,7 @@ window.checkInToday = async (buttonEl = null) => {
                     chatMessages=chatMessages.map(m=>m.id===id?{...m,_uploading:false,_failed:true,sendState:'failed'}:m);
                     renderChatOnly();
                     // Só avisamos se realmente falhar; não mostramos mais "Enviando áudio".
-                    showToast('Não foi possível sincronizar o áudio.','error');
+                    showToast(`Não foi possível sincronizar o áudio${e?.message?`: ${e.message}`:''}.`,'error');
                 }
             })(),'Envio de áudio');
         };
@@ -4472,8 +4499,8 @@ window.checkInToday = async (buttonEl = null) => {
                 if(isNativeApp){
                     nativePushInitialized=false;
                     await initNativePush({requestPermission:true});
-                    // RECORD_AUDIO é solicitado pelo próprio WebView/Android ao abrir o stream.
-                    await new Promise(r=>setTimeout(r,240));
+                    await new Promise(r=>setTimeout(r,180));
+                    await requestNativeMicrophoneAccess();
                     await window.requestEloMicrophonePermission({silent:true});
                 }else{
                     // Sites não têm uma permissão geral de armazenamento. Fotos/documentos usam o seletor seguro.
@@ -6185,7 +6212,6 @@ const centerActiveStoreCategory = (smooth = true) => {
             const raw=game?.options||mode.rounds[0].slice(0,2);
             if(game?.mode!=='likely')return raw;
             if(Array.isArray(game.optionUserIds)&&game.optionUserIds.length===2)return game.optionUserIds.map(uid=>getProfileName(uid));
-            // Compatibilidade com rodadas antigas: "Você" era quem criou a rodada.
             const creator=game?.createdBy||currentUser?.uid; const ids=Object.keys(coupleData?.users||{}); const other=ids.find(id=>id!==creator);
             return [getProfileName(creator),other?getProfileName(other):'Seu amor'];
         };
@@ -6193,49 +6219,67 @@ const centerActiveStoreCategory = (smooth = true) => {
             const choices=game?.choices||{}; const myChoice=choices[currentUser?.uid]; const names=quickGameNames();
             const partnerChoice=names.partnerUid?choices[names.partnerUid]:undefined; const both=myChoice!==undefined&&partnerChoice!==undefined; const same=both&&myChoice===partnerChoice;
             const mode=QUICK_GAME_MODES[game?.mode]||QUICK_GAME_MODES.either; const opts=quickGameResolvedOptions(game);
-            return `<div id="quick-game-content" class="text-center space-y-4"><div class="flex items-center justify-between gap-2"><div class="text-left"><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><div class="flex items-center gap-2"><button onclick="openQuickGameModePicker()" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-black text-slate-300"><i class="ph-bold ph-squares-four mr-1"></i>Modos</button><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-500">✕</button></div></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i})" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}')" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
+            return `<div id="quick-game-content" class="text-center space-y-4" data-game-id="${escapeHTML(game?.id||'')}"><div class="flex items-center justify-between gap-2"><div class="text-left"><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><div class="flex items-center gap-2"><button onclick="openQuickGameModePicker()" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-black text-slate-300"><i class="ph-bold ph-squares-four mr-1"></i>Modos</button><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-500">✕</button></div></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i},'${escapeHTML(game.id||'')}')" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100 transition active:scale-[.98]">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}',true)" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
         };
-        const renderCoupleGameModal=()=>{if(document.getElementById('quick-game-content')&&coupleData?.quickGame)document.getElementById('quick-game-content').outerHTML=quickGameHtml(coupleData.quickGame)};
-        const quickGameModePickerHtml=()=>`<div class="space-y-3"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Jogo Rápido</p><h3 class="text-xl font-black text-white">Escolha um modo</h3><p class="text-xs text-slate-500 mt-1">Você pode trocar de modalidade quando quiser.</p></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-400">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}', true)" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left transition active:scale-[.99]"><div class="flex items-center justify-between gap-3"><div><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></div><i class="ph-bold ph-caret-right text-slate-600"></i></div></button>`).join('')}</div>`;
+        const quickGameLoadingHtml=(modeId='either')=>{const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;return `<div id="quick-game-content" class="text-center space-y-5 py-3"><div class="w-12 h-12 mx-auto rounded-2xl bg-pink-500/10 text-pink-400 grid place-items-center"><i class="ph-bold ph-spinner-gap elo-spin text-2xl"></i></div><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-xl font-black text-white mt-1">${mode.title}</h3><p class="text-xs text-slate-500 mt-2">Sincronizando a mesma rodada para vocês dois…</p></div></div>`};
+        const renderCoupleGameModal=()=>{const el=document.getElementById('quick-game-content');if(el&&coupleData?.quickGame&&el.dataset.gameId!==String(coupleData.quickGame.id||''))el.outerHTML=quickGameHtml(coupleData.quickGame);else if(el&&coupleData?.quickGame)el.outerHTML=quickGameHtml(coupleData.quickGame)};
+        const quickGameModePickerHtml=()=>`<div class="space-y-3"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Jogo Rápido</p><h3 class="text-xl font-black text-white">Escolha um modo</h3><p class="text-xs text-slate-500 mt-1">A nova rodada será a mesma nos dois aparelhos.</p></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-400">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}',true)" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left transition active:scale-[.99]"><div class="flex items-center justify-between gap-3"><div><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></div><i class="ph-bold ph-caret-right text-slate-600"></i></div></button>`).join('')}</div>`;
         window.openQuickGameModePicker=()=>openGenericModal(quickGameModePickerHtml());
-        window.openCoupleGame=()=>{const game=coupleData?.quickGame;if(game)return openGenericModal(quickGameHtml(game));window.openQuickGameModePicker();};
+        window.openCoupleGame=async()=>{
+            // Não cria pergunta local. Primeiro lê o estado compartilhado para nunca mostrar rodada diferente.
+            openGenericModal('<div id="quick-game-content" class="py-10 text-center"><i class="ph-bold ph-spinner-gap elo-spin text-3xl text-pink-400"></i><p class="text-xs text-slate-500 mt-3">Abrindo a rodada do casal…</p></div>');
+            try{
+                const snap=await getDoc(quickGameRef());
+                const fresh=snap.exists()?snap.data()?.quickGame:null;
+                if(fresh){coupleData={...coupleData,quickGame:fresh};renderCoupleGameModal();}
+                else window.openQuickGameModePicker();
+            }catch(e){
+                const game=coupleData?.quickGame;
+                if(game)renderCoupleGameModal();else window.openQuickGameModePicker();
+            }
+        };
+        const quickRoundIndex=(modeId,sequence)=>{
+            const rounds=(QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either).rounds;
+            const seed=`${coupleId}|${modeId}|${sequence}`;
+            let hash=2166136261;
+            for(let i=0;i<seed.length;i++){hash^=seed.charCodeAt(i);hash=Math.imul(hash,16777619);}
+            return (hash>>>0)%rounds.length;
+        };
         window.newCoupleGame=async(modeId='either',forceMode=false)=>{
             if(quickGameCreating)return;
             quickGameCreating=true;
-            const previous=coupleData?.quickGame||null;
-            const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;
-            const round=mode.rounds[Math.floor(Math.random()*mode.rounds.length)];
-            const names=quickGameNames();
-            const optionUserIds=modeId==='likely'?[currentUser.uid,names.partnerUid].filter(Boolean):null;
-            const candidate={id:`${Date.now()}_${currentUser.uid}`,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid};
-            coupleData={...coupleData,quickGame:candidate};
-            openGenericModal(quickGameHtml(candidate));
+            openGenericModal(quickGameLoadingHtml(modeId));
             try{
-                let selected=candidate;
+                let selected=null;
                 await runTransaction(db,async tx=>{
                     const ref=quickGameRef();const snap=await tx.get(ref);
                     if(!snap.exists())throw new Error('Elo não encontrado.');
-                    const existing=snap.data()?.quickGame;
+                    const data=snap.data(); const existing=data?.quickGame||null;
+                    // Ao simplesmente entrar/jogar, uma rodada aberta SEMPRE vence. Nada de pergunta local concorrente.
                     if(existing&&existing.status==='open'&&!forceMode){selected=existing;return;}
-                    tx.update(ref,{quickGame:candidate});
+                    const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;
+                    const sequence=Math.max(0,Number(existing?.sequence||0))+1;
+                    const roundIndex=quickRoundIndex(modeId,sequence);
+                    const round=mode.rounds[roundIndex];
+                    const ids=Object.keys(data.users||{}); const partnerUid=ids.find(id=>id!==currentUser.uid);
+                    const optionUserIds=modeId==='likely'?[currentUser.uid,partnerUid].filter(Boolean):null;
+                    selected={id:`qg_${sequence}_${Date.now()}`,sequence,roundIndex,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid};
+                    tx.update(ref,{quickGame:selected});
                 });
                 coupleData={...coupleData,quickGame:selected};
                 renderCoupleGameModal();
-                if(selected.id!==candidate.id)showToast(`${getProfileName(selected.createdBy)} já iniciou uma rodada. Você entrou na mesma pergunta ❤️`,'info');
             }catch(e){
-                console.error(e);
-                if(previous) coupleData={...coupleData,quickGame:previous};
-                showToast('Não foi possível iniciar o jogo.','error');
-                renderCoupleGameModal();
+                console.error(e);showToast('Não foi possível sincronizar a rodada.','error');
+                const fresh=coupleData?.quickGame;if(fresh)openGenericModal(quickGameHtml(fresh));else window.openQuickGameModePicker();
             }finally{quickGameCreating=false}
         };
-        window.chooseCoupleGame=async index=>{
+        window.chooseCoupleGame=async(index,expectedGameId='')=>{
             const localGame=coupleData?.quickGame;
             if(!localGame||localGame.status==='done'||localGame.choices?.[currentUser.uid]!==undefined)return;
+            if(expectedGameId&&String(localGame.id)!==String(expectedGameId)){showToast('A rodada mudou. Abrindo a pergunta atual…','info');return window.openCoupleGame();}
             const previous={...localGame,choices:{...(localGame.choices||{})}};
             const optimistic={...localGame,choices:{...(localGame.choices||{}),[currentUser.uid]:index}};
-            coupleData={...coupleData,quickGame:optimistic};
-            renderCoupleGameModal();
+            coupleData={...coupleData,quickGame:optimistic};renderCoupleGameModal();
             try{
                 let next=null;
                 await runTransaction(db,async tx=>{
@@ -6253,13 +6297,9 @@ const centerActiveStoreCategory = (smooth = true) => {
                     if(partnerAnswered){updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1)}
                     tx.update(ref,updates);
                 });
-                coupleData={...coupleData,quickGame:next};
-                renderCoupleGameModal();
+                coupleData={...coupleData,quickGame:next};renderCoupleGameModal();
             }catch(e){
-                console.error(e);
-                coupleData={...coupleData,quickGame:previous};
-                renderCoupleGameModal();
-                showToast(e.message||'Não foi possível registrar sua escolha.','error');
+                console.error(e);coupleData={...coupleData,quickGame:previous};renderCoupleGameModal();showToast(e.message||'Não foi possível registrar sua escolha.','error');
             }
         };
         const updateNotificationDot=()=>{const dot=document.getElementById('notification-dot');if(dot)dot.classList.add('hidden');};
@@ -7089,6 +7129,8 @@ const centerActiveStoreCategory = (smooth = true) => {
                                 ...parentData,
                                 moments: preservedMoments
                             };
+                            // Jogo Rápido: se o parceiro respondeu/trocou a rodada, atualiza o modal aberto nos dois aparelhos imediatamente.
+                            if(document.getElementById('quick-game-content')) setTimeout(()=>renderCoupleGameModal(),0);
                             const users = coupleData.users || {};
                             // Cache local dos avatares para notificações Android. Isso inclui a foto
                             // personalizada do Elo em data:image, que não cabe no payload do FCM.

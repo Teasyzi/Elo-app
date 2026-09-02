@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-8-5-chat-viewport-instant-game-20260902';
+const CACHE = 'elo-v36-8-6-quick-game-audio-sync-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.8.5',
-  './tailwind.css?v=36.8.5',
-  './styles.css?v=36.8.5',
+  './app.js?v=36.8.6',
+  './tailwind.css?v=36.8.6',
+  './styles.css?v=36.8.6',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

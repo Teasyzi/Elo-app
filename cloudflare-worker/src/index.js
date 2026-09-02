@@ -230,7 +230,7 @@ function mediaValidation(kind, contentType, fileName, size) {
     if (size > IMAGE_MEDIA_BYTES) return 'A imagem deve ter até 12 MB';
     if (!type.startsWith('image/')) return 'Formato de imagem inválido';
   }
-  if (kind === 'audio' && !type.startsWith('audio/')) return 'Formato de áudio inválido';
+  if (kind === 'audio' && !(type.startsWith('audio/') || type === 'video/webm' || type === 'application/octet-stream')) return 'Formato de áudio inválido';
   if (kind === 'file') {
     const blocked = new Set(['exe','msi','apk','bat','cmd','com','dll','scr','ps1','sh','html','htm','svg']);
     if (blocked.has(ext)) return 'Esse tipo de arquivo não é permitido por segurança';

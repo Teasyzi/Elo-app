@@ -1,14 +1,13 @@
 {
   "available": false,
-  "versionName": "0.7.5",
-  "versionCode": 21,
+  "versionName": "0.7.6",
+  "versionCode": 22,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Chat abre diretamente nas mensagens mais recentes, sem rolagem visual de entrada.",
-    "Chat ocupa melhor a altura disponível no celular e no desktop.",
-    "Envio em lote de fotos não força novas rolagens durante hidratação/conclusão.",
-    "Na Home, Voltar exige dois toques para sair do APK.",
-    "Jogo Rápido responde imediatamente ao escolher opção ou trocar de modo."
+    "Jogo Rápido usa uma única rodada compartilhada: mesma pergunta e resultado para os dois.",
+    "Resultado do Jogo Rápido aparece automaticamente nos dois aparelhos quando a segunda pessoa responde.",
+    "Áudio voltou a sincronizar após corrigir um erro no envio que interrompia antes de salvar no Firestore.",
+    "APK valida e solicita a permissão nativa de microfone antes de iniciar a gravação."
   ]
 }

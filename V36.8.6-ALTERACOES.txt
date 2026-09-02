@@ -1,0 +1,12 @@
+Elo V36.8.6 / APK 0.7.6
+
+- Jogo Rápido: rodada passa a ser criada somente após transação compartilhada no Firestore.
+- Mesmo gameId/pergunta/opções para os dois parceiros.
+- Modal do Jogo Rápido atualiza em tempo real quando o parceiro responde.
+- Resultado permanece visível para ambos antes de iniciar outra rodada.
+- Corrigido erro de áudio: referência inexistente batchMeta interrompia o fluxo depois do upload e antes do setDoc.
+- Upload de áudio passa a enviar extensão coerente com o MIME e normaliza video/webm de Android WebView para audio/webm.
+- Novo plugin Android EloDevicePermissions solicita RECORD_AUDIO diretamente no sistema antes do getUserMedia.
+- Worker aceita compatibilidade video/webm/octet-stream apenas quando kind=audio autenticado.
+- Erro de sincronização de áudio agora informa a causa real.
+- Cache e assets atualizados para 36.8.6.
