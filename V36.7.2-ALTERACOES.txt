@@ -1,0 +1,22 @@
+ELO V36.7.2 / APK 0.6.2
+
+CHAT / GESTOS
+- Swipe para responder refeito na linha inteira da mensagem.
+- Long press funciona também ao lado do balão.
+- Seleção nativa de texto/copy callout bloqueada nas linhas do Chat.
+- Modo Selecionar aceita toque em toda a linha.
+
+TECLADO
+- VisualViewport passa a controlar a altura útil do Chat.
+- Header e navegação são ocultados enquanto o teclado móvel está aberto.
+- Composer permanece dentro da viewport visível.
+
+PRIMEIRO USO / PERMISSÕES
+- Tela guiada para notificações e microfone.
+- Fotos/documentos usam o seletor seguro do sistema/navegador, sem permissão ampla de armazenamento.
+- Não adicionamos READ_MEDIA_IMAGES/READ_EXTERNAL_STORAGE: o Elo só recebe arquivos escolhidos pelo usuário.
+
+VERSÕES
+- Web 36.7.2
+- APK 0.6.2 / versionCode 15
+- CACHE elo-v36-7-2-chat-touch-keyboard-permissions-20260902

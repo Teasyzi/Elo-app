@@ -1,12 +1,13 @@
 {
   "available": false,
-  "versionName": "0.6.1",
-  "versionCode": 14,
+  "versionName": "0.6.2",
+  "versionCode": 15,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Envio de documentos e arquivos no Chat",
-    "Upload privado no R2 com limite de 25 MB",
-    "Aba Arquivos agora funcional"
+    "Gestos do Chat refeitos para responder e reagir",
+    "Teclado não sobrepõe mais o campo de mensagem",
+    "Preparação guiada de permissões no primeiro uso",
+    "Seleção de mensagens pela linha inteira"
   ]
 }

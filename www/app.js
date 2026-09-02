@@ -67,12 +67,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.7.1';
+        const ELO_WEB_VERSION = '36.7.2';
         const ELO_RELEASE_NOTES = [
-            'O Chat entrou na fase de mensageiro completo: seleção múltipla, copiar, favoritar e excluir várias mensagens.',
-            'Fotos agora abrem em uma galeria de tela cheia com navegação pelo histórico e opção de salvar.',
-            'Mensagens fixadas aparecem no topo, respostas citadas levam à mensagem original e links ficaram interativos.',
-            'O perfil da conversa ganhou Favoritos e cada mensagem enviada pode mostrar informações de envio e leitura.'
+            'O Chat ganhou gestos refeitos: deslizar para responder funciona pela linha inteira e o toque longo abre reações sem selecionar texto.',
+            'O teclado agora reorganiza o Chat no Android/iPhone para manter a caixa de mensagem sempre acima do teclado.',
+            'A primeira entrada ganhou uma preparação guiada de permissões, explicando notificações, microfone e acesso seguro a fotos/arquivos.',
+            'Seleção de mensagens ficou mais confortável: no modo Selecionar, toda a linha da mensagem vira área de toque.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -170,7 +170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.6.1', versionCode:14 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.6.2', versionCode:15 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -3383,74 +3383,60 @@ window.checkInToday = async (buttonEl = null) => {
 
         const bindChatMessageGestures = () => {
             const chatRoot=document.getElementById('chat-messages');
-            if(chatRoot && chatRoot.dataset.eloNoDoubleZoom!=='1'){
-                chatRoot.dataset.eloNoDoubleZoom='1';
+            if(!chatRoot) return;
+            if(chatRoot.dataset.eloGestureRoot!=='1'){
+                chatRoot.dataset.eloGestureRoot='1';
                 let lastTouchEnd=0;
                 chatRoot.addEventListener('touchend',e=>{
-                    if(!e.target.closest('.elo-message-bubble')) return;
-                    const now=Date.now();
-                    if(now-lastTouchEnd<320) e.preventDefault();
-                    lastTouchEnd=now;
+                    if(!e.target.closest('.elo-message-row')) return;
+                    const now=Date.now(); if(now-lastTouchEnd<320)e.preventDefault(); lastTouchEnd=now;
                 },{passive:false});
-                chatRoot.addEventListener('dblclick',e=>{if(e.target.closest('.elo-message-bubble'))e.preventDefault()},{passive:false});
+                chatRoot.addEventListener('dblclick',e=>{if(e.target.closest('.elo-message-row'))e.preventDefault()},{passive:false});
+                chatRoot.addEventListener('selectstart',e=>{if(e.target.closest('.elo-message-row'))e.preventDefault();});
             }
-            document.querySelectorAll('[data-chat-message]').forEach(el => {
-                if(el.dataset.eloGestureBound==='1') return;
-                el.dataset.eloGestureBound='1';
-                const id = el.dataset.chatMessage;
-                if(chatSelectionMode){ el.addEventListener('click',e=>{e.stopPropagation();window.toggleChatMessageSelection(id)}); return; }
-                const stack=el.closest('.elo-message-stack');
-                const row=el.closest('.elo-message-row');
-                const cue=row?.querySelector('.elo-swipe-reply-cue');
-                let holdTimer = null, startX = 0, startY = 0, lastX = 0, lastY = 0, held = false, swiping=false;
-                const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
-                const resetSwipe=(animate=true)=>{
-                    if(!stack)return;
-                    stack.classList.toggle('elo-swipe-reset',animate);
-                    stack.style.transform='';
-                    row?.classList.remove('is-swiping','reply-ready');
-                    if(cue)cue.style.opacity='';
-                    setTimeout(()=>stack.classList.remove('elo-swipe-reset'),220);
-                    swiping=false;
-                };
-                el.addEventListener('pointerdown', e => {
-                    if (e.pointerType === 'mouse' && e.button !== 0) return;
-                    startX = lastX = e.clientX; startY = lastY = e.clientY; held = false; swiping=false;
-                    holdTimer = setTimeout(() => {
-                        held = true; holdTimer = null;
-                        if (navigator.vibrate) navigator.vibrate(18);
-                        openChatReactionPicker(id,el);
-                    }, 430);
-                }, {passive:true});
-                el.addEventListener('pointermove', e => {
-                    lastX = e.clientX; lastY = e.clientY;
-                    const dx=lastX-startX,dy=lastY-startY;
-                    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) clearHold();
+            document.querySelectorAll('.elo-message-row').forEach(row => {
+                if(row.dataset.eloGestureBound==='1') return;
+                row.dataset.eloGestureBound='1';
+                const bubble=row.querySelector('[data-chat-message]'); if(!bubble)return;
+                const id=bubble.dataset.chatMessage;
+                if(chatSelectionMode){
+                    row.onclick=null;
+                    row.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();window.toggleChatMessageSelection(id)});
+                    return;
+                }
+                const stack=row.querySelector('.elo-message-stack');
+                const cue=row.querySelector('.elo-swipe-reply-cue');
+                let holdTimer=null,startX=0,startY=0,lastX=0,lastY=0,held=false,swiping=false,pointerId=null;
+                const interactive=t=>!!t.closest('a,button,input,textarea,.elo-audio-track,.elo-audio-speed,.elo-message-reply,.elo-reaction-pill');
+                const clearHold=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}};
+                const resetSwipe=(animate=true)=>{if(!stack)return;stack.classList.toggle('elo-swipe-reset',animate);stack.style.transform='';row.classList.remove('is-swiping','reply-ready');if(cue)cue.style.opacity='';setTimeout(()=>stack.classList.remove('elo-swipe-reset'),220);swiping=false;};
+                row.addEventListener('pointerdown',e=>{
+                    if(e.pointerType==='mouse'&&e.button!==0)return;
+                    if(interactive(e.target))return;
+                    pointerId=e.pointerId; startX=lastX=e.clientX;startY=lastY=e.clientY;held=false;swiping=false;
+                    try{row.setPointerCapture(pointerId)}catch(_){}
+                    holdTimer=setTimeout(()=>{held=true;holdTimer=null;if(navigator.vibrate)navigator.vibrate(18);openChatReactionPicker(id,bubble);},390);
+                },{passive:true});
+                row.addEventListener('pointermove',e=>{
+                    if(pointerId!==e.pointerId)return;
+                    lastX=e.clientX;lastY=e.clientY;const dx=lastX-startX,dy=lastY-startY;
+                    if(Math.abs(dx)>7||Math.abs(dy)>7)clearHold();
                     if(held)return;
-                    if(!swiping && dx>8 && Math.abs(dx)>Math.abs(dy)*1.15) swiping=true;
-                    if(swiping && stack){
-                        const pull=Math.max(0,Math.min(82,dx));
-                        const eased=pull<=58?pull:(58+(pull-58)*.28);
-                        stack.style.transform=`translate3d(${eased}px,0,0)`;
-                        row?.classList.add('is-swiping');
-                        row?.classList.toggle('reply-ready',pull>=58);
-                        if(cue)cue.style.opacity=String(Math.min(1,pull/48));
+                    if(!swiping&&dx>7&&Math.abs(dx)>Math.abs(dy)*1.05)swiping=true;
+                    if(swiping&&stack){
+                        e.preventDefault();
+                        const pull=Math.max(0,Math.min(92,dx));const eased=pull<=60?pull:(60+(pull-60)*.25);
+                        stack.style.transform=`translate3d(${eased}px,0,0)`;row.classList.add('is-swiping');row.classList.toggle('reply-ready',pull>=54);if(cue)cue.style.opacity=String(Math.min(1,pull/42));
                     }
-                }, {passive:true});
-                el.addEventListener('pointerup', e => {
-                    clearHold();
-                    if (held) return;
-                    const dx = (e.clientX || lastX) - startX;
-                    const dy = (e.clientY || lastY) - startY;
-                    const reply = swiping && dx > 58 && Math.abs(dy) < 52;
-                    resetSwipe(true);
-                    if (reply) {
-                        if (navigator.vibrate) navigator.vibrate(10);
-                        window.setChatReply(id);
-                    }
-                }, {passive:true});
-                el.addEventListener('pointercancel',()=>{clearHold();resetSwipe(true);}, {passive:true});
-                el.addEventListener('contextmenu', e => { e.preventDefault(); openChatReactionPicker(id,el); });
+                },{passive:false});
+                const finish=e=>{
+                    if(pointerId!==null&&e.pointerId!==undefined&&pointerId!==e.pointerId)return;
+                    clearHold();const dx=(e.clientX??lastX)-startX,dy=(e.clientY??lastY)-startY;const reply=!held&&swiping&&dx>54&&Math.abs(dy)<64;
+                    resetSwipe(true);pointerId=null;if(reply){if(navigator.vibrate)navigator.vibrate(10);window.setChatReply(id);}
+                };
+                row.addEventListener('pointerup',finish,{passive:true});
+                row.addEventListener('pointercancel',e=>{clearHold();resetSwipe(true);pointerId=null;},{passive:true});
+                row.addEventListener('contextmenu',e=>{if(interactive(e.target))return;e.preventDefault();openChatReactionPicker(id,bubble);});
             });
         };
 
@@ -3780,7 +3766,7 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
         let chatViewportRaf=0,lastChatViewportHeight=0;
-        const syncChatVisualViewport=()=>{if(chatViewportRaf)return;chatViewportRaf=requestAnimationFrame(()=>{chatViewportRaf=0;const vv=window.visualViewport;const h=Math.round(vv?vv.height:window.innerHeight);if(Math.abs(h-lastChatViewportHeight)>2){lastChatViewportHeight=h;document.documentElement.style.setProperty('--elo-visible-vh',`${h}px`);}const open=!!vv&&(window.innerHeight-vv.height)>120;document.body.classList.toggle('elo-keyboard-open',open&&window.activeTab==='chat');});};
+        const syncChatVisualViewport=()=>{if(chatViewportRaf)return;chatViewportRaf=requestAnimationFrame(()=>{chatViewportRaf=0;const vv=window.visualViewport;const h=Math.round(vv?vv.height:window.innerHeight);const top=Math.round(vv?vv.offsetTop:0);if(Math.abs(h-lastChatViewportHeight)>2){lastChatViewportHeight=h;document.documentElement.style.setProperty('--elo-visible-vh',`${h}px`);}document.documentElement.style.setProperty('--elo-vv-top',`${top}px`);const open=!!vv&&(window.innerHeight-vv.height)>120;const chatOpen=open&&window.activeTab==='chat';document.body.classList.toggle('elo-keyboard-open',chatOpen);if(chatOpen){requestAnimationFrame(()=>{document.getElementById('chat-input')?.scrollIntoView({block:'nearest'});const list=document.getElementById('chat-messages');if(list&&!chatUserAwayFromBottom)list.scrollTop=list.scrollHeight;});}});};
         if(window.visualViewport)visualViewport.addEventListener('resize',syncChatVisualViewport,{passive:true});
         window.addEventListener('resize',syncChatVisualViewport,{passive:true});syncChatVisualViewport();
 
@@ -4229,7 +4215,7 @@ window.checkInToday = async (buttonEl = null) => {
         window.confirmWhatsNew = () => {
             try { localStorage.setItem(whatsNewKey(), '1'); } catch (_) {}
             closeGenericModal();
-            setTimeout(()=>window.maybeShowNotificationIntro?.(),220);
+            setTimeout(()=>{if(!window.maybeShowFirstRunPermissions?.())window.maybeShowNotificationIntro?.();},220);
         };
 
         window.showWhatsNew = ({force=false}={}) => {
@@ -4245,6 +4231,21 @@ window.checkInToday = async (buttonEl = null) => {
             </div>`);
             return true;
         };
+
+        const firstRunPermissionsKey=()=>`elo_permissions_intro_v2_${currentUser?.uid||'device'}_${isNativeApp?'android':(isIOSWebRuntime()?'ios':'web')}`;
+        window.requestEloMicrophonePermission=async()=>{
+            try{
+                if(!navigator.mediaDevices?.getUserMedia)throw new Error('Microfone indisponível');
+                const stream=await navigator.mediaDevices.getUserMedia({audio:true}); stream.getTracks().forEach(t=>t.stop());
+                showToast('🎙️ Microfone pronto para os áudios do Chat.','success'); return true;
+            }catch(e){showToast('O microfone não foi liberado. Você poderá tentar novamente ao gravar um áudio.','info');return false;}
+        };
+        window.firstRunEnableNotifications=async()=>{await window.enablePushNotifications();setTimeout(()=>{if(currentUser&&localStorage.getItem(firstRunPermissionsKey())!=='1')window.openFirstRunPermissions();},180);};
+        window.openFirstRunPermissions=()=>{
+            const fileCopy=isNativeApp?'Fotos e documentos são escolhidos pelo seletor seguro do Android. O Elo recebe somente os itens que você selecionar.':(isIOSWebRuntime()?'No iPhone, fotos e documentos são liberados pelo seletor do sistema somente quando você os escolher.':'No navegador, o Elo só recebe os arquivos que você escolher no seletor. Não existe uma permissão geral de armazenamento para sites.');
+            openGenericModal(`<div class="space-y-4"><div class="text-center"><div class="mx-auto w-16 h-16 rounded-3xl bg-pink-500/10 text-pink-400 grid place-items-center text-3xl"><i class="ph-fill ph-shield-check"></i></div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400 mt-3">Preparar este aparelho</p><h3 class="text-2xl font-black text-white mt-1">Permissões do Elo</h3><p class="text-xs text-slate-400 mt-2">Ative agora o que quiser. Você também poderá mudar isso depois.</p></div><div class="space-y-2"><button onclick="firstRunEnableNotifications()" class="w-full text-left rounded-2xl bg-slate-900 border border-slate-800 p-4"><b class="text-white">🔔 Notificações</b><p class="text-[11px] text-slate-400 mt-1">Mensagens, presentes, Chama e avisos importantes.</p></button><button onclick="requestEloMicrophonePermission()" class="w-full text-left rounded-2xl bg-slate-900 border border-slate-800 p-4"><b class="text-white">🎙️ Microfone</b><p class="text-[11px] text-slate-400 mt-1">Necessário para gravar mensagens de áudio.</p></button><div class="rounded-2xl bg-slate-900 border border-slate-800 p-4"><b class="text-white">📷 Fotos e arquivos</b><p class="text-[11px] text-slate-400 mt-1">${fileCopy}</p><p class="text-[10px] text-emerald-400 mt-2 font-bold">Acesso sob demanda · sem ler sua galeria inteira</p></div></div><button onclick="localStorage.setItem(firstRunPermissionsKey(),'1');closeGenericModal()" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl">Continuar</button></div>`);
+        };
+        window.maybeShowFirstRunPermissions=()=>{if(!currentUser)return false;const k=firstRunPermissionsKey();if(localStorage.getItem(k)==='1')return false;window.openFirstRunPermissions();return true;};
 
         window.maybeShowNotificationIntro = async () => {
             if (!currentUser) return;
@@ -4267,7 +4268,7 @@ window.checkInToday = async (buttonEl = null) => {
                     await window.refreshNotificationNudge();
                     await ensurePushRegistrationSilently();
                     const opened = window.showWhatsNew();
-                    if (!opened) await window.maybeShowNotificationIntro();
+                    if (!opened && !window.maybeShowFirstRunPermissions?.()) await window.maybeShowNotificationIntro();
                 } finally { firstEntryExperienceRunning = false; }
             }, 700);
         };
