@@ -1,0 +1,20 @@
+Elo V36.5 / APK 0.4.0
+
+CONVERSATION NOTIFICATIONS (ANDROID)
+- MessagingStyle agora é associado a ShortcutInfoCompat de conversa.
+- Shortcut de longa duração com Person/UID/avatar do parceiro.
+- Notification shortcutId + locusId para integração com a área de Conversas do Android.
+- Um notificationId estável por conversa: novas mensagens atualizam o mesmo cartão.
+- Histórico local das últimas 6 mensagens recebidas é exibido ao expandir.
+- Ações nativas: Responder e Marcar como lida.
+- Resposta rápida é entregue ao app e enviada pelo Firestore após a sessão autenticada ficar disponível.
+- Avatar personalizado continua usando cache privado do Android; HTTPS permanece como fallback.
+
+VERSÕES
+- Web assets: 36.5.0
+- APK: 0.4.0
+- versionCode: 7
+- CACHE: elo-v36-5-conversation-notifications-20260901
+
+OBSERVAÇÃO
+O Android controla a renderização final. A estrutura agora segue as APIs oficiais de Conversation Notifications; fabricantes podem variar detalhes visuais.

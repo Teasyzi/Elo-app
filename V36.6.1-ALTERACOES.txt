@@ -1,0 +1,10 @@
+Elo V36.6.1 / APK 0.5.1
+
+- Corrige zoom acidental por duplo toque em mensagens no iPhone/PWA.
+- Itens normais da Loja agora têm Guardar para mim ou Dar para o parceiro.
+- Ao presentear um voucher, quem compra assume a pendência e o parceiro vira beneficiário.
+- Presentes virtuais chegam fechados para o destinatário e são revelados ao toque.
+- Cada tipo de presente possui uma animação própria; tocar novamente repete a animação.
+- A abertura do presente é registrada no documento da mensagem quando possível.
+- Corrige normalização do Chat para preservar payloads gift/voucher.
+- CACHE: elo-v36-6-1-chat-gifts-ios-20260902
