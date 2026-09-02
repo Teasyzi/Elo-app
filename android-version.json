@@ -1,12 +1,12 @@
 {
   "available": false,
-  "versionName": "0.5.3",
-  "versionCode": 12,
+  "versionName": "0.6.1",
+  "versionCode": 14,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Convite guiado para ativar notificações na primeira entrada",
-    "Aviso persistente enquanto notificações não estiverem habilitadas",
-    "Tela de novidades exibida somente uma vez por nova versão"
+    "Envio de documentos e arquivos no Chat",
+    "Upload privado no R2 com limite de 25 MB",
+    "Aba Arquivos agora funcional"
   ]
 }

@@ -1,0 +1,21 @@
+Elo V36.7 / APK 0.6.0
+
+SITE/PWA/iPHONE
+1. Substitua os arquivos modificados.
+2. Na raiz do projeto execute:
+   npm.cmd install
+   npm.cmd run build:css
+3. Publique normalmente no GitHub/site.
+
+APK ANDROID
+1. Na raiz do projeto execute:
+   npm.cmd run android:sync
+2. Depois:
+   cd android
+   .\gradlew.bat clean
+   .\gradlew.bat assembleDebug
+
+APK gerado em:
+android\app\build\outputs\apk\debug\app-debug.apk
+
+Esta versão não exige redeploy do Cloudflare Worker.

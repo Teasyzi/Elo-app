@@ -61,3 +61,16 @@ O Worker:
 5. O aparelho B deve receber a notificação do sistema.
 
 Observação: em iPhone/iPad, push para PWA exige o app adicionado à Tela de Início e uma versão compatível do iOS/iPadOS.
+
+## V36.7.1 — mídia privada / R2
+
+O mesmo Worker agora atende push e mídia privada:
+- `POST /media/upload`
+- `GET /media?key=...`
+- `DELETE /media?key=...`
+
+O código tenta localizar automaticamente um binding R2 existente no ambiente. Ele reconhece nomes comuns como `ELO_MEDIA`, `MEDIA_BUCKET`, `R2_BUCKET`, `BUCKET` ou `MEDIA` e também detecta qualquer binding que exponha a API de R2.
+
+Depois do deploy, teste `GET /health`. Quando o R2 estiver disponível, a resposta inclui `"mediaStorage": true`.
+
+Arquivos de Chat têm limite de 25 MB. Imagens mantêm limite de 12 MB. O bucket permanece privado e cada acesso exige Firebase ID Token + associação ao Elo.

@@ -1,0 +1,28 @@
+ELO V36.7.1 / APK 0.6.1 — CHAT FILES + R2 CONSOLIDADO
+
+- Chat agora envia documentos/arquivos de até 25 MB.
+- Botão + abre seletor com Foto e Documento.
+- Upload de arquivos possui feedback de progresso.
+- Mensagens de arquivo mostram nome, extensão, tamanho e botão de download.
+- Aba Perfil > Arquivos agora é funcional.
+- Push de arquivo usa categoria chat_file e canal de mensagens no Android.
+- Worker consolidado agora inclui:
+  POST /media/upload
+  GET /media
+  DELETE /media
+  POST /push
+  POST /notification-action
+  GET /health
+- Worker exige Firebase ID Token e valida se o usuário pertence ao Elo.
+- R2 continua privado; Firestore recebe somente metadados/chave da mídia.
+- Worker localiza automaticamente o binding R2 já configurado no ambiente.
+- /health agora informa mediaStorage:true quando o binding R2 foi encontrado.
+- Limite de 25 MB para arquivos e 12 MB para imagens.
+- Tipos executáveis/ativos mais arriscados são bloqueados no envio de documentos.
+- Service Worker atualizado para elo-v36-7-1-chat-files-r2-20260902.
+- Web 36.7.1; APK versionName 0.6.1; versionCode 14.
+
+IMPORTANTE
+Após copiar esta versão, o Worker precisa ser publicado porque as rotas /media foram consolidadas no cloudflare-worker/src/index.js.
+Depois do deploy, abra /health e confirme que mediaStorage aparece como true.
+Não cole secrets ou chaves privadas no chat/terminal visível. O secret FIREBASE_SERVICE_ACCOUNT_JSON já configurado continua sendo usado normalmente.

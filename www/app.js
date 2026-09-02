@@ -66,13 +66,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.notificationPrefs = {...DEFAULT_NOTIFICATION_PREFS};
 
         const appId = "elo-app-v2";
-        // V36.6.3 · correções de notificações, HOME e novidades web.
-        const ELO_WEB_VERSION = '36.6.3';
+        // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
+        const ELO_WEB_VERSION = '36.7.1';
         const ELO_RELEASE_NOTES = [
-            'Notificações de conversa não repetem mais mensagens antigas depois que você já abriu e leu o Chat.',
-            'A HOME ficou mais estável: o avatar não deve mais piscar quando seu amor estiver digitando.',
-            'A tela de novidades agora funciona separadamente no APK, site e iPhone/PWA e só é marcada como vista ao tocar em Continuar.',
-            'Seguimos preparando o Chat para a próxima etapa de recursos de um mensageiro completo.'
+            'O Chat entrou na fase de mensageiro completo: seleção múltipla, copiar, favoritar e excluir várias mensagens.',
+            'Fotos agora abrem em uma galeria de tela cheia com navegação pelo histórico e opção de salvar.',
+            'Mensagens fixadas aparecem no topo, respostas citadas levam à mensagem original e links ficaram interativos.',
+            'O perfil da conversa ganhou Favoritos e cada mensagem enviada pode mostrar informações de envio e leitura.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -122,6 +122,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let chatArchiveLoadingPromise = null;
         let chatArchiveLoadedAt = 0;
         let chatReactionPickerMessageId = null;
+        // V36.7 · modo de seleção estilo mensageiro e visualizador de mídia.
+        let chatSelectionMode = false;
+        let chatSelectedMessageIds = new Set();
+        let chatMediaViewerIds = [];
+        let chatMediaViewerIndex = -1;
         let quickGameCreating = false;
         let chatUnreadCount = 0;
         // V36.2.2: páginas antigas carregadas ao subir não são mensagens novas.
@@ -165,7 +170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.5.3', versionCode:12 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.6.1', versionCode:14 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2382,6 +2387,97 @@ window.checkInToday = async (buttonEl = null) => {
             _failed: !!m._failed
         });
 
+        const formatChatFileSize = bytes => {
+            const n=Number(bytes||0);
+            if(!n)return '';
+            if(n<1024)return `${n} B`;
+            if(n<1024*1024)return `${(n/1024).toFixed(n<10*1024?1:0)} KB`;
+            return `${(n/(1024*1024)).toFixed(1)} MB`;
+        };
+
+
+        const chatFileExtension = name => String(name||'').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'') || '';
+        const chatFileIcon = name => {
+            const ext=chatFileExtension(name);
+            if(ext==='pdf')return 'ph-file-pdf';
+            if(['doc','docx','odt','rtf'].includes(ext))return 'ph-file-doc';
+            if(['xls','xlsx','ods','csv'].includes(ext))return 'ph-file-xls';
+            if(['ppt','pptx','odp'].includes(ext))return 'ph-presentation-chart';
+            if(['zip','7z','rar','tar','gz'].includes(ext))return 'ph-file-zip';
+            if(['txt','md','json','xml'].includes(ext))return 'ph-file-text';
+            return 'ph-file';
+        };
+        const chatFileLabel = m => {
+            const ext=chatFileExtension(m?.fileName||'');
+            return `${ext?ext.toUpperCase():'ARQUIVO'}${m?.fileSize?` · ${formatChatFileSize(m.fileSize)}`:''}`;
+        };
+
+        const chatMessagePreviewText = m => {
+            if(!m)return 'Mensagem';
+            if(m.type==='image')return '📷 Foto';
+            if(m.type==='audio')return '🎙️ Áudio';
+            if(['document','file'].includes(m.type))return `📎 ${m.fileName||'Documento'}`;
+            if(m.type==='gift')return `${m.gift?.emoji||'🎁'} ${m.gift?.title||'Presente'}`;
+            if(m.type==='voucher')return `🎟️ ${m.voucher?.title||m.text||'Voucher'}`;
+            return String(m.text||'Mensagem');
+        };
+
+        const renderChatText = text => {
+            const raw=String(text||'');
+            const re=/(https?:\/\/[^\s<]+)/gi;
+            let out='',last=0,match;
+            while((match=re.exec(raw))){
+                out += escapeHTML(raw.slice(last,match.index));
+                const url=match[0];
+                let label=url,host='';
+                try{host=new URL(url).hostname.replace(/^www\./,'');}catch(_){}
+                out += `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" class="elo-chat-link" onclick="event.stopPropagation()"><i class="ph-bold ph-link-simple"></i><span>${escapeHTML(label)}</span>${host?`<small>${escapeHTML(host)}</small>`:''}</a>`;
+                last=match.index+url.length;
+            }
+            out += escapeHTML(raw.slice(last));
+            return out.replace(/\n/g,'<br>');
+        };
+
+        const chatSelectedMessages = () => chatMessages.filter(m=>chatSelectedMessageIds.has(m.id));
+        const exitChatSelection = () => { chatSelectionMode=false; chatSelectedMessageIds.clear(); renderChatOnly(); };
+        window.exitChatSelection = exitChatSelection;
+        window.toggleChatMessageSelection = id => {
+            chatSelectionMode=true;
+            if(chatSelectedMessageIds.has(id))chatSelectedMessageIds.delete(id);else chatSelectedMessageIds.add(id);
+            if(!chatSelectedMessageIds.size)chatSelectionMode=false;
+            renderChatOnly();
+        };
+        window.copySelectedChatMessages = async () => {
+            const selected=chatSelectedMessages(); if(!selected.length)return;
+            const text=selected.map(m=>`${getProfileName(m.senderId)}: ${chatMessagePreviewText(m)}`).join('\n');
+            try{await navigator.clipboard.writeText(text);showToast(`${selected.length} mensagem${selected.length>1?'s':''} copiada${selected.length>1?'s':''}.`,'success')}catch(_){showToast('Não foi possível copiar.','error')}
+            exitChatSelection();
+        };
+        window.favoriteSelectedChatMessages = async () => {
+            const selected=chatSelectedMessages(); if(!selected.length)return;
+            try{await Promise.all(selected.map(m=>updateDoc(messageDoc(m.id),{[`favorites.${currentUser.uid}`]:true})));showToast('Mensagens salvas nos favoritos.','success')}catch(_){showToast('Não foi possível favoritar.','error')}
+            exitChatSelection();
+        };
+        window.deleteSelectedChatMessages = () => {
+            const own=chatSelectedMessages().filter(m=>m.senderId===currentUser.uid);
+            if(!own.length)return showToast('Selecione ao menos uma mensagem enviada por você.','info');
+            openEloConfirm({title:`Excluir ${own.length} mensagem${own.length>1?'s':''}?`,message:'Elas serão removidas para vocês dois.',confirmLabel:'Excluir',danger:true,onConfirm:async()=>{
+                try{for(const m of own){await deleteDoc(messageDoc(m.id));if(m.mediaKey)backgroundChatTask(deletePrivateChatMedia(m.mediaKey),'Exclusão de mídia R2');}showToast('Mensagens excluídas.','info');exitChatSelection()}catch(_){showToast('Não foi possível excluir todas.','error')}
+            }});
+        };
+
+        window.copyChatMessage = async id => {
+            const m=chatMessages.find(x=>x.id===id)||chatArchiveMessages.find(x=>x.id===id); if(!m)return;
+            try{await navigator.clipboard.writeText(m.text||chatMessagePreviewText(m));showToast('Mensagem copiada.','success')}catch(_){showToast('Não foi possível copiar.','error')}
+        };
+        window.openChatMessageInfo = id => {
+            const m=chatMessages.find(x=>x.id===id)||chatArchiveMessages.find(x=>x.id===id); if(!m)return;
+            const mine=m.senderId===currentUser.uid;
+            const read=mine && Object.keys(m.readBy||{}).some(uid=>uid!==currentUser.uid);
+            const sentAt=new Date(m.timestamp).toLocaleString('pt-BR');
+            openGenericModal(`<div class="space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">Informações</p><h3 class="text-xl font-black text-white">Mensagem</h3></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400">✕</button></div><div class="elo-message-info-preview">${escapeHTML(chatMessagePreviewText(m))}</div><div class="space-y-2"><div class="elo-message-info-row"><i class="ph-bold ph-clock"></i><span><b>Enviada</b><small>${escapeHTML(sentAt)}</small></span></div>${mine?`<div class="elo-message-info-row ${read?'read':''}"><i class="ph-bold ph-checks"></i><span><b>${read?'Lida pelo seu amor':'Ainda não lida'}</b><small>${read?'A confirmação de leitura chegou ao Elo.':'A mensagem foi enviada, mas ainda não foi marcada como lida.'}</small></span></div>`:''}${m.edited?'<div class="elo-message-info-row"><i class="ph-bold ph-pencil-simple"></i><span><b>Editada</b><small>Esta mensagem foi alterada após o envio.</small></span></div>':''}</div></div>`);
+        };
+
         const mergeChatMessages = (...groups) => {
             const byId = new Map();
             groups.flat().filter(Boolean).forEach(m => {
@@ -2751,17 +2847,39 @@ window.checkInToday = async (buttonEl = null) => {
             return new Blob([bytes], {type:mime});
         };
 
-        const uploadChatMedia = async (blob, kind) => {
+        const uploadChatMedia = async (blob, kind, fileName='') => {
             if (!currentUser || !coupleId) throw new Error('Sessão do Elo indisponível');
             const token = await currentUser.getIdToken();
-            const response = await fetch(`${ELO_MEDIA_ENDPOINT}/media/upload?coupleId=${encodeURIComponent(coupleId)}&kind=${encodeURIComponent(kind)}`, {
+            const qs=new URLSearchParams({coupleId:String(coupleId),kind:String(kind||'file')});
+            if(fileName)qs.set('fileName',String(fileName).slice(0,180));
+            const response = await fetch(`${ELO_MEDIA_ENDPOINT}/media/upload?${qs.toString()}`, {
                 method:'POST',
-                headers:{'Authorization':`Bearer ${token}`,'Content-Type':blob.type || (kind==='audio'?'audio/webm':'image/jpeg')},
+                headers:{'Authorization':`Bearer ${token}`,'Content-Type':blob.type || (kind==='audio'?'audio/webm':kind==='image'?'image/jpeg':'application/octet-stream')},
                 body:blob
             });
             let result=null; try{result=await response.json();}catch(_){ }
             if(!response.ok || !result?.ok) throw new Error(result?.error || `Upload HTTP ${response.status}`);
             return result;
+        };
+
+        const uploadChatFileWithProgress = async (file, onProgress=()=>{}) => {
+            if (!currentUser || !coupleId) throw new Error('Sessão do Elo indisponível');
+            const token=await currentUser.getIdToken();
+            const qs=new URLSearchParams({coupleId:String(coupleId),kind:'file',fileName:String(file.name||'arquivo').slice(0,180)});
+            return new Promise((resolve,reject)=>{
+                const xhr=new XMLHttpRequest();
+                xhr.open('POST',`${ELO_MEDIA_ENDPOINT}/media/upload?${qs.toString()}`,true);
+                xhr.setRequestHeader('Authorization',`Bearer ${token}`);
+                xhr.setRequestHeader('Content-Type',file.type||'application/octet-stream');
+                xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(Math.max(0,Math.min(100,Math.round((e.loaded/e.total)*100))))};
+                xhr.onerror=()=>reject(new Error('Falha de rede durante o upload.'));
+                xhr.onload=()=>{
+                    let result=null;try{result=JSON.parse(xhr.responseText||'{}')}catch(_){ }
+                    if(xhr.status>=200&&xhr.status<300&&result?.ok)resolve(result);
+                    else reject(new Error(result?.error||`Upload HTTP ${xhr.status}`));
+                };
+                xhr.send(file);
+            });
         };
 
         const cacheChatMediaObjectUrl = (key, objectUrl) => {
@@ -3111,6 +3229,79 @@ window.checkInToday = async (buttonEl = null) => {
             })(),'Envio de imagem');
         };
 
+        window.openChatAttachmentMenu = () => {
+            document.getElementById('elo-chat-attach-sheet')?.remove();
+            const sheet=document.createElement('div');
+            sheet.id='elo-chat-attach-sheet';
+            sheet.className='elo-attach-backdrop';
+            sheet.innerHTML=`<div class="elo-attach-sheet" role="dialog" aria-label="Anexar ao chat"><div class="elo-attach-handle"></div><h3>Enviar para o chat</h3><div class="elo-attach-grid"><button type="button" data-attach-photo><span class="photo"><i class="ph-bold ph-image"></i></span><b>Foto</b></button><button type="button" data-attach-file><span class="file"><i class="ph-bold ph-file-arrow-up"></i></span><b>Documento</b></button></div><button type="button" class="elo-attach-cancel">Cancelar</button></div>`;
+            const close=()=>sheet.remove();
+            sheet.addEventListener('click',e=>{if(e.target===sheet)close()});
+            sheet.querySelector('.elo-attach-cancel')?.addEventListener('click',close);
+            sheet.querySelector('[data-attach-photo]')?.addEventListener('click',()=>{close();document.getElementById('elo-chat-image-input')?.click()});
+            sheet.querySelector('[data-attach-file]')?.addEventListener('click',()=>{close();document.getElementById('elo-chat-file-input')?.click()});
+            document.body.appendChild(sheet);
+        };
+
+        window.sendChatFile = async e => {
+            const file=e.target.files?.[0]; e.target.value='';
+            if(!file||!coupleData||!currentUser||!coupleId)return;
+            if(file.size>25*1024*1024)return showToast('O arquivo deve ter até 25 MB.','error');
+            if(file.size<=0)return showToast('Este arquivo está vazio.','error');
+            const ext=chatFileExtension(file.name);
+            const blocked=['exe','msi','apk','bat','cmd','com','dll','scr','ps1','sh','html','htm','svg'];
+            if(blocked.includes(ext))return showToast('Esse tipo de arquivo não é permitido por segurança.','error');
+
+            const id=`${Date.now()}_${currentUser.uid}_${Math.random().toString(36).slice(2,7)}`;
+            const replySnapshot=chatReplyTo?{id:chatReplyTo.id,text:chatMessagePreviewText(chatReplyTo),senderId:chatReplyTo.senderId}:null;
+            const optimistic={
+                id,senderId:currentUser.uid,type:'file',text:'',mediaKey:'',mimeType:file.type||'application/octet-stream',
+                mediaSize:file.size,fileSize:file.size,fileName:file.name||'arquivo',timestamp:Date.now(),replyTo:replySnapshot,reactions:{},
+                readBy:{[currentUser.uid]:true},sendState:'uploading',_optimistic:true,_uploading:true,_uploadProgress:0
+            };
+            chatReplyTo=null;
+            chatMessages=mergeChatMessages(chatMessages,optimistic);
+            chatUserAwayFromBottom=false;renderChatOnly();scrollChatToBottom(false);
+
+            backgroundChatTask((async()=>{
+                try{
+                    const uploaded=await uploadChatFileWithProgress(file,pct=>{
+                        const msg=chatMessages.find(m=>m.id===id);if(!msg)return;
+                        msg._uploadProgress=pct;
+                        const bar=document.querySelector(`[data-chat-message="${CSS.escape(id)}"] .elo-file-progress > i`);
+                        const label=document.querySelector(`[data-chat-message="${CSS.escape(id)}"] [data-file-progress-label]`);
+                        if(bar)bar.style.width=`${pct}%`;if(label)label.textContent=`Enviando… ${pct}%`;
+                    });
+                    const finalMsg={
+                        id,senderId:currentUser.uid,type:'file',text:'',mediaKey:uploaded.key,mimeType:uploaded.contentType||file.type||'application/octet-stream',
+                        mediaSize:Number(uploaded.size||file.size),fileSize:Number(uploaded.size||file.size),fileName:uploaded.fileName||file.name||'arquivo',
+                        timestamp:optimistic.timestamp,replyTo:replySnapshot,reactions:{},readBy:{[currentUser.uid]:true},sendState:'sent'
+                    };
+                    chatMessages=chatMessages.map(m=>m.id===id?finalMsg:m);renderChatOnly();
+                    await setDoc(messageDoc(id),finalMsg);
+                    backgroundChatTask(createPartnerNotification({
+                        title:`${coupleData?.users?.[currentUser.uid]?.name||'Seu amor'} enviou um arquivo`,
+                        body:`📎 ${finalMsg.fileName}${finalMsg.fileSize?` · ${formatChatFileSize(finalMsg.fileSize)}`:''}`,
+                        type:'chat_file'
+                    }),'Push de arquivo');
+                    backgroundChatTask(updateDoc(doc(db,'relationships',coupleId),{'stats.synergy':increment(0.25)}),'Sinergia');
+                }catch(err){
+                    console.error('Envio de arquivo:',err);
+                    chatMessages=chatMessages.map(m=>m.id===id?{...m,_uploading:false,_failed:true,sendState:'failed'}:m);renderChatOnly();
+                    showToast(err?.message||'Não foi possível enviar o arquivo.','error');
+                }
+            })(),'Envio de arquivo');
+        };
+
+        window.downloadChatFile = async messageId => {
+            const m=chatMessages.find(x=>x.id===messageId)||chatArchiveMessages.find(x=>x.id===messageId);
+            if(!m?.mediaKey)return showToast('Arquivo indisponível.','error');
+            try{
+                const src=await fetchPrivateChatMedia(m.mediaKey);
+                const a=document.createElement('a');a.href=src;a.download=m.fileName||'arquivo';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+            }catch(e){showToast('Não foi possível baixar o arquivo.','error')}
+        };
+
         window.shareChatVoucher = id => { const item=(coupleData.inventory||[]).find(x=>x.id===id); if(!item)return; window.sendSpecialChat(`🎁 ${item.title || 'Voucher'} — enviado pelo seu amor ❤️`,'voucher'); };
         window.sendSpecialChat = async (text,type='special') => { try { await addDoc(chatCollection(),{senderId:currentUser.uid,type,text,timestamp:Date.now(),reactions:{},readBy:{[currentUser.uid]:true}}); }catch(e){showToast('Não foi possível enviar.','error');} };
 
@@ -3150,7 +3341,7 @@ window.checkInToday = async (buttonEl = null) => {
             const m = chatMessages.find(x=>x.id===id) || chatArchiveMessages.find(x=>x.id===id); if(!m) return;
             const mine = m.senderId===currentUser.uid;
             const isFav = !!m.favorites?.[currentUser.uid];
-            openGenericModal(`<div class="space-y-3 elo-message-actions-sheet"><div class="w-10 h-1 rounded-full bg-slate-700 mx-auto -mt-1 mb-2"></div><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest text-pink-400 font-black">Mensagem</p><h3 class="text-lg font-black text-white">Ações</h3></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-300">✕</button></div><div class="grid grid-cols-4 gap-2"><button onclick="closeGenericModal();setChatReply('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-arrow-bend-up-left text-xl text-pink-400"></i><p class="text-[9px] text-slate-400 mt-1">Responder</p></button><button onclick="closeGenericModal();reactChatMessage('${m.id}','❤️')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><span class="text-xl">❤️</span><p class="text-[9px] text-slate-400 mt-1">Reagir</p></button><button onclick="closeGenericModal();favoriteChatMessage('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-${isFav?'fill':'bold'} ph-star text-xl text-amber-400"></i><p class="text-[9px] text-slate-400 mt-1">${isFav?'Desfavoritar':'Favoritar'}</p></button><button onclick="closeGenericModal();pinChatMessage('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-push-pin text-xl text-violet-400"></i><p class="text-[9px] text-slate-400 mt-1">Fixar</p></button></div>${mine && m.type==='text'?`<button onclick="closeGenericModal();editChatMessage('${m.id}')" class="w-full flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white"><i class="ph-bold ph-pencil-simple text-lg text-slate-400"></i> Editar mensagem</button>`:''}${mine?`<button onclick="closeGenericModal();deleteChatMessage('${m.id}')" class="w-full flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-sm text-red-300"><i class="ph-bold ph-trash text-lg"></i> Excluir mensagem</button>`:''}</div>`);
+            openGenericModal(`<div class="space-y-3 elo-message-actions-sheet"><div class="w-10 h-1 rounded-full bg-slate-700 mx-auto -mt-1 mb-2"></div><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest text-pink-400 font-black">Mensagem</p><h3 class="text-lg font-black text-white">Ações</h3></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-300">✕</button></div><div class="grid grid-cols-4 gap-2"><button onclick="closeGenericModal();setChatReply('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-arrow-bend-up-left text-xl text-pink-400"></i><p class="text-[9px] text-slate-400 mt-1">Responder</p></button><button onclick="closeGenericModal();reactChatMessage('${m.id}','❤️')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><span class="text-xl">❤️</span><p class="text-[9px] text-slate-400 mt-1">Reagir</p></button><button onclick="closeGenericModal();favoriteChatMessage('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-${isFav?'fill':'bold'} ph-star text-xl text-amber-400"></i><p class="text-[9px] text-slate-400 mt-1">${isFav?'Desfavoritar':'Favoritar'}</p></button><button onclick="closeGenericModal();pinChatMessage('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-push-pin text-xl text-violet-400"></i><p class="text-[9px] text-slate-400 mt-1">Fixar</p></button><button onclick="closeGenericModal();copyChatMessage('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-copy text-xl text-sky-400"></i><p class="text-[9px] text-slate-400 mt-1">Copiar</p></button><button onclick="closeGenericModal();openChatMessageInfo('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-info text-xl text-emerald-400"></i><p class="text-[9px] text-slate-400 mt-1">Info</p></button><button onclick="closeGenericModal();toggleChatMessageSelection('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-check-square text-xl text-indigo-400"></i><p class="text-[9px] text-slate-400 mt-1">Selecionar</p></button><button onclick="closeGenericModal();jumpToChatMessage('${m.id}')" class="rounded-2xl bg-slate-900 border border-slate-800 py-3 text-center"><i class="ph-bold ph-crosshair text-xl text-slate-300"></i><p class="text-[9px] text-slate-400 mt-1">Localizar</p></button></div>${mine && m.type==='text'?`<button onclick="closeGenericModal();editChatMessage('${m.id}')" class="w-full flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-white"><i class="ph-bold ph-pencil-simple text-lg text-slate-400"></i> Editar mensagem</button>`:''}${mine?`<button onclick="closeGenericModal();deleteChatMessage('${m.id}')" class="w-full flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-sm text-red-300"><i class="ph-bold ph-trash text-lg"></i> Excluir mensagem</button>`:''}</div>`);
         };
 
         const closeChatReactionPicker = () => {
@@ -3207,6 +3398,7 @@ window.checkInToday = async (buttonEl = null) => {
                 if(el.dataset.eloGestureBound==='1') return;
                 el.dataset.eloGestureBound='1';
                 const id = el.dataset.chatMessage;
+                if(chatSelectionMode){ el.addEventListener('click',e=>{e.stopPropagation();window.toggleChatMessageSelection(id)}); return; }
                 const stack=el.closest('.elo-message-stack');
                 const row=el.closest('.elo-message-row');
                 const cue=row?.querySelector('.elo-swipe-reply-cue');
@@ -3350,6 +3542,43 @@ window.checkInToday = async (buttonEl = null) => {
             }
         };
 
+        const getChatImageMessages = () => (chatArchiveComplete?chatArchiveMessages:chatMessages).filter(m=>m.type==='image');
+        const resolveChatImageSrc = async m => {
+            if(!m)return '';
+            if(m.localMediaUrl)return m.localMediaUrl;
+            if(m.mediaKey)return fetchPrivateChatMedia(m.mediaKey);
+            return m.mediaUrl||m.text||'';
+        };
+        const renderChatMediaViewer = async () => {
+            const overlay=document.getElementById('elo-chat-media-viewer'); if(!overlay)return;
+            const ids=chatMediaViewerIds; const id=ids[chatMediaViewerIndex];
+            const m=(chatArchiveComplete?chatArchiveMessages:chatMessages).find(x=>x.id===id) || chatMessages.find(x=>x.id===id);
+            if(!m){window.closeChatMediaViewer();return;}
+            const label=overlay.querySelector('[data-media-label]'); if(label)label.textContent=`${getProfileName(m.senderId)} · ${new Date(m.timestamp).toLocaleString('pt-BR')}`;
+            const img=overlay.querySelector('img'); if(img){img.classList.add('is-loading');img.removeAttribute('src');try{img.src=await resolveChatImageSrc(m);img.classList.remove('is-loading')}catch(_){showToast('Não foi possível carregar a foto.','error')}}
+            const count=overlay.querySelector('[data-media-count]'); if(count)count.textContent=`${chatMediaViewerIndex+1} de ${ids.length}`;
+            overlay.querySelector('[data-media-prev]')?.toggleAttribute('disabled',chatMediaViewerIndex<=0);
+            overlay.querySelector('[data-media-next]')?.toggleAttribute('disabled',chatMediaViewerIndex>=ids.length-1);
+        };
+        window.openChatMediaViewer = async id => {
+            if(!chatArchiveComplete){try{await ensureCompleteChatArchive({});}catch(_){}}
+            const images=getChatImageMessages(); chatMediaViewerIds=images.map(m=>m.id); chatMediaViewerIndex=Math.max(0,chatMediaViewerIds.indexOf(id));
+            document.getElementById('elo-chat-media-viewer')?.remove();
+            const overlay=document.createElement('div');overlay.id='elo-chat-media-viewer';overlay.className='elo-media-viewer';
+            overlay.innerHTML=`<div class="elo-media-viewer-top"><button onclick="closeChatMediaViewer()"><i class="ph-bold ph-x"></i></button><div class="min-w-0 flex-1"><b data-media-label>Foto</b><small data-media-count></small></div><button onclick="downloadCurrentChatMedia()" title="Salvar foto"><i class="ph-bold ph-download-simple"></i></button></div><div class="elo-media-viewer-stage"><button data-media-prev onclick="stepChatMediaViewer(-1)" class="elo-media-nav prev"><i class="ph-bold ph-caret-left"></i></button><img alt="Foto da conversa"><button data-media-next onclick="stepChatMediaViewer(1)" class="elo-media-nav next"><i class="ph-bold ph-caret-right"></i></button></div>`;
+            document.body.appendChild(overlay); document.body.classList.add('elo-media-open');
+            let sx=0,sy=0; const stage=overlay.querySelector('.elo-media-viewer-stage');
+            stage?.addEventListener('pointerdown',e=>{sx=e.clientX;sy=e.clientY;},{passive:true});
+            stage?.addEventListener('pointerup',e=>{const dx=e.clientX-sx,dy=e.clientY-sy;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.2)window.stepChatMediaViewer(dx<0?1:-1);},{passive:true});
+            await renderChatMediaViewer();
+        };
+        window.closeChatMediaViewer = () => {document.getElementById('elo-chat-media-viewer')?.remove();document.body.classList.remove('elo-media-open');};
+        window.stepChatMediaViewer = delta => {const next=chatMediaViewerIndex+Number(delta||0);if(next<0||next>=chatMediaViewerIds.length)return;chatMediaViewerIndex=next;renderChatMediaViewer();};
+        window.downloadCurrentChatMedia = async () => {
+            const id=chatMediaViewerIds[chatMediaViewerIndex];const m=(chatArchiveComplete?chatArchiveMessages:chatMessages).find(x=>x.id===id);if(!m)return;
+            try{const src=await resolveChatImageSrc(m);const a=document.createElement('a');a.href=src;a.download=`elo-foto-${new Date(m.timestamp).toISOString().slice(0,10)}.jpg`;document.body.appendChild(a);a.click();a.remove()}catch(_){showToast('Não foi possível salvar a foto.','error')}
+        };
+
         const renderChatOnly = () => {
             if (window.activeTab !== 'chat') return;
             const main=document.getElementById('main-content'); if(!main)return;
@@ -3379,17 +3608,17 @@ window.checkInToday = async (buttonEl = null) => {
                 const day=chatDateKey(m.timestamp);
                 const divider=day!==lastDay?`<div class="elo-chat-day"><span>${chatDateLabel(m.timestamp)}</span></div>`:'';
                 lastDay=day;
-                const reply=m.replyTo?`<div class="elo-message-reply">↩ ${escapeHTML(m.replyTo.text||'Imagem')}</div>`:'';
+                const reply=m.replyTo?`<button type="button" class="elo-message-reply" onclick="event.stopPropagation();jumpToChatMessage('${escapeHTML(m.replyTo.id||'')}')"><span>↩ ${escapeHTML(getProfileName(m.replyTo.senderId))}</span><b>${escapeHTML(m.replyTo.text||'Mídia')}</b></button>`:'';
                 let content='';
                 let mediaClass='';
                 if(m.type==='image'){
                     if(m.localMediaUrl){
                         const src=escapeHTML(m.localMediaUrl);
-                        content=`<img src="${src}" decoding="async" class="elo-message-image ${m._failed?'opacity-70':''}" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();window.open(this.src,'_blank')">`;
+                        content=`<img src="${src}" decoding="async" class="elo-message-image ${m._failed?'opacity-70':''}" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')">`;
                     } else if(m.mediaKey){
-                        content=`<div data-media-holder class="elo-chat-media-loading-wrap"><div class="elo-chat-media-loading"><i class="ph-bold ph-image text-xl mb-1"></i><span>Carregando foto…</span></div><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(m.mediaKey)}" src="" class="elo-message-image opacity-0" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();if(this.src)window.open(this.src,'_blank')"></div>`;
+                        content=`<div data-media-holder class="elo-chat-media-loading-wrap"><div class="elo-chat-media-loading"><i class="ph-bold ph-image text-xl mb-1"></i><span>Carregando foto…</span></div><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(m.mediaKey)}" src="" class="elo-message-image opacity-0" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')"></div>`;
                     } else {
-                        const src=escapeHTML(m.mediaUrl||m.text); content=`<img src="${src}" loading="lazy" decoding="async" class="elo-message-image" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();window.open(this.src,'_blank')">`;
+                        const src=escapeHTML(m.mediaUrl||m.text); content=`<img src="${src}" loading="lazy" decoding="async" class="elo-message-image" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')">`;
                     }
                     mediaClass=' media';
                 } else if(m.type==='audio') {
@@ -3401,6 +3630,16 @@ window.checkInToday = async (buttonEl = null) => {
                             ? '<span class="elo-audio-state"><i class="ph-bold ph-spinner-gap elo-spin"></i> sincronizando</span>'
                             : '<span class="elo-audio-state sent"><i class="ph-bold ph-check"></i> áudio</span>';
                     content=`<div class="elo-audio-player ${m._uploading?'is-uploading':''} ${m._failed?'is-failed':''}" data-duration="${Number(m.duration||0)}" data-media-holder><button class="elo-audio-play" onclick="event.stopPropagation();toggleChatAudio(this,'${escapeHTML(m.mediaKey||'')}')"><i class="ph-fill ph-play"></i></button><div class="elo-audio-main"><div class="elo-audio-wave" aria-hidden="true">${[8,14,20,11,17,24,13,19,10,22,15,8,18,25,12,20,9,16].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="elo-audio-track" onclick="seekChatAudio(event,this)"><div class="elo-audio-progress"></div></div><div class="elo-audio-info"><span data-audio-time>${duration}</span>${audioState}</div></div><button class="elo-audio-speed" onclick="event.stopPropagation();cycleChatAudioSpeed(this)">1x</button><audio ${localSrc?`src="${localSrc}"`:''} data-private-media-key="${escapeHTML(m.mediaKey||'')}" preload="metadata"></audio></div>`;
+                } else if(['file','document'].includes(m.type)) {
+                    const progress=Math.max(0,Math.min(100,Number(m._uploadProgress||0)));
+                    const state=m._failed
+                        ? '<span class="elo-file-state failed"><i class="ph-bold ph-warning-circle"></i> falhou</span>'
+                        : (m._uploading||m.sendState==='uploading')
+                            ? `<span class="elo-file-state" data-file-progress-label>Enviando… ${progress}%</span>`
+                            : '<span class="elo-file-state sent"><i class="ph-bold ph-check"></i> arquivo</span>';
+                    const action=m._failed?'':`<button type="button" class="elo-file-download" onclick="event.stopPropagation();downloadChatFile('${m.id}')" aria-label="Baixar ${escapeHTML(m.fileName||'arquivo')}"><i class="ph-bold ph-download-simple"></i></button>`;
+                    content=`<div class="elo-chat-file ${m._uploading?'is-uploading':''} ${m._failed?'is-failed':''}"><div class="elo-file-icon"><i class="ph-fill ${chatFileIcon(m.fileName)}"></i></div><div class="elo-file-main"><b title="${escapeHTML(m.fileName||'Arquivo')}">${escapeHTML(m.fileName||'Arquivo')}</b><small>${escapeHTML(chatFileLabel(m))}</small>${state}${m._uploading?`<div class="elo-file-progress"><i style="width:${progress}%"></i></div>`:''}</div>${action}</div>`;
+                    mediaClass=' media file-card';
                 } else if(m.type==='gift') {
                     const g=m.gift||{}; const senderName=getProfileName(m.senderId); const giftText=g.message||m.text||'';
                     const giftOpened=isChatGiftOpened(m);
@@ -3421,16 +3660,17 @@ window.checkInToday = async (buttonEl = null) => {
                     content=`<div class="elo-chat-voucher"><div class="elo-chat-voucher-icon">🎟️</div><div class="elo-chat-voucher-title">${escapeHTML(v.title||m.text)}</div>${statusHtml}${actions}</div>`;
                     mediaClass=' media special-card';
                 } else {
-                    content=`<div class="elo-message-text">${escapeHTML(m.text).replace(/\n/g,'<br>')}</div>`;
+                    content=`<div class="elo-message-text">${renderChatText(m.text)}</div>`;
                 }
                 const reactions=reactionsFor(m);
                 const reactHTML=Object.entries(reactions).map(([e,n])=>`<button onclick="event.stopPropagation();reactChatMessage('${m.id}','${e}')" class="elo-reaction-pill">${e}${n>1?` ${n}`:''}</button>`).join('');
                 const isNewVisual=chatRenderedMessageIds.size>0 && !chatRenderedMessageIds.has(m.id);
-                const rowClasses=[isMe?'me':'them',groupedPrev?'grouped grouped-prev':'',groupedNext?'grouped-next':'',isNewVisual?'elo-message-enter':''].filter(Boolean).join(' ');
+                const selected=chatSelectedMessageIds.has(m.id);
+                const rowClasses=[isMe?'me':'them',groupedPrev?'grouped grouped-prev':'',groupedNext?'grouped-next':'',isNewVisual?'elo-message-enter':'',selected?'is-selected':'',chatSelectionMode?'selection-mode':''].filter(Boolean).join(' ');
                 const deliveryMeta=isMe
                     ? (m._failed ? '<i class="ph-bold ph-warning-circle text-red-300"></i>' : (m._uploading || m.sendState==='uploading') ? '<i class="ph-bold ph-spinner-gap elo-spin text-white/60"></i>' : readState(m))
                     : '';
-                return `${divider}<div class="elo-message-row ${rowClasses}"><div class="elo-swipe-reply-cue"><i class="ph-bold ph-arrow-bend-up-left"></i></div><div class="elo-message-stack"><div class="elo-message-bubble${mediaClass}" data-chat-message="${m.id}" aria-label="Mensagem. Deslize para responder ou segure para reagir.">${reply}${content}<div class="elo-message-meta"><span>${formatTime(m.timestamp)}</span>${m.edited?'<span>· editada</span>':''}${deliveryMeta}</div></div>${reactHTML?`<div class="elo-message-reactions">${reactHTML}</div>`:''}</div></div>`;
+                return `${divider}<div class="elo-message-row ${rowClasses}" ${chatSelectionMode?`onclick="toggleChatMessageSelection('${m.id}')"`:''}><div class="elo-message-select-check"><i class="ph-bold ${selected?'ph-check':'ph-circle'}"></i></div><div class="elo-swipe-reply-cue"><i class="ph-bold ph-arrow-bend-up-left"></i></div><div class="elo-message-stack"><div class="elo-message-bubble${mediaClass}" data-chat-message="${m.id}" aria-label="Mensagem. Deslize para responder ou segure para reagir.">${reply}${content}<div class="elo-message-meta"><span>${formatTime(m.timestamp)}</span>${m.edited?'<span>· editada</span>':''}${deliveryMeta}</div></div>${reactHTML?`<div class="elo-message-reactions">${reactHTML}</div>`:''}</div></div>`;
             }).join('');
             const historyHTML = chatLoadingOlder
                 ? '<div class="elo-chat-history-status loading"><i class="ph-bold ph-spinner-gap"></i> Carregando mensagens antigas…</div>'
@@ -3444,14 +3684,21 @@ window.checkInToday = async (buttonEl = null) => {
             const statusText=typing?'digitando…':online?'online agora':partner?.lastSeen?'visto recentemente':'offline';
             const statusClass=typing||online?'text-emerald-400':'text-slate-500';
             const replyBar=chatReplyTo?`<div class="elo-chat-replybar"><i class="ph-bold ph-arrow-bend-up-left text-pink-400"></i><div class="flex-1 min-w-0"><span>${chatEditingId?'Editando':'Respondendo'}:</span> <b class="text-slate-200">${escapeHTML(chatReplyTo.text||'Imagem')}</b></div><button onclick="cancelChatReply()" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300">✕</button></div>`:'';
+            const pinnedMessages=chatMessages.filter(m=>m.pinned).slice(-3);
+            const pinnedBar=!chatSelectionMode&&pinnedMessages.length?`<button type="button" onclick="jumpToChatMessage('${pinnedMessages[pinnedMessages.length-1].id}')" class="elo-pinned-bar"><i class="ph-fill ph-push-pin"></i><span><small>Mensagem fixada</small><b>${escapeHTML(chatMessagePreviewText(pinnedMessages[pinnedMessages.length-1])).slice(0,85)}</b></span><i class="ph-bold ph-caret-right"></i></button>`:'';
+            const selectionBar=chatSelectionMode?`<div class="elo-chat-selection-bar"><button onclick="exitChatSelection()" class="elo-selection-close"><i class="ph-bold ph-x"></i></button><b>${chatSelectedMessageIds.size} selecionada${chatSelectedMessageIds.size===1?'':'s'}</b><div class="flex-1"></div><button onclick="copySelectedChatMessages()" title="Copiar"><i class="ph-bold ph-copy"></i></button><button onclick="favoriteSelectedChatMessages()" title="Favoritar"><i class="ph-bold ph-star"></i></button><button onclick="deleteSelectedChatMessages()" title="Excluir"><i class="ph-bold ph-trash"></i></button></div>`:'';
+
 
             const emptyHTML='<div class="elo-chat-empty"><div class="w-14 h-14 mx-auto rounded-2xl bg-pink-500/10 text-pink-400 grid place-items-center mb-3"><i class="ph-fill ph-chat-teardrop-text text-3xl"></i></div><p class="font-bold text-slate-300">Comecem uma conversa ❤️</p><p class="mt-1 text-xs">Mensagens, fotos, áudios e carinho ficam aqui.</p></div>';
             const existingShell=main.querySelector('.elo-chat-shell');
+            const existingSelection=!!main.querySelector('.elo-chat-selection-bar');
+            const selectionChanged=existingShell && (existingSelection!==chatSelectionMode);
+            if(selectionChanged) existingShell.remove();
 
             // IMPORTANTE: depois que o chat é montado, nunca recriamos o composer.
             // O listener do Firestore atualiza apenas mensagens/cabeçalho/reply bar.
             // Isso preserva foco, teclado aberto, seleção e todo o rascunho digitado.
-            if(existingShell && document.getElementById('chat-input')){
+            if(existingShell && !selectionChanged && document.getElementById('chat-input')){
                 const headerAvatar=document.getElementById('elo-chat-partner-avatar');
                 const headerName=document.getElementById('elo-chat-partner-name');
                 const headerStatus=document.getElementById('elo-chat-partner-status');
@@ -3471,6 +3718,11 @@ window.checkInToday = async (buttonEl = null) => {
                     const nextDotClass=`w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}`;
                     if(headerDot.className!==nextDotClass) headerDot.className=nextDotClass;
                 }
+
+                const existingPinned=document.querySelector('.elo-pinned-bar');
+                if(existingPinned && !pinnedBar) existingPinned.remove();
+                else if(existingPinned && pinnedBar){const tmp=document.createElement('div');tmp.innerHTML=pinnedBar;existingPinned.replaceWith(tmp.firstElementChild);}
+                else if(!existingPinned && pinnedBar){const header=document.querySelector('.elo-chat-header');header?.insertAdjacentHTML('afterend',pinnedBar);}
 
                 const messagesEl=document.getElementById('chat-messages');
                 if(messagesEl){
@@ -3503,7 +3755,7 @@ window.checkInToday = async (buttonEl = null) => {
                 return;
             }
 
-            main.innerHTML=`<div class="elo-chat-shell"><div class="elo-chat-header"><button type="button" onclick="openPartnerChatProfile()" class="contents" aria-label="Abrir perfil de ${escapeHTML(partner?.name||'seu amor')}"><div id="elo-chat-partner-avatar" class="elo-chat-avatar">${partnerAvatar}</div><div class="flex-1 min-w-0 text-left"><p id="elo-chat-partner-name" class="font-black text-white text-[15px] truncate">${escapeHTML(partner?.name||'Seu amor')}</p><div class="flex items-center gap-1.5"><span id="elo-chat-partner-dot" class="w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}"></span><p id="elo-chat-partner-status" class="text-[10px] ${statusClass}">${statusText}</p></div></div></button><button onclick="searchChatMessages()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Pesquisar conversa"><i class="ph-bold ph-magnifying-glass"></i></button><button onclick="openPartnerChatProfile()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Dados da conversa"><i class="ph-bold ph-dots-three-vertical"></i></button></div><div class="relative flex-1 min-h-0"><div class="elo-chat-messages hide-scrollbar h-full" id="chat-messages">${historyHTML}${msgHTML||emptyHTML}</div><button id="chat-new-messages" onclick="scrollChatToLatest()" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-pink-600 text-white text-xs font-black px-4 py-2 shadow-xl active:scale-95 whitespace-nowrap">↓ 1 nova mensagem</button></div><div id="elo-chat-reply-slot">${replyBar}</div><div class="elo-chat-composer"><div id="chat-compose-normal" class="elo-compose-row"><label class="elo-chat-tool elo-attach-action cursor-pointer" title="Enviar foto" aria-label="Enviar foto"><i class="ph-bold ph-plus text-xl"></i><input type="file" accept="image/*" class="hidden" onchange="sendChatImage(event)"></label><div class="elo-chat-input-wrap"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Mensagem" oninput="handleChatComposerInput(this)" onfocus="setChatFocusState(true)" onblur="setChatFocusState(false)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}">${escapeHTML(chatDraft)}</textarea><i class="ph-bold ph-smiley elo-compose-smile" aria-hidden="true"></i></div><button id="chat-mic-action" onclick="startChatAudioRecording()" class="elo-chat-send elo-mic-primary" aria-label="Gravar áudio" title="Gravar áudio"><i class="ph-fill ph-microphone text-xl"></i></button><button id="chat-send-action" data-chat-send onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="sendChatMessage()" class="elo-chat-send hidden" aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div><div id="chat-recording-panel" class="elo-chat-recording" style="display:none"><button onclick="cancelChatAudioRecording()" class="elo-rec-trash" aria-label="Cancelar gravação"><i class="ph-bold ph-trash text-lg"></i></button><span class="elo-rec-dot"></span><div class="min-w-0 flex-1"><div class="elo-rec-wave">${[10,18,13,23,16,9,20,14,25,12,18,8,22,15,11,19].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="flex items-center justify-between gap-2"><div id="chat-record-time" class="elo-rec-time">0:00</div><div class="elo-rec-label">Gravando…</div></div></div><button onclick="finishChatAudioRecording()" class="elo-rec-send-round" aria-label="Enviar áudio"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div></div></div>`;
+            main.innerHTML=`<div class="elo-chat-shell">${selectionBar}<div class="elo-chat-header ${chatSelectionMode?'selection-hidden':''}"><button type="button" onclick="openPartnerChatProfile()" class="contents" aria-label="Abrir perfil de ${escapeHTML(partner?.name||'seu amor')}"><div id="elo-chat-partner-avatar" class="elo-chat-avatar">${partnerAvatar}</div><div class="flex-1 min-w-0 text-left"><p id="elo-chat-partner-name" class="font-black text-white text-[15px] truncate">${escapeHTML(partner?.name||'Seu amor')}</p><div class="flex items-center gap-1.5"><span id="elo-chat-partner-dot" class="w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}"></span><p id="elo-chat-partner-status" class="text-[10px] ${statusClass}">${statusText}</p></div></div></button><button onclick="searchChatMessages()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Pesquisar conversa"><i class="ph-bold ph-magnifying-glass"></i></button><button onclick="openPartnerChatProfile()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Dados da conversa"><i class="ph-bold ph-dots-three-vertical"></i></button></div>${pinnedBar}<div class="relative flex-1 min-h-0"><div class="elo-chat-messages hide-scrollbar h-full" id="chat-messages">${historyHTML}${msgHTML||emptyHTML}</div><button id="chat-new-messages" onclick="scrollChatToLatest()" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-pink-600 text-white text-xs font-black px-4 py-2 shadow-xl active:scale-95 whitespace-nowrap">↓ 1 nova mensagem</button></div><div id="elo-chat-reply-slot">${replyBar}</div><div class="elo-chat-composer"><div id="chat-compose-normal" class="elo-compose-row"><button type="button" onclick="openChatAttachmentMenu()" class="elo-chat-tool elo-attach-action" title="Anexar" aria-label="Anexar ao chat"><i class="ph-bold ph-plus text-xl"></i></button><input id="elo-chat-image-input" type="file" accept="image/*" class="hidden" onchange="sendChatImage(event)"><input id="elo-chat-file-input" type="file" class="hidden" onchange="sendChatFile(event)"><div class="elo-chat-input-wrap"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Mensagem" oninput="handleChatComposerInput(this)" onfocus="setChatFocusState(true)" onblur="setChatFocusState(false)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}">${escapeHTML(chatDraft)}</textarea><i class="ph-bold ph-smiley elo-compose-smile" aria-hidden="true"></i></div><button id="chat-mic-action" onclick="startChatAudioRecording()" class="elo-chat-send elo-mic-primary" aria-label="Gravar áudio" title="Gravar áudio"><i class="ph-fill ph-microphone text-xl"></i></button><button id="chat-send-action" data-chat-send onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="sendChatMessage()" class="elo-chat-send hidden" aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div><div id="chat-recording-panel" class="elo-chat-recording" style="display:none"><button onclick="cancelChatAudioRecording()" class="elo-rec-trash" aria-label="Cancelar gravação"><i class="ph-bold ph-trash text-lg"></i></button><span class="elo-rec-dot"></span><div class="min-w-0 flex-1"><div class="elo-rec-wave">${[10,18,13,23,16,9,20,14,25,12,18,8,22,15,11,19].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="flex items-center justify-between gap-2"><div id="chat-record-time" class="elo-rec-time">0:00</div><div class="elo-rec-label">Gravando…</div></div></div><button onclick="finishChatAudioRecording()" class="elo-rec-send-round" aria-label="Enviar áudio"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div></div></div>`;
 
             const c=document.getElementById('chat-messages');
             if(c){
@@ -5945,8 +6197,9 @@ const centerActiveStoreCategory = (smooth = true) => {
             const itemLabel=m=>`${escapeHTML(getProfileName(m.senderId))} · ${new Date(m.timestamp).toLocaleDateString('pt-BR')}`;
             if(tab==='audio')return audios.length?`<div class="space-y-2">${audios.slice().reverse().map(m=>`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-row"><span class="elo-profile-media-icon"><i class="ph-fill ph-microphone"></i></span><span class="min-w-0 flex-1 text-left"><b>Áudio · ${formatAudioDuration(m.duration)}</b><small>${itemLabel(m)}</small></span><i class="ph-bold ph-caret-right"></i></button>`).join('')}</div>`:'<div class="elo-profile-empty">Nenhum áudio enviado ainda.</div>';
             if(tab==='links')return links.length?`<div class="space-y-2">${links.slice().reverse().map(({m,url})=>`<a href="${escapeHTML(url)}" target="_blank" rel="noopener" class="elo-profile-media-row"><span class="elo-profile-media-icon"><i class="ph-bold ph-link"></i></span><span class="min-w-0 flex-1 text-left"><b class="truncate block">${escapeHTML(url)}</b><small>${itemLabel(m)}</small></span><i class="ph-bold ph-arrow-square-out"></i></a>`).join('')}</div>`:'<div class="elo-profile-empty">Nenhum link compartilhado ainda.</div>';
-            if(tab==='files')return files.length?`<div class="space-y-2">${files.slice().reverse().map(m=>`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-row"><span class="elo-profile-media-icon"><i class="ph-fill ph-file"></i></span><span class="min-w-0 flex-1 text-left"><b>${escapeHTML(m.fileName||'Arquivo')}</b><small>${itemLabel(m)}</small></span><i class="ph-bold ph-caret-right"></i></button>`).join('')}</div>`:'<div class="elo-profile-empty"><i class="ph-bold ph-file-dashed"></i><span>Nenhum documento enviado ainda.</span><small>O chat atual envia fotos e áudios; documentos aparecerão aqui quando esse tipo de envio for habilitado.</small></div>';
-            return images.length?`<div class="elo-profile-media-grid">${images.slice().reverse().map(m=>m.localMediaUrl?`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-thumb"><img src="${escapeHTML(m.localMediaUrl)}" alt="Foto do chat"></button>`:m.mediaKey?`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-thumb"><span><i class="ph-bold ph-image"></i><small>Foto</small></span></button>`:`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-thumb"><img src="${escapeHTML(m.mediaUrl||m.text)}" loading="lazy" alt="Foto do chat"></button>`).join('')}</div>`:'<div class="elo-profile-empty">Nenhuma foto enviada ainda.</div>';
+            if(tab==='files')return files.length?`<div class="space-y-2">${files.slice().reverse().map(m=>`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-row"><span class="elo-profile-media-icon"><i class="ph-fill ph-file"></i></span><span class="min-w-0 flex-1 text-left"><b>${escapeHTML(m.fileName||'Arquivo')}</b><small>${itemLabel(m)}</small></span><i class="ph-bold ph-caret-right"></i></button>`).join('')}</div>`:'<div class="elo-profile-empty"><i class="ph-bold ph-file-dashed"></i><span>Nenhum documento enviado ainda.</span><small>PDFs, documentos, planilhas, compactados e outros arquivos enviados na conversa aparecem aqui.</small></div>';
+            if(tab==='favorites'){const fav=all.filter(m=>!!m.favorites?.[currentUser.uid]);return fav.length?`<div class="space-y-2">${fav.slice().reverse().map(m=>`<button onclick="jumpToChatMessage('${m.id}')" class="elo-profile-media-row"><span class="elo-profile-media-icon amber"><i class="ph-fill ph-star"></i></span><span class="min-w-0 flex-1 text-left"><b class="line-clamp-1">${escapeHTML(chatMessagePreviewText(m))}</b><small>${itemLabel(m)}</small></span><i class="ph-bold ph-caret-right"></i></button>`).join('')}</div>`:'<div class="elo-profile-empty"><i class="ph-bold ph-star"></i><span>Nenhuma mensagem favorita.</span><small>Segure uma mensagem e toque em Favoritar.</small></div>';}
+            return images.length?`<div class="elo-profile-media-grid">${images.slice().reverse().map(m=>m.localMediaUrl?`<button onclick="closeGenericModal();setTimeout(()=>openChatMediaViewer('${m.id}'),80)" class="elo-profile-media-thumb"><img src="${escapeHTML(m.localMediaUrl)}" alt="Foto do chat"></button>`:m.mediaKey?`<button onclick="closeGenericModal();setTimeout(()=>openChatMediaViewer('${m.id}'),80)" class="elo-profile-media-thumb"><span><i class="ph-bold ph-image"></i><small>Foto</small></span></button>`:`<button onclick="closeGenericModal();setTimeout(()=>openChatMediaViewer('${m.id}'),80)" class="elo-profile-media-thumb"><img src="${escapeHTML(m.mediaUrl||m.text)}" loading="lazy" alt="Foto do chat"></button>`).join('')}</div>`:'<div class="elo-profile-empty">Nenhuma foto enviada ainda.</div>';
         };
         window.setPartnerChatProfileTab = tab => {
             document.querySelectorAll('[data-chat-profile-tab]').forEach(b=>b.classList.toggle('active',b.dataset.chatProfileTab===tab));
@@ -5956,7 +6209,7 @@ const centerActiveStoreCategory = (smooth = true) => {
             const partnerUid=partnerUidOf(); const partner=partnerUid?coupleData?.users?.[partnerUid]:null;
             if(!partner)return;
             const avatar=partner.photoUrl?`<img src="${escapeHTML(partner.photoUrl)}" alt="${escapeHTML(partner.name||'Parceiro')}">`:`<span>${escapeHTML((partner.name||'A').charAt(0).toUpperCase())}</span>`;
-            openGenericModal(`<div class="elo-chat-profile"><div class="flex items-start justify-between"><div></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400"><i class="ph-bold ph-x"></i></button></div><div class="elo-chat-profile-hero"><div class="elo-chat-profile-avatar">${avatar}</div><h3>${escapeHTML(partner.name||'Seu amor')}</h3><p>${partner.lastSeen&&Date.now()-Number(partner.lastSeen)<90000?'online agora':'Seu par no Elo ❤️'}</p></div><div id="elo-chat-profile-stats" class="elo-chat-profile-stats"><div><b>…</b><span>mensagens</span></div><div><b>…</b><span>fotos</span></div><div><b>…</b><span>áudios</span></div></div><div class="elo-chat-profile-tabs hide-scrollbar">${[['media','Mídia'],['audio','Áudios'],['links','Links'],['files','Arquivos']].map(([id,label],i)=>`<button data-chat-profile-tab="${id}" onclick="setPartnerChatProfileTab('${id}')" class="${i===0?'active':''}">${label}</button>`).join('')}</div><div id="elo-chat-profile-section"><div class="elo-profile-empty"><i class="ph-bold ph-spinner-gap elo-spin"></i><span>Organizando a conversa…</span></div></div></div>`);
+            openGenericModal(`<div class="elo-chat-profile"><div class="flex items-start justify-between"><div></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400"><i class="ph-bold ph-x"></i></button></div><div class="elo-chat-profile-hero"><div class="elo-chat-profile-avatar">${avatar}</div><h3>${escapeHTML(partner.name||'Seu amor')}</h3><p>${partner.lastSeen&&Date.now()-Number(partner.lastSeen)<90000?'online agora':'Seu par no Elo ❤️'}</p></div><div id="elo-chat-profile-stats" class="elo-chat-profile-stats"><div><b>…</b><span>mensagens</span></div><div><b>…</b><span>fotos</span></div><div><b>…</b><span>áudios</span></div></div><div class="elo-chat-profile-tabs hide-scrollbar">${[['media','Mídia'],['audio','Áudios'],['links','Links'],['favorites','Favoritos'],['files','Arquivos']].map(([id,label],i)=>`<button data-chat-profile-tab="${id}" onclick="setPartnerChatProfileTab('${id}')" class="${i===0?'active':''}">${label}</button>`).join('')}</div><div id="elo-chat-profile-section"><div class="elo-profile-empty"><i class="ph-bold ph-spinner-gap elo-spin"></i><span>Organizando a conversa…</span></div></div></div>`);
             try{
                 const all=await ensureCompleteChatArchive({onProgress:n=>{const sec=document.getElementById('elo-chat-profile-section');if(sec)sec.innerHTML=`<div class="elo-profile-empty"><i class="ph-bold ph-spinner-gap elo-spin"></i><span>${n} mensagens verificadas…</span></div>`;}});
                 const images=all.filter(m=>m.type==='image').length, audios=all.filter(m=>m.type==='audio').length;
@@ -5965,7 +6218,7 @@ const centerActiveStoreCategory = (smooth = true) => {
             }catch(e){const sec=document.getElementById('elo-chat-profile-section');if(sec)sec.innerHTML='<div class="elo-profile-empty">Não foi possível carregar a conversa completa.</div>';}
         };
 
-        window.pinChatMessage=async id=>{try{await updateDoc(messageDoc(id),{pinned:true});showToast('Mensagem fixada.','success')}catch(e){}};
+        window.pinChatMessage=async id=>{try{const m=chatMessages.find(x=>x.id===id)||chatArchiveMessages.find(x=>x.id===id);const next=!m?.pinned;await updateDoc(messageDoc(id),{pinned:next});showToast(next?'Mensagem fixada.':'Mensagem desafixada.','success')}catch(e){}};
         window.favoriteChatMessage=async id=>{try{const m=chatMessages.find(x=>x.id===id);const fav=!!m?.favorites?.[currentUser.uid];await updateDoc(messageDoc(id),{[`favorites.${currentUser.uid}`]:!fav});showToast(!fav?'Mensagem favoritada.':'Removida dos favoritos.','info')}catch(e){}};
 
         const updateUI = () => {

@@ -342,7 +342,7 @@ public class EloMessagingService extends FirebaseMessagingService {
     }
 
     private boolean isConversationType(String type) {
-        return "chat".equals(type) || "chat_image".equals(type) || "chat_audio".equals(type) || "messages".equals(type);
+        return "chat".equals(type) || "chat_image".equals(type) || "chat_audio".equals(type) || "chat_file".equals(type) || "messages".equals(type);
     }
 
     private String channelFor(String type) {

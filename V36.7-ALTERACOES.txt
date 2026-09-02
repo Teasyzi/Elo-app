@@ -1,0 +1,14 @@
+Elo V36.7 / APK 0.6.0 — Chat Messenger
+
+- Seleção múltipla de mensagens com copiar, favoritar e excluir em lote.
+- Ações individuais: copiar, informações, selecionar e localizar.
+- Galeria de fotos em tela cheia com próxima/anterior e salvar.
+- Mensagens fixadas ganham barra no topo da conversa e podem ser desafixadas.
+- Respostas citadas são clicáveis e levam à mensagem original.
+- Links nas mensagens ficaram clicáveis e visualmente destacados.
+- Perfil do parceiro/conversa ganhou aba Favoritos.
+- Informações de mensagem mostram horário e estado de leitura quando disponível.
+- Mantidas animações, swipe para responder, reações, pesquisa completa e presentes interativos.
+- Cache do Service Worker atualizado para elo-v36-7-chat-messenger-20260902.
+
+Observação: documentos genéricos ainda não foram habilitados nesta versão porque o endpoint atual de mídia precisa ser ampliado com validação específica antes de aceitar arquivos arbitrários com segurança.
