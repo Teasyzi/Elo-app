@@ -1042,3 +1042,40 @@ body[data-elo-tab="chat"] #main-content{overflow:hidden!important}
 /* ===== ELO V36.8.7 · QUICK GAME INSTANT TOUCH ===== */
 .elo-qg-button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;will-change:transform}
 .elo-qg-button:active{transform:scale(.985)}
+
+/* ===== ELO V36.9 · AKAI ITO VISUAL SYSTEM + THEMES ===== */
+:root{--elo-primary:#b4233f;--elo-primary-soft:#f4d7dc;--elo-bg:#130d10;--elo-surface:#21161a;--elo-surface-2:#2a1c21;--elo-text:#fff8f4;--elo-muted:#bda9aa;--elo-thread:#d52c49;--elo-nav-safe:5.5rem;--elo-pet-safe:4.75rem;color-scheme:dark}
+body{background:radial-gradient(circle at 50% -10%,color-mix(in srgb,var(--elo-primary) 18%,transparent),transparent 35%),var(--elo-bg)!important;color:var(--elo-text)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(115deg,transparent 0 47%,color-mix(in srgb,var(--elo-thread) 8%,transparent) 48%,transparent 49% 100%);opacity:.7}
+body.elo-theme-akai{--elo-primary:#b4233f;--elo-bg:#130d10;--elo-surface:#21161a;--elo-surface-2:#2b1b20;--elo-thread:#d52c49}
+body.elo-theme-sakura{--elo-primary:#d96c8a;--elo-bg:#21151b;--elo-surface:#322129;--elo-surface-2:#3d2933;--elo-thread:#ef9caf}
+body.elo-theme-midnight{--elo-primary:#8b78e6;--elo-bg:#0d0d19;--elo-surface:#18172a;--elo-surface-2:#211f38;--elo-thread:#a99bf5}
+body.elo-theme-cozy{--elo-primary:#c47d58;--elo-bg:#19120f;--elo-surface:#2a201a;--elo-surface-2:#34271f;--elo-thread:#df9b75}
+#main-header,#main-nav{background:color-mix(in srgb,var(--elo-surface) 91%,transparent)!important;border-color:color-mix(in srgb,var(--elo-primary) 18%,transparent)!important}
+#main-header{box-shadow:0 12px 38px rgba(0,0,0,.2)}
+#main-nav .elo-nav-active{color:var(--elo-primary)!important}
+#main-nav .elo-nav-active i{filter:drop-shadow(0 0 9px color-mix(in srgb,var(--elo-primary) 55%,transparent))}
+#main-content{padding-bottom:calc(var(--elo-nav-safe) + env(safe-area-inset-bottom))}
+/* reserva estrutural: o futuro pet pode ocupar o canto inferior direito sem cobrir ações/nav */
+body:not([data-elo-tab="chat"]) #main-content::after{content:"";display:block;height:.35rem;width:var(--elo-pet-safe);margin-left:auto;pointer-events:none}
+.elo-primary-action,.elo-secondary-action{width:100%;min-height:3rem;border-radius:1rem;font-size:.75rem;font-weight:900;display:flex;align-items:center;justify-content:center;gap:.45rem;transition:transform .15s ease}
+.elo-primary-action{background:linear-gradient(135deg,var(--elo-primary),color-mix(in srgb,var(--elo-primary) 70%,#6e1930));color:white;box-shadow:0 10px 25px color-mix(in srgb,var(--elo-primary) 20%,transparent)}
+.elo-secondary-action{background:var(--elo-surface-2);border:1px solid color-mix(in srgb,var(--elo-primary) 16%,#475569);color:var(--elo-text)}
+.elo-primary-action:active,.elo-secondary-action:active{transform:scale(.97)}
+.elo-kicker{font-size:.62rem!important;text-transform:uppercase;letter-spacing:.2em;font-weight:900;color:var(--elo-primary)!important}
+.elo-thread-mark{width:3.25rem;height:3.25rem;border-radius:50%;display:grid;place-items:center;color:var(--elo-primary);border:1px solid color-mix(in srgb,var(--elo-primary) 30%,transparent);font-family:Georgia,serif;font-size:2rem;background:color-mix(in srgb,var(--elo-primary) 9%,transparent);box-shadow:0 0 30px color-mix(in srgb,var(--elo-primary) 13%,transparent)}
+.elo-theme-studio h3,.elo-whatsnew-themes h3{font-size:1.55rem;font-weight:950;color:var(--elo-text)}
+.elo-theme-studio p,.elo-whatsnew-themes p{font-size:.75rem;line-height:1.55;color:var(--elo-muted)}
+.elo-theme-hero{display:flex;gap:1rem;align-items:center;padding:.35rem 0 .6rem}
+.elo-theme-list{display:grid;gap:.55rem}
+.elo-theme-choice{width:100%;display:grid;grid-template-columns:2.8rem 1fr auto;gap:.7rem;align-items:center;text-align:left;padding:.75rem;border-radius:1rem;background:var(--elo-surface);border:1px solid color-mix(in srgb,var(--elo-primary) 12%,#334155);color:var(--elo-text)}
+.elo-theme-choice.is-selected{border-color:color-mix(in srgb,var(--elo-primary) 70%,white);box-shadow:0 0 0 2px color-mix(in srgb,var(--elo-primary) 10%,transparent)}
+.elo-theme-icon{width:2.7rem;height:2.7rem;border-radius:.9rem;background:var(--elo-surface-2);display:grid;place-items:center;font-size:1.25rem}.elo-theme-choice b{display:block;font-size:.78rem}.elo-theme-choice small{display:block;color:var(--elo-muted);font-size:.58rem;margin-top:.18rem;line-height:1.3}.elo-theme-choice em{font-style:normal;font-size:.6rem;font-weight:900;color:var(--elo-primary);white-space:nowrap}
+.elo-theme-color-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}.elo-theme-color-grid label{background:var(--elo-surface);border:1px solid color-mix(in srgb,var(--elo-primary) 12%,#334155);border-radius:1rem;padding:.7rem}.elo-theme-color-grid span{display:block;font-size:.6rem;font-weight:900;color:var(--elo-muted);margin-bottom:.45rem}.elo-theme-color-grid input{width:100%;height:2.2rem;border:0;background:transparent}
+.elo-theme-preview{min-height:6rem;border-radius:1.2rem;background:linear-gradient(135deg,var(--elo-surface),color-mix(in srgb,var(--elo-primary) 12%,var(--elo-surface)));border:1px solid color-mix(in srgb,var(--elo-primary) 24%,transparent);display:grid;place-items:center;text-align:center;padding:1rem}.elo-theme-preview i{font-size:1.4rem;color:var(--elo-primary)}.elo-theme-preview b{font-size:.8rem}.elo-theme-preview span{font-size:.6rem;color:var(--elo-muted)}
+.elo-profile-theme-button{width:calc(100% - 2.5rem);margin:.55rem 1.25rem 0;display:grid;grid-template-columns:2.5rem 1fr auto;align-items:center;gap:.65rem;padding:.7rem .85rem;text-align:left;border-radius:1rem;background:color-mix(in srgb,var(--elo-primary) 8%,var(--elo-surface));border:1px solid color-mix(in srgb,var(--elo-primary) 25%,transparent);color:var(--elo-text)}.elo-profile-theme-button>span:first-child{font-size:1.3rem}.elo-profile-theme-button b,.elo-profile-theme-button small{display:block}.elo-profile-theme-button b{font-size:.72rem}.elo-profile-theme-button small{font-size:.55rem;color:var(--elo-muted);margin-top:.12rem}.elo-profile-theme-button i{color:var(--elo-primary)}
+.elo-whatsnew-theme-hero{text-align:center;padding:.35rem .25rem .75rem}.elo-whatsnew-theme-hero .elo-thread-mark{margin:0 auto .7rem}.elo-whatsnew-theme-hero h3{font-size:1.9rem;margin:.15rem 0}.elo-theme-orbs{display:flex;justify-content:center;gap:.45rem;margin-top:.85rem}.elo-theme-orbs span{width:2.45rem;height:2.45rem;border-radius:50%;display:grid;place-items:center;background:var(--elo-surface);border:1px solid color-mix(in srgb,var(--elo-primary) 18%,transparent);box-shadow:0 7px 18px rgba(0,0,0,.18)}
+/* avatar preview stays visible inside the profile scroller */
+.character-editor-layout>div:first-child{position:sticky!important;top:.25rem!important;z-index:8;align-self:start}.character-editor-layout>div:first-child>div{box-shadow:0 12px 28px rgba(0,0,0,.3)}
+@media(max-width:430px){.character-editor-layout{grid-template-columns:92px minmax(0,1fr)!important}.character-editor-layout>div:first-child>div{width:92px!important;height:136px!important}.character-editor-layout #character-preview{width:88px!important;height:128px!important}.elo-theme-choice{grid-template-columns:2.55rem 1fr auto;padding:.65rem}.elo-theme-choice small{max-width:12rem}}
+@media(min-width:1024px){:root{--elo-pet-safe:5.5rem}#main-content{padding-bottom:1rem}.elo-theme-studio{max-width:34rem;margin:auto}}

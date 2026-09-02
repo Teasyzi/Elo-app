@@ -1,13 +1,14 @@
 {
   "available": false,
-  "versionName": "0.7.7",
-  "versionCode": 23,
+  "versionName": "0.8.0",
+  "versionCode": 24,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "APK grava mensagens de voz com gravador nativo Android, sem depender do MediaRecorder da WebView.",
-    "O último resultado do Jogo Rápido fica salvo para quem estava fora e aparece antes da rodada atual.",
-    "Respostas e troca de modo dão feedback visual antes da sincronização com o Firestore.",
-    "Jogo Rápido abre pelo estado em memória e sincroniza em segundo plano para reduzir espera."
+    "TEMAS chegam ao Elo com Akai Ito como nova identidade padrão.",
+    "Sakura, Midnight e Cozy podem ser desbloqueados individualmente com Elo Coins.",
+    "Criação de tema personalizado custa 500 Elo Coins.",
+    "Prévia do personagem permanece fixa durante a edição.",
+    "Nova interface já reserva área segura para o futuro Pet flutuante."
   ]
 }

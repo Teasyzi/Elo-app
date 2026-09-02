@@ -67,11 +67,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.7';
+        const ELO_WEB_VERSION = '36.9.0';
         const ELO_RELEASE_NOTES = [
-            'Jogo Rápido agora usa uma única rodada compartilhada: mesma pergunta, mesmas opções e resultado sincronizado para os dois.',
-            'Áudios voltaram a sincronizar no Chat e o APK passou a pedir/validar o microfone pelo Android antes de gravar.',
-            'Falhas de áudio agora mostram o motivo real para facilitar o diagnóstico sem esconder o erro.'
+            '🎨 TEMAS chegaram ao Elo: escolha uma identidade visual individual e deixe o seu espaço com a sua cara.',
+            '🧵 Akai Ito estreia como a nova identidade padrão, inspirado no fio vermelho que conecta duas pessoas.',
+            '✨ Sakura, Midnight e Cozy já podem ser desbloqueados com Elo Coins; criar um tema personalizado custa 500 Coins.',
+            '🧑‍🎨 A prévia do personagem agora permanece visível enquanto você percorre todas as opções do avatar.',
+            '🐾 A interface já reserva uma área segura para o futuro Pet do Elo flutuar sem cobrir navegação e ações importantes.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -2098,6 +2100,68 @@ window.checkInToday = async (buttonEl = null) => {
             showToast('Foto do Google aplicada ao seu perfil! 📸', 'success');
         };
 
+        const ELO_THEME_CATALOG = {
+            akai: {name:'Akai Ito', icon:'🧵', price:0, className:'elo-theme-akai', description:'Creme quente, vermelho profundo e o fio do destino.'},
+            sakura: {name:'Sakura', icon:'🌸', price:300, className:'elo-theme-sakura', description:'Rosa suave e um clima leve de primavera.'},
+            midnight: {name:'Midnight', icon:'🌙', price:500, className:'elo-theme-midnight', description:'Noite profunda, violeta e brilho discreto.'},
+            cozy: {name:'Cozy', icon:'🧸', price:500, className:'elo-theme-cozy', description:'Tons quentes e aconchegantes para o cantinho de vocês.'}
+        };
+        const ELO_CUSTOM_THEME_PRICE = 500;
+        const eloThemeKey = () => `elo_theme_${currentUser?.uid || 'device'}`;
+        const eloThemeOwnedKey = () => `elo_theme_owned_${currentUser?.uid || 'device'}`;
+        const eloCustomThemeKey = () => `elo_theme_custom_${currentUser?.uid || 'device'}`;
+        const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
+        const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
+        const hexSafe = (v, fallback) => /^#[0-9a-f]{6}$/i.test(String(v||'')) ? v : fallback;
+        window.applyEloTheme = (id = null) => {
+            id = id || localStorage.getItem(eloThemeKey()) || 'akai';
+            document.body.classList.remove(...Object.values(ELO_THEME_CATALOG).map(t=>t.className), 'elo-theme-custom');
+            if (id === 'custom') {
+                let cfg={}; try { cfg=JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}'); } catch(_) {}
+                document.body.classList.add('elo-theme-custom');
+                document.documentElement.style.setProperty('--elo-primary', hexSafe(cfg.primary,'#b4233f'));
+                document.documentElement.style.setProperty('--elo-bg', hexSafe(cfg.background,'#130d10'));
+                document.documentElement.style.setProperty('--elo-surface', hexSafe(cfg.surface,'#21161a'));
+                document.documentElement.style.setProperty('--elo-thread', hexSafe(cfg.thread,cfg.primary||'#b4233f'));
+            } else {
+                document.documentElement.style.removeProperty('--elo-primary'); document.documentElement.style.removeProperty('--elo-bg'); document.documentElement.style.removeProperty('--elo-surface'); document.documentElement.style.removeProperty('--elo-thread');
+                document.body.classList.add(ELO_THEME_CATALOG[id]?.className || 'elo-theme-akai');
+            }
+            localStorage.setItem(eloThemeKey(), id);
+        };
+        window.selectEloTheme = async id => {
+            const theme=ELO_THEME_CATALOG[id]; if(!theme)return;
+            const owned=ownedThemes();
+            if(!owned.has(id) && theme.price>0){
+                const coins=getSpendableCoins(coupleData,currentUser.uid);
+                if(coins<theme.price)return showToast(`Você precisa de ${theme.price} Elo Coins para desbloquear ${theme.name}.`,'error');
+                try{
+                    const ref=doc(db,'relationships',coupleId);
+                    await runTransaction(db,async tx=>{const snap=await tx.get(ref);const data=snap.data();const balance=Number(data?.users?.[currentUser.uid]?.coins||0);if(balance<theme.price)throw new Error('coins');tx.update(ref,{[`users.${currentUser.uid}.coins`]:balance-theme.price});});
+                    owned.add(id); saveOwnedThemes(owned); showToast(`${theme.icon} Tema ${theme.name} desbloqueado!`,'success');
+                }catch(e){return showToast('Não foi possível desbloquear o tema.','error');}
+            }
+            applyEloTheme(id); closeGenericModal(); updateUI(); setTimeout(()=>openThemeStudio(),80);
+        };
+        window.openCustomThemeCreator = () => {
+            let cfg={primary:'#b4233f',background:'#130d10',surface:'#21161a',thread:'#d52c49'}; try{cfg={...cfg,...JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}')}}catch(_){}
+            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div><p class="elo-kicker">🎨 Seu próprio Elo</p><h3>Crie seu tema</h3><p>Uma criação custa <b>${ELO_CUSTOM_THEME_PRICE} Elo Coins</b>. Depois de criada, você pode editar e usar quando quiser.</p></div><div class="elo-theme-color-grid">${[['primary','Cor principal'],['background','Fundo'],['surface','Cards'],['thread','Fio do Elo']].map(([k,l])=>`<label><span>${l}</span><input id="elo-theme-${k}" type="color" value="${hexSafe(cfg[k],'#b4233f')}"></label>`).join('')}</div><div class="elo-theme-preview"><i class="ph-fill ph-heart"></i><b>Prévia do seu tema</b><span>Seu cantinho, do seu jeito.</span></div><button onclick="saveCustomEloTheme()" class="elo-primary-action">Criar por ${ELO_CUSTOM_THEME_PRICE} 🪙</button><button onclick="closeGenericModal();setTimeout(openThemeStudio,80)" class="elo-secondary-action">Voltar</button></div>`);
+        };
+        window.saveCustomEloTheme = async () => {
+            const existing=localStorage.getItem(eloCustomThemeKey());
+            const cfg={primary:document.getElementById('elo-theme-primary')?.value,background:document.getElementById('elo-theme-background')?.value,surface:document.getElementById('elo-theme-surface')?.value,thread:document.getElementById('elo-theme-thread')?.value};
+            if(!existing){
+                if(getSpendableCoins(coupleData,currentUser.uid)<ELO_CUSTOM_THEME_PRICE)return showToast('Elo Coins insuficientes para criar o tema.','error');
+                try{const ref=doc(db,'relationships',coupleId);await runTransaction(db,async tx=>{const snap=await tx.get(ref);const data=snap.data();const balance=Number(data?.users?.[currentUser.uid]?.coins||0);if(balance<ELO_CUSTOM_THEME_PRICE)throw new Error('coins');tx.update(ref,{[`users.${currentUser.uid}.coins`]:balance-ELO_CUSTOM_THEME_PRICE});});}catch(e){return showToast('Não foi possível criar o tema.','error');}
+            }
+            localStorage.setItem(eloCustomThemeKey(),JSON.stringify(cfg)); applyEloTheme('custom'); closeGenericModal(); updateUI(); showToast('🎨 Seu tema foi criado e aplicado!','success');
+        };
+        window.openThemeStudio = () => {
+            const current=localStorage.getItem(eloThemeKey())||'akai', owned=ownedThemes(), hasCustom=!!localStorage.getItem(eloCustomThemeKey());
+            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div class="elo-theme-hero"><div class="elo-thread-mark">∞</div><div><p class="elo-kicker">Aparência individual</p><h3>Temas do Elo</h3><p>O tema muda apenas para você. Seu amor pode escolher outro.</p></div></div><div class="elo-theme-list">${Object.entries(ELO_THEME_CATALOG).map(([id,t])=>`<button onclick="selectEloTheme('${id}')" class="elo-theme-choice ${current===id?'is-selected':''}"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.description}</small></span><em>${owned.has(id)?(current===id?'Usando':'Usar'):`${t.price} 🪙`}</em></button>`).join('')}</div>${hasCustom?`<button onclick="applyEloTheme('custom');closeGenericModal();updateUI()" class="elo-theme-choice ${current==='custom'?'is-selected':''}"><span class="elo-theme-icon">🎨</span><span><b>Meu tema</b><small>Sua criação personalizada.</small></span><em>${current==='custom'?'Usando':'Usar'}</em></button>`:''}<button onclick="openCustomThemeCreator()" class="elo-primary-action">${hasCustom?'Editar meu tema':'Criar meu tema · 500 🪙'}</button></div>`);
+        };
+        applyEloTheme();
+
         window.openProfileModal = () => {
             if (!coupleData || !coupleData.users[currentUser.uid]) return;
             const myData = coupleData.users[currentUser.uid];
@@ -2113,6 +2177,7 @@ window.checkInToday = async (buttonEl = null) => {
                     profileContent.prepend(levelCard);
                 }
                 levelCard.innerHTML = `<div class="flex items-center justify-between"><div><p class="text-[9px] uppercase tracking-widest font-black text-purple-300">Sua progressão</p><p class="font-black text-white mt-1">Nível ${levelInfo.level} · ${levelInfo.title}</p></div><div class="text-right"><p class="text-xs font-black text-cyan-300">${levelInfo.xp.toLocaleString('pt-BR')} XP</p><p class="text-[9px] text-slate-400">${levelInfo.next ? `${levelInfo.remaining} para o próximo` : 'Nível máximo'}</p></div></div><div class="h-2 bg-slate-950 rounded-full overflow-hidden mt-3"><div class="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full" style="width:${levelInfo.progress}%"></div></div>`;
+                if (!document.getElementById('profile-theme-button')) { const themeBtn=document.createElement('button'); themeBtn.id='profile-theme-button'; themeBtn.type='button'; themeBtn.className='elo-profile-theme-button'; themeBtn.innerHTML='<span>🎨</span><span><b>Temas do Elo</b><small>Personalize seu app com Elo Coins</small></span><i class="ph-bold ph-caret-right"></i>'; themeBtn.onclick=()=>{closeProfileModal();setTimeout(openThemeStudio,80)}; levelCard.after(themeBtn); }
             }
 
             const imgEl = document.getElementById('profile-photo-img');
@@ -4501,10 +4566,10 @@ window.checkInToday = async (buttonEl = null) => {
             // Só registramos como visualizada depois que a pessoa toca em Continuar.
             // Assim, se outro modal disputar a tela no carregamento web, a atualização
             // não é perdida silenciosamente.
-            openGenericModal(`<div class="space-y-5">
-                <div class="flex items-start justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">✨ Novidades do Elo</p><h3 class="text-2xl font-black text-white mt-1">Versão ${ELO_WEB_VERSION}</h3><p class="text-xs text-slate-500 mt-1">Veja o que mudou antes de continuar.</p></div><div class="w-12 h-12 rounded-2xl bg-pink-500/10 text-pink-400 grid place-items-center text-2xl shrink-0"><i class="ph-fill ph-sparkle"></i></div></div>
+            openGenericModal(`<div class="space-y-5 elo-whatsnew-themes">
+                <div class="elo-whatsnew-theme-hero"><div class="elo-thread-mark">∞</div><p class="elo-kicker">✨ O Elo é seu</p><h3>TEMAS chegaram</h3><p>Akai Ito é a nova identidade do Elo. Escolha outro estilo ou crie o seu com Elo Coins.</p><div class="elo-theme-orbs"><span>🧵</span><span>🌸</span><span>🌙</span><span>🧸</span><span>🎨</span></div></div>
                 <div class="space-y-2">${ELO_RELEASE_NOTES.map((note,i)=>`<div class="flex gap-3 rounded-2xl bg-slate-900 border border-slate-800 p-3"><div class="w-7 h-7 rounded-xl bg-pink-500/10 text-pink-400 grid place-items-center text-xs font-black shrink-0">${i+1}</div><p class="text-xs text-slate-300 leading-relaxed">${escapeHTML(note)}</p></div>`).join('')}</div>
-                <button onclick="confirmWhatsNew()" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl">Continuar</button>
+                <div class="grid grid-cols-2 gap-2"><button onclick="confirmWhatsNew()" class="elo-secondary-action">Continuar</button><button onclick="confirmWhatsNew();setTimeout(openThemeStudio,100)" class="elo-primary-action">Conhecer temas</button></div>
             </div>`);
             return true;
         };

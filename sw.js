@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-8-7-native-audio-quick-game-memory-20260902';
+const CACHE = 'elo-v36-9-0-akai-themes-visual-system-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.8.7',
-  './tailwind.css?v=36.8.7',
-  './styles.css?v=36.8.7',
+  './app.js?v=36.9.0',
+  './tailwind.css?v=36.9.0',
+  './styles.css?v=36.9.0',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

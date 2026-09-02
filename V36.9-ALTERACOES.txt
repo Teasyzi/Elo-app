@@ -1,0 +1,12 @@
+ELO V36.9 / APK 0.8.0 — AKAI ITO + TEMAS
+
+- Nova fundação visual Akai Ito compartilhada por Web/PWA/iPhone/PC/APK.
+- Temas individuais: Akai Ito grátis; Sakura 300; Midnight 500; Cozy 500 Elo Coins.
+- Criador de tema personalizado por 500 Elo Coins; edições posteriores não cobram novamente.
+- Tema escolhido é individual e persistido localmente por usuário/dispositivo nesta primeira fundação.
+- What's New especial com destaque para TEMAS e atalho direto para conhecê-los.
+- Acesso a Temas dentro do Perfil.
+- Preview do avatar reforçado como sticky durante rolagem das opções.
+- Tokens CSS globais (--elo-*) para permitir evolução visual consistente em todas as plataformas.
+- Área segura estrutural prevista para o futuro Pet flutuante.
+- Cache e assets atualizados para 36.9.0.
