@@ -1,0 +1,11 @@
+ELO V36.9.5 / APK 0.8.5
+
+- Midnight reforçado: campo estelar animado, mais estrelas, lua pulsante e mais meteoros.
+- Galáxia Celestial redesenhada como black galaxy premium, com nebulosas móveis, campo estelar denso e chuva de meteoros.
+- Removido o coração/"Nosso começo" central da Home; fica apenas o fio Akai Ito formando o coração entre os avatares.
+- Papel de parede do Chat agora fica preso ao viewport do chat, com mensagens rolando por cima.
+- Presets Corações/Noite/Liso corrigidos e com prévia/salvamento consistentes.
+- Cores personalizadas dos balões recebem prioridade sobre o tema global.
+- Ao sair do teste de um tema, abre novamente Temas do Elo para testar outro.
+- Perfil recebe pintura atômica para remover o flash visual de abertura.
+- CACHE e versões de assets atualizados.

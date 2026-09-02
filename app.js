@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.4';
+        const ELO_WEB_VERSION = '36.9.5';
         const ELO_RELEASE_NOTES = [
             '🎨 TEMAS agora transformam de verdade o Elo inteiro: fundos, cards, navegação, modais, detalhes, brilho e identidade visual.',
             '🧵 HOME totalmente refeita na linguagem Akai Ito, com o fio do destino conectando os personagens e uma hierarquia muito mais limpa.',
@@ -176,7 +176,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.4', versionCode:28 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.5', versionCode:29 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2103,9 +2103,9 @@ window.checkInToday = async (buttonEl = null) => {
         const ELO_THEME_CATALOG = {
             akai: {name:'Akai Ito', icon:'🧵', price:0, className:'elo-theme-akai', description:'Vermelho profundo, fio do destino e atmosfera romântica.', effect:'thread'},
             sakura: {name:'Sakura', icon:'🌸', price:1200, className:'elo-theme-sakura', description:'Primavera japonesa com pétalas animadas e chat rosado.', premium:true, effect:'sakura'},
-            midnight: {name:'Midnight', icon:'🌙', price:1500, className:'elo-theme-midnight', description:'Noite violeta com estrelas suaves e brilho lunar.', premium:true, effect:'stars'},
+            midnight: {name:'Midnight', icon:'🌙', price:1700, className:'elo-theme-midnight', description:'Noite profunda com constelações, estrelas vivas e chuva de meteoros.', premium:true, effect:'stars'},
             cozy: {name:'Cozy', icon:'🧸', price:800, className:'elo-theme-cozy', description:'Âmbar, madeira e pequenos brilhos aconchegantes.', effect:'fireflies'},
-            celestial: {name:'Galáxia Celestial', icon:'🌌', price:2600, className:'elo-theme-celestial', description:'Uma galáxia viva: nebulosas, estrelas e meteoros atravessando o Elo.', premium:true, effect:'galaxy'}
+            celestial: {name:'Galáxia Celestial', icon:'🌌', price:3200, className:'elo-theme-celestial', description:'Black galaxy premium com nebulosas em movimento, estrelas densas e meteoros.', premium:true, effect:'galaxy'}
         };
         const ELO_CUSTOM_THEME_PRICE = 900;
         const ELO_CUSTOM_PARTICLES = {
@@ -2141,20 +2141,47 @@ window.checkInToday = async (buttonEl = null) => {
             const fx=document.createElement('div');
             fx.id='elo-theme-fx'; fx.className=`elo-theme-fx fx-${effect}`; fx.setAttribute('aria-hidden','true');
             if(particleColor) fx.style.setProperty('--elo-fx-color', particleColor);
-            const count = effect==='sakura'?18 : effect==='galaxy'?26 : effect==='stars'?22 : effect==='fireflies'?18 : 20;
+            const count = effect==='sakura'?22 : effect==='galaxy'?72 : effect==='stars'?54 : effect==='fireflies'?24 : 24;
             fx.innerHTML=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--y:${(i*53)%97};--d:${7+(i%8)*1.25}s;--delay:${-(i%11)*1.05}s;--size:${3+(i%4)}px"></i>`).join('');
             document.body.appendChild(fx);
         };
+        const resolveChatWallpaper = (cfg = {}) => {
+            if (cfg.wallpaper) return {
+                image: `linear-gradient(${cfg.overlay||'rgba(8,6,9,.34)'},${cfg.overlay||'rgba(8,6,9,.34)'}),url("${String(cfg.wallpaper).replace(/"/g,'')}")`,
+                size: 'cover', position: 'center center', repeat: 'no-repeat'
+            };
+            if (cfg.preset === 'hearts') return {
+                image: 'radial-gradient(circle at 18% 20%,rgba(255,255,255,.13) 0 2px,transparent 3px),radial-gradient(circle at 72% 62%,rgba(255,255,255,.10) 0 2px,transparent 3px),radial-gradient(circle at 42% 84%,rgba(255,255,255,.09) 0 2px,transparent 3px),radial-gradient(circle at 84% 16%,rgba(255,255,255,.08) 0 1.5px,transparent 2.5px),linear-gradient(145deg,color-mix(in srgb,var(--elo-primary) 22%,var(--elo-bg)),var(--elo-bg))',
+                size: '96px 96px,120px 120px,88px 88px,136px 136px,cover', position:'center', repeat:'repeat,repeat,repeat,repeat,no-repeat'
+            };
+            if (cfg.preset === 'night') return {
+                image: 'radial-gradient(circle at 20% 20%,rgba(255,255,255,.82) 0 1px,transparent 1.8px),radial-gradient(circle at 80% 40%,rgba(255,255,255,.58) 0 1px,transparent 1.8px),radial-gradient(circle at 55% 78%,rgba(148,163,255,.50) 0 1px,transparent 2px),linear-gradient(160deg,#03050d,#11162f 54%,#1e1740)',
+                size:'90px 90px,130px 130px,160px 160px,cover', position:'center', repeat:'repeat,repeat,repeat,no-repeat'
+            };
+            if (cfg.preset === 'clean') return {image:'linear-gradient(var(--elo-bg),var(--elo-bg))',size:'cover',position:'center',repeat:'no-repeat'};
+            return {
+                image: `linear-gradient(var(--elo-chat-wallpaper-overlay,rgba(0,0,0,.16)),var(--elo-chat-wallpaper-overlay,rgba(0,0,0,.16))),var(--elo-chat-wallpaper)`,
+                size:'cover',position:'center',repeat:'no-repeat'
+            };
+        };
+        const paintChatWallpaper = (cfg = null) => {
+            if (cfg === null) { try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){cfg={}} }
+            const stage=document.querySelector('.elo-chat-stage');
+            if(!stage) return;
+            const wall=resolveChatWallpaper(cfg||{});
+            stage.style.backgroundImage=wall.image;
+            stage.style.backgroundSize=wall.size;
+            stage.style.backgroundPosition=wall.position;
+            stage.style.backgroundRepeat=wall.repeat;
+            stage.style.backgroundAttachment='scroll';
+        };
         const applyChatAppearance = () => {
-            let cfg={}; try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){}
+            let cfg={}; try{cfg=JSON.parse(localStorage.getItem(eloChatAppearanceKey())||'{}')}catch(_){cfg={}}
             const target=document.body;
-            ['--elo-chat-me','--elo-chat-them','--elo-chat-wallpaper','--elo-chat-wallpaper-overlay'].forEach(k=>target.style.removeProperty(k));
-            if(cfg.me) target.style.setProperty('--elo-chat-me',hexSafe(cfg.me,'#c52f47'));
-            if(cfg.them) target.style.setProperty('--elo-chat-them',hexSafe(cfg.them,'#28161c'));
-            if(cfg.wallpaper){target.style.setProperty('--elo-chat-wallpaper',`url("${String(cfg.wallpaper).replace(/"/g,'')}")`);target.style.setProperty('--elo-chat-wallpaper-overlay',cfg.overlay||'rgba(8,6,9,.38)');}
-            else if(cfg.preset==='hearts'){target.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 18% 20%,rgba(255,255,255,.09) 0 2px,transparent 3px),radial-gradient(circle at 72% 62%,rgba(255,255,255,.07) 0 2px,transparent 3px),radial-gradient(circle at 42% 84%,rgba(255,255,255,.06) 0 2px,transparent 3px)');target.style.setProperty('--elo-chat-wallpaper-overlay','rgba(8,6,9,.12)');}
-            else if(cfg.preset==='night'){target.style.setProperty('--elo-chat-wallpaper','radial-gradient(circle at 20% 20%,rgba(255,255,255,.20) 0 1px,transparent 2px),radial-gradient(circle at 80% 40%,rgba(255,255,255,.12) 0 1px,transparent 2px),linear-gradient(#070915,#15122b)');target.style.setProperty('--elo-chat-wallpaper-overlay','rgba(0,0,0,.08)');}
-            else if(cfg.preset==='clean'){target.style.setProperty('--elo-chat-wallpaper','linear-gradient(var(--elo-bg),var(--elo-bg))');target.style.setProperty('--elo-chat-wallpaper-overlay','rgba(0,0,0,0)');}
+            ['--elo-chat-me','--elo-chat-them'].forEach(k=>target.style.removeProperty(k));
+            if(cfg.me) target.style.setProperty('--elo-chat-me',hexSafe(cfg.me,'#c52f47'),'important');
+            if(cfg.them) target.style.setProperty('--elo-chat-them',hexSafe(cfg.them,'#28161c'),'important');
+            paintChatWallpaper(cfg);
         };
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
         const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
@@ -2201,6 +2228,7 @@ window.checkInToday = async (buttonEl = null) => {
             eloThemePreviewState = null;
             removeEloThemePreviewDock();
             setEloThemeVisual(restore);
+            setTimeout(() => openThemeStudio(), 70);
         };
         const renderEloThemePreviewDock = () => {
             removeEloThemePreviewDock();
@@ -2263,7 +2291,7 @@ window.checkInToday = async (buttonEl = null) => {
             draft.me=me; draft.them=them; window.__eloChatDraft=draft;
             const box=document.querySelector('.elo-chat-preview-mini'); if(box){box.style.setProperty('--preview-me',me);box.style.setProperty('--preview-them',them); if(draft.wallpaper) box.style.backgroundImage=`linear-gradient(${draft.overlay||'rgba(8,6,9,.42)'},${draft.overlay||'rgba(8,6,9,.42)'}),url("${draft.wallpaper}")`; else if(draft.preset==='hearts') box.style.backgroundImage='radial-gradient(circle at 20% 20%,rgba(255,255,255,.08) 0 2px,transparent 3px),radial-gradient(circle at 70% 60%,rgba(255,255,255,.06) 0 2px,transparent 3px)'; else if(draft.preset==='night') box.style.backgroundImage='radial-gradient(circle at 20% 20%,rgba(255,255,255,.2) 0 1px,transparent 2px),linear-gradient(#070915,#15122b)'; else box.style.backgroundImage='none';}
         };
-        window.setChatWallpaperPreset = preset => { window.__eloChatDraft={...(window.__eloChatDraft||{}),preset,wallpaper:null,wallpaperColor:null}; previewChatAppearanceDraft(); };
+        window.setChatWallpaperPreset = preset => { window.__eloChatDraft={...(window.__eloChatDraft||{}),preset,wallpaper:null,wallpaperColor:null}; previewChatAppearanceDraft(); const box=document.querySelector('.elo-chat-preview-mini'); if(box){const w=resolveChatWallpaper(window.__eloChatDraft);box.style.backgroundImage=w.image;box.style.backgroundSize=w.size;box.style.backgroundPosition=w.position;box.style.backgroundRepeat=w.repeat;} };
         window.chooseChatWallpaper = event => { const file=event?.target?.files?.[0]; if(!file)return; if(!file.type.startsWith('image/'))return showToast('Escolha uma imagem válida.','error'); const img=new Image(), reader=new FileReader(); reader.onload=()=>{img.onload=()=>{const max=1280, scale=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height); const data=c.toDataURL('image/jpeg',.76);window.__eloChatDraft={...(window.__eloChatDraft||{}),wallpaper:data,preset:'custom',overlay:'rgba(8,6,9,.52)'};previewChatAppearanceDraft();};img.src=reader.result;};reader.readAsDataURL(file); };
         window.saveChatAppearance = () => { const d=window.__eloChatDraft||{}; d.me=document.getElementById('elo-chat-me-color')?.value||d.me; d.them=document.getElementById('elo-chat-them-color')?.value||d.them; try{localStorage.setItem(eloChatAppearanceKey(),JSON.stringify(d))}catch(e){return showToast('A imagem ficou grande demais. Tente outra menor.','error')} applyChatAppearance();closeGenericModal();updateUI();showToast('💬 Visual do chat salvo!','success'); };
         window.resetChatAppearance = () => { localStorage.removeItem(eloChatAppearanceKey());window.__eloChatDraft=null;applyChatAppearance();closeGenericModal();updateUI();showToast('Chat voltou ao visual do tema.','success'); };
@@ -2346,7 +2374,10 @@ window.checkInToday = async (buttonEl = null) => {
                 updateAvatarFields();
             }
 
-            document.getElementById('profile-modal').classList.remove('hidden');
+            const profileModal=document.getElementById('profile-modal');
+            profileModal.classList.add('elo-profile-opening');
+            profileModal.classList.remove('hidden');
+            requestAnimationFrame(()=>requestAnimationFrame(()=>profileModal.classList.remove('elo-profile-opening')));
         };
 
         window.closeProfileModal = () => document.getElementById('profile-modal').classList.add('hidden');
@@ -4207,7 +4238,8 @@ window.checkInToday = async (buttonEl = null) => {
                 return;
             }
 
-            main.innerHTML=`<div class="elo-chat-shell">${selectionBar}<div class="elo-chat-header ${chatSelectionMode?'selection-hidden':''}"><button type="button" onclick="openPartnerChatProfile()" class="contents" aria-label="Abrir perfil de ${escapeHTML(partner?.name||'seu amor')}"><div id="elo-chat-partner-avatar" class="elo-chat-avatar">${partnerAvatar}</div><div class="flex-1 min-w-0 text-left"><p id="elo-chat-partner-name" class="font-black text-white text-[15px] truncate">${escapeHTML(partner?.name||'Seu amor')}</p><div class="flex items-center gap-1.5"><span id="elo-chat-partner-dot" class="w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}"></span><p id="elo-chat-partner-status" class="text-[10px] ${statusClass}">${statusText}</p></div></div></button><button onclick="searchChatMessages()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Pesquisar conversa"><i class="ph-bold ph-magnifying-glass"></i></button><button onclick="openChatAppearance()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Personalizar conversa" title="Personalizar conversa"><i class="ph-bold ph-palette"></i></button><button onclick="openPartnerChatProfile()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Dados da conversa"><i class="ph-bold ph-dots-three-vertical"></i></button></div>${pinnedBar}<div class="relative flex-1 min-h-0"><div class="elo-chat-messages hide-scrollbar h-full" id="chat-messages">${historyHTML}${renderedMessagesHTML||emptyHTML}</div><button id="chat-new-messages" onclick="scrollChatToLatest()" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-pink-600 text-white text-xs font-black px-4 py-2 shadow-xl active:scale-95 whitespace-nowrap">↓ 1 nova mensagem</button></div><div id="elo-chat-reply-slot">${replyBar}</div><div class="elo-chat-composer"><div id="chat-compose-normal" class="elo-compose-row"><button type="button" onclick="openChatAttachmentMenu()" class="elo-chat-tool elo-attach-action" title="Anexar" aria-label="Anexar ao chat"><i class="ph-bold ph-plus text-xl"></i></button><input id="elo-chat-image-input" type="file" accept="image/*" multiple class="hidden" onchange="sendChatImage(event)"><input id="elo-chat-file-input" type="file" class="hidden" onchange="sendChatFile(event)"><div class="elo-chat-input-wrap"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Mensagem" oninput="handleChatComposerInput(this)" onfocus="setChatFocusState(true)" onblur="setChatFocusState(false)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}">${escapeHTML(chatDraft)}</textarea><i class="ph-bold ph-smiley elo-compose-smile" aria-hidden="true"></i></div><button id="chat-mic-action" onclick="startChatAudioRecording()" class="elo-chat-send elo-mic-primary" aria-label="Gravar áudio" title="Gravar áudio"><i class="ph-fill ph-microphone text-xl"></i></button><button id="chat-send-action" data-chat-send onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="sendChatMessage()" class="elo-chat-send hidden" aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div><div id="chat-recording-panel" class="elo-chat-recording" style="display:none"><button onclick="cancelChatAudioRecording()" class="elo-rec-trash" aria-label="Cancelar gravação"><i class="ph-bold ph-trash text-lg"></i></button><span class="elo-rec-dot"></span><div class="min-w-0 flex-1"><div class="elo-rec-wave">${[10,18,13,23,16,9,20,14,25,12,18,8,22,15,11,19].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="flex items-center justify-between gap-2"><div id="chat-record-time" class="elo-rec-time">0:00</div><div class="elo-rec-label">Gravando…</div></div></div><button onclick="finishChatAudioRecording()" class="elo-rec-send-round" aria-label="Enviar áudio"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div></div></div>`;
+            main.innerHTML=`<div class="elo-chat-shell">${selectionBar}<div class="elo-chat-header ${chatSelectionMode?'selection-hidden':''}"><button type="button" onclick="openPartnerChatProfile()" class="contents" aria-label="Abrir perfil de ${escapeHTML(partner?.name||'seu amor')}"><div id="elo-chat-partner-avatar" class="elo-chat-avatar">${partnerAvatar}</div><div class="flex-1 min-w-0 text-left"><p id="elo-chat-partner-name" class="font-black text-white text-[15px] truncate">${escapeHTML(partner?.name||'Seu amor')}</p><div class="flex items-center gap-1.5"><span id="elo-chat-partner-dot" class="w-1.5 h-1.5 rounded-full ${online?'bg-emerald-400':'bg-slate-600'}"></span><p id="elo-chat-partner-status" class="text-[10px] ${statusClass}">${statusText}</p></div></div></button><button onclick="searchChatMessages()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Pesquisar conversa"><i class="ph-bold ph-magnifying-glass"></i></button><button onclick="openChatAppearance()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Personalizar conversa" title="Personalizar conversa"><i class="ph-bold ph-palette"></i></button><button onclick="openPartnerChatProfile()" class="w-9 h-9 rounded-xl bg-slate-800/90 text-slate-300 grid place-items-center active:scale-95" aria-label="Dados da conversa"><i class="ph-bold ph-dots-three-vertical"></i></button></div>${pinnedBar}<div class="elo-chat-stage relative flex-1 min-h-0"><div class="elo-chat-messages hide-scrollbar h-full" id="chat-messages">${historyHTML}${renderedMessagesHTML||emptyHTML}</div><button id="chat-new-messages" onclick="scrollChatToLatest()" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 z-20 rounded-full bg-pink-600 text-white text-xs font-black px-4 py-2 shadow-xl active:scale-95 whitespace-nowrap">↓ 1 nova mensagem</button></div><div id="elo-chat-reply-slot">${replyBar}</div><div class="elo-chat-composer"><div id="chat-compose-normal" class="elo-compose-row"><button type="button" onclick="openChatAttachmentMenu()" class="elo-chat-tool elo-attach-action" title="Anexar" aria-label="Anexar ao chat"><i class="ph-bold ph-plus text-xl"></i></button><input id="elo-chat-image-input" type="file" accept="image/*" multiple class="hidden" onchange="sendChatImage(event)"><input id="elo-chat-file-input" type="file" class="hidden" onchange="sendChatFile(event)"><div class="elo-chat-input-wrap"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Mensagem" oninput="handleChatComposerInput(this)" onfocus="setChatFocusState(true)" onblur="setChatFocusState(false)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendChatMessage();}">${escapeHTML(chatDraft)}</textarea><i class="ph-bold ph-smiley elo-compose-smile" aria-hidden="true"></i></div><button id="chat-mic-action" onclick="startChatAudioRecording()" class="elo-chat-send elo-mic-primary" aria-label="Gravar áudio" title="Gravar áudio"><i class="ph-fill ph-microphone text-xl"></i></button><button id="chat-send-action" data-chat-send onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="sendChatMessage()" class="elo-chat-send hidden" aria-label="Enviar mensagem"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div><div id="chat-recording-panel" class="elo-chat-recording" style="display:none"><button onclick="cancelChatAudioRecording()" class="elo-rec-trash" aria-label="Cancelar gravação"><i class="ph-bold ph-trash text-lg"></i></button><span class="elo-rec-dot"></span><div class="min-w-0 flex-1"><div class="elo-rec-wave">${[10,18,13,23,16,9,20,14,25,12,18,8,22,15,11,19].map(h=>`<i style="height:${h}px"></i>`).join('')}</div><div class="flex items-center justify-between gap-2"><div id="chat-record-time" class="elo-rec-time">0:00</div><div class="elo-rec-label">Gravando…</div></div></div><button onclick="finishChatAudioRecording()" class="elo-rec-send-round" aria-label="Enviar áudio"><i class="ph-fill ph-paper-plane-right text-xl"></i></button></div></div></div>`;
+            requestAnimationFrame(() => applyChatAppearance());
 
             const c=document.getElementById('chat-messages');
             if(c){
@@ -6991,10 +7023,6 @@ const centerActiveStoreCategory = (smooth = true) => {
                                 <div class="elo-home-person is-me">
                                     <div class="elo-home-avatar">${renderAvatar(myData.character, currentUser?.uid)}</div>
                                     <span>${escapeHTML(myData.name || 'Você')}</span>
-                                </div>
-                                <div class="elo-home-destiny">
-                                    <div class="elo-home-heart-pulse"><i class="ph-fill ph-heart"></i></div>
-                                    <span class="elo-home-days">${relationshipDays===null?'Nosso começo':`${relationshipDays.toLocaleString('pt-BR')} dias`}</span>
                                 </div>
                                 <div class="elo-home-person is-partner">
                                     <div class="elo-home-avatar">${partnerData ? renderAvatar(partnerData.character, partnerUid) : '<i class="ph-fill ph-user-plus elo-home-empty-avatar"></i>'}</div>

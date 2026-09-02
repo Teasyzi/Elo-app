@@ -1,14 +1,15 @@
 {
   "available": false,
-  "versionName": "0.8.4",
-  "versionCode": 28,
+  "versionName": "0.8.5",
+  "versionCode": 29,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Galáxia Celestial redesenhada com nebulosas, estrelas e meteoros.",
-    "Midnight e Cozy ganharam animações próprias mais marcantes.",
-    "Corrigida a personalização do Chat: cores das bolhas e papel de parede agora têm prioridade sobre o tema.",
-    "Criador de temas ganhou partículas animadas opcionais com cor personalizada e desbloqueios por Elo Coins.",
-    "O fio Akai Ito da Home agora conecta os dois avatares e forma um coração no centro."
+    "Midnight ganhou um campo estelar animado mais denso, lua viva e mais meteoros.",
+    "Galáxia Celestial virou um tema black galaxy premium com nebulosas em movimento, estrelas densas e meteoros.",
+    "Na Home, o fio Akai Ito fica sozinho entre os avatares, sem o coração/“Nosso começo” sobreposto.",
+    "Papéis de parede do Chat agora ficam fixos enquanto as mensagens rolam; presets e cores das bolhas foram corrigidos.",
+    "Ao sair do teste de um tema, a tela Temas do Elo abre novamente para facilitar comparações.",
+    "A abertura do Perfil foi estabilizada para evitar o flash visual rápido."
   ]
 }
