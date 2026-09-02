@@ -1,0 +1,6 @@
+Elo V36.8.4 / APK 0.7.4
+
+- Android Back agora é interceptado nativamente e fecha perfil/modal/tela interna antes da Activity.
+- Chat preserva scrollTop durante uploads e atualizações abaixo; compensação de altura fica restrita à paginação de mensagens antigas.
+- Jogo Rápido ganhou seletor de modos acessível durante uma rodada e troca sincronizada de modalidade.
+- Cache e versões atualizados.

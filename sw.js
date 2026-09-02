@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-8-3-notification-media-back-navigation-20260902';
+const CACHE = 'elo-v36-8-4-back-scroll-quick-game-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.8.3',
-  './tailwind.css?v=36.8.3',
-  './styles.css?v=36.8.3',
+  './app.js?v=36.8.4',
+  './tailwind.css?v=36.8.4',
+  './styles.css?v=36.8.4',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

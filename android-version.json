@@ -1,12 +1,12 @@
 {
   "available": false,
-  "versionName": "0.7.3",
-  "versionCode": 19,
+  "versionName": "0.7.4",
+  "versionCode": 20,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Banner de notificações só aparece após recusa/bloqueio da permissão",
-    "Imagens já carregadas são reutilizadas sem voltar ao placeholder durante novos envios",
-    "Botão Voltar do Android/PWA fecha o perfil da conversa antes de sair do app"
+    "Voltar físico do Android fecha telas internas antes de sair",
+    "Uploads de fotos não puxam mais o usuário para o fim da conversa",
+    "Jogo Rápido permite trocar de modo a qualquer momento"
   ]
 }

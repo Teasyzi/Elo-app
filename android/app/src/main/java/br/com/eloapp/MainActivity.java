@@ -31,6 +31,14 @@ public class MainActivity extends BridgeActivity {
         String action = intent.getStringExtra("elo_notification_action");
         if (action == null || action.trim().isEmpty()) return;
 
+        if ("open_chat".equals(action) || "mark_read".equals(action)) {
+            EloMessagingService.dismissConversation(
+                this,
+                safe(intent.getStringExtra("coupleId")),
+                safe(intent.getStringExtra("senderUid"))
+            );
+        }
+
         try {
             JSONObject payload = new JSONObject();
             payload.put("action", action);
@@ -49,6 +57,26 @@ public class MainActivity extends BridgeActivity {
             SharedPreferences prefs = getSharedPreferences(EloNotificationActionsPlugin.PREFS, MODE_PRIVATE);
             prefs.edit().putString(EloNotificationActionsPlugin.KEY_PENDING, payload.toString()).apply();
         } catch (Exception ignored) {}
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().evaluateJavascript(
+                "(function(){try{return !!window.eloHandleAndroidBack && window.eloHandleAndroidBack();}catch(e){return false;}})()",
+                value -> {
+                    if (!"true".equals(value)) {
+                        performDefaultBack();
+                    }
+                }
+            );
+            return;
+        }
+        performDefaultBack();
+    }
+
+    private void performDefaultBack() {
+        super.onBackPressed();
     }
 
     private String safe(String value) {

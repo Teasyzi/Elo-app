@@ -67,11 +67,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.3';
+        const ELO_WEB_VERSION = '36.8.4';
         const ELO_RELEASE_NOTES = [
-            'O lembrete superior de notificações agora só aparece quando a permissão foi realmente negada.',
-            'Fotos já carregadas permanecem na tela durante novos envios, reduzindo recarregamentos e piscadas no Chat.',
-            'O botão Voltar do Android/PWA fecha primeiro o perfil da conversa antes de sair do Elo.'
+            'O botão Voltar físico do Android agora fecha telas internas do Elo antes de sair do aplicativo.',
+            'O Chat não força mais a rolagem para baixo enquanto fotos em lote terminam de enviar.',
+            'O Jogo Rápido ganhou troca de modo a qualquer momento, sem ficar preso na modalidade atual.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -101,6 +101,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let chatHistoryCursor = null;
         let chatHasMoreHistory = true;
         let chatLoadingOlder = false;
+        let chatPreservePrependAnchor = false;
         const CHAT_INITIAL_LIMIT = 40;
         const CHAT_HISTORY_PAGE = 30;
         const chatMediaObjectUrls = new Map();
@@ -169,7 +170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.3', versionCode:19 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.4', versionCode:20 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2566,6 +2567,9 @@ window.checkInToday = async (buttonEl = null) => {
                 showToast('Não foi possível carregar mensagens antigas.', 'error');
             } finally {
                 chatLoadingOlder = false;
+                // Só a paginação do histórico precisa compensar a altura adicionada acima.
+                // Atualizações normais (uploads, reações, leitura etc.) preservam o scrollTop absoluto.
+                chatPreservePrependAnchor = true;
                 renderChatOnly();
                 chatSuppressNewMessageCounter = false;
             }
@@ -3893,6 +3897,8 @@ window.checkInToday = async (buttonEl = null) => {
                     const wasNearBottom=isChatNearBottom(messagesEl);
                     const previousTop=messagesEl.scrollTop;
                     const previousHeight=messagesEl.scrollHeight;
+                    const preservePrependAnchor=chatPreservePrependAnchor;
+                    chatPreservePrependAnchor=false;
                     const newlyArrived = chatSuppressNewMessageCounter
                         ? 0
                         : chatMessages.filter(m => !chatRenderedMessageIds.has(m.id) && m.senderId !== currentUser.uid).length;
@@ -3903,9 +3909,12 @@ window.checkInToday = async (buttonEl = null) => {
                         if(chatForceBottomOnOpen || (!chatUserAwayFromBottom && wasNearBottom)) {
                             messagesEl.scrollTop=messagesEl.scrollHeight;
                             chatForceBottomOnOpen=false;
-                        } else {
-                            // Preserve exatamente a região que o usuário estava lendo.
+                        } else if(preservePrependAnchor) {
+                            // Mensagens antigas foram inseridas ACIMA: compensa apenas neste caso.
                             messagesEl.scrollTop=previousTop+(messagesEl.scrollHeight-previousHeight);
+                        } else {
+                            // Uploads/atualizações acontecem abaixo. Não puxe quem decidiu subir a conversa.
+                            messagesEl.scrollTop=previousTop;
                         }
                         updateChatNewMessagesButton();
                     });
@@ -6158,15 +6167,17 @@ const centerActiveStoreCategory = (smooth = true) => {
             const choices=game?.choices||{}; const myChoice=choices[currentUser?.uid]; const names=quickGameNames();
             const partnerChoice=names.partnerUid?choices[names.partnerUid]:undefined; const both=myChoice!==undefined&&partnerChoice!==undefined; const same=both&&myChoice===partnerChoice;
             const mode=QUICK_GAME_MODES[game?.mode]||QUICK_GAME_MODES.either; const opts=quickGameResolvedOptions(game);
-            return `<div id="quick-game-content" class="text-center space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i})" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}')" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
+            return `<div id="quick-game-content" class="text-center space-y-4"><div class="flex items-center justify-between gap-2"><div class="text-left"><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><div class="flex items-center gap-2"><button onclick="openQuickGameModePicker()" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-black text-slate-300"><i class="ph-bold ph-squares-four mr-1"></i>Modos</button><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-500">✕</button></div></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i})" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}')" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
         };
         const renderCoupleGameModal=()=>{if(document.getElementById('quick-game-content')&&coupleData?.quickGame)document.getElementById('quick-game-content').outerHTML=quickGameHtml(coupleData.quickGame)};
-        window.openCoupleGame=()=>{const game=coupleData?.quickGame;if(game)return openGenericModal(quickGameHtml(game));openGenericModal(`<div class="space-y-4"><div class="flex justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Escolha um modo</p><h3 class="text-xl font-black text-white">Jogo Rápido</h3></div><button onclick="closeGenericModal()">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}')" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left"><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></button>`).join('')}</div>`)};
-        window.newCoupleGame=async(modeId='either')=>{
+        const quickGameModePickerHtml=()=>`<div class="space-y-3"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Jogo Rápido</p><h3 class="text-xl font-black text-white">Escolha um modo</h3><p class="text-xs text-slate-500 mt-1">Você pode trocar de modalidade quando quiser.</p></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-400">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}', true)" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left transition active:scale-[.99]"><div class="flex items-center justify-between gap-3"><div><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></div><i class="ph-bold ph-caret-right text-slate-600"></i></div></button>`).join('')}</div>`;
+        window.openQuickGameModePicker=()=>openGenericModal(quickGameModePickerHtml());
+        window.openCoupleGame=()=>{const game=coupleData?.quickGame;if(game)return openGenericModal(quickGameHtml(game));window.openQuickGameModePicker();};
+        window.newCoupleGame=async(modeId='either',forceMode=false)=>{
             if(quickGameCreating)return; quickGameCreating=true; const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either; const round=mode.rounds[Math.floor(Math.random()*mode.rounds.length)];
             const names=quickGameNames(); const optionUserIds=modeId==='likely'?[currentUser.uid,names.partnerUid].filter(Boolean):null;
             const candidate={id:`${Date.now()}_${currentUser.uid}`,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid}; let selected=candidate;
-            try{await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const existing=snap.data()?.quickGame;if(existing&&existing.status==='open'){selected=existing;return;}tx.update(ref,{quickGame:candidate});});coupleData={...coupleData,quickGame:selected};openGenericModal(quickGameHtml(selected));if(selected.id!==candidate.id)showToast(`${getProfileName(selected.createdBy)} já iniciou uma rodada. Você entrou na mesma pergunta ❤️`,'info')}catch(e){console.error(e);showToast('Não foi possível iniciar o jogo.','error')}finally{quickGameCreating=false}
+            try{await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const existing=snap.data()?.quickGame;if(existing&&existing.status==='open'&&!forceMode){selected=existing;return;}tx.update(ref,{quickGame:candidate});});coupleData={...coupleData,quickGame:selected};openGenericModal(quickGameHtml(selected));if(selected.id!==candidate.id)showToast(`${getProfileName(selected.createdBy)} já iniciou uma rodada. Você entrou na mesma pergunta ❤️`,'info')}catch(e){console.error(e);showToast('Não foi possível iniciar o jogo.','error')}finally{quickGameCreating=false}
         };
         window.chooseCoupleGame=async index=>{const localGame=coupleData?.quickGame;if(!localGame||localGame.status==='done'||localGame.choices?.[currentUser.uid]!==undefined)return;try{let next=null;await runTransaction(db,async tx=>{const ref=quickGameRef();const snap=await tx.get(ref);if(!snap.exists())throw new Error('Elo não encontrado.');const data=snap.data();const game=data.quickGame;if(!game||game.id!==localGame.id||game.status==='done')throw new Error('A rodada mudou. Abra o jogo novamente.');if(game.choices?.[currentUser.uid]!==undefined){next=game;return;}const ids=Object.keys(data.users||{});const partnerUid=ids.find(id=>id!==currentUser.uid);const partnerAnswered=!!partnerUid&&game.choices?.[partnerUid]!==undefined;const same=partnerAnswered&&game.choices?.[partnerUid]===index;const choices={...(game.choices||{}),[currentUser.uid]:index};next={...game,choices,status:partnerAnswered?'done':'open',...(partnerAnswered?{finishedAt:Date.now()}:{})};const updates={[`quickGame.choices.${currentUser.uid}`]:index};if(partnerAnswered){updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1)}tx.update(ref,updates);});coupleData={...coupleData,quickGame:next};openGenericModal(quickGameHtml(next))}catch(e){console.error(e);showToast(e.message||'Não foi possível registrar sua escolha.','error')}};
         const updateNotificationDot=()=>{const dot=document.getElementById('notification-dot');if(dot)dot.classList.add('hidden');};
@@ -6438,6 +6449,27 @@ const centerActiveStoreCategory = (smooth = true) => {
             const modal=document.getElementById('generic-modal');
             if(modal?.dataset?.eloModal==='chat-profile') closeChatProfileFromHistory();
         });
+
+        // Chamado pelo MainActivity antes de o Android encerrar a Activity.
+        // Retorna true quando existe uma camada interna para fechar.
+        window.eloHandleAndroidBack = () => {
+            const profileModal=document.getElementById('generic-modal');
+            if(profileModal?.dataset?.eloModal==='chat-profile'){
+                if(chatProfileHistoryArmed && history.state?.eloOverlay==='chat-profile') history.back();
+                else closeChatProfileFromHistory();
+                return true;
+            }
+            const reaction=document.getElementById('elo-chat-reaction-overlay');
+            if(reaction){ closeChatReactionPicker(); return true; }
+            const attach=document.getElementById('elo-chat-attach-sheet');
+            if(attach){ attach.remove(); return true; }
+            if(profileModal && !profileModal.classList.contains('hidden')){ closeGenericModal(); return true; }
+            if(window.activeTab && window.activeTab!=='home'){
+                window.switchTab?.('home');
+                return true;
+            }
+            return false;
+        };
 
         window.openPartnerChatProfile = async () => {
             const partnerUid=partnerUidOf(); const partner=partnerUid?coupleData?.users?.[partnerUid]:null;
