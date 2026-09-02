@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.0';
+        const ELO_WEB_VERSION = '36.9.1';
         const ELO_RELEASE_NOTES = [
             '🎨 TEMAS chegaram ao Elo: escolha uma identidade visual individual e deixe o seu espaço com a sua cara.',
             '🧵 Akai Ito estreia como a nova identidade padrão, inspirado no fio vermelho que conecta duas pessoas.',
@@ -176,7 +176,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.7', versionCode:23 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.1', versionCode:25 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2113,8 +2113,8 @@ window.checkInToday = async (buttonEl = null) => {
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
         const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
         const hexSafe = (v, fallback) => /^#[0-9a-f]{6}$/i.test(String(v||'')) ? v : fallback;
-        window.applyEloTheme = (id = null) => {
-            id = id || localStorage.getItem(eloThemeKey()) || 'akai';
+        let eloThemePreviewState = null;
+        const setEloThemeVisual = (id = 'akai') => {
             document.body.classList.remove(...Object.values(ELO_THEME_CATALOG).map(t=>t.className), 'elo-theme-custom');
             if (id === 'custom') {
                 let cfg={}; try { cfg=JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}'); } catch(_) {}
@@ -2127,7 +2127,45 @@ window.checkInToday = async (buttonEl = null) => {
                 document.documentElement.style.removeProperty('--elo-primary'); document.documentElement.style.removeProperty('--elo-bg'); document.documentElement.style.removeProperty('--elo-surface'); document.documentElement.style.removeProperty('--elo-thread');
                 document.body.classList.add(ELO_THEME_CATALOG[id]?.className || 'elo-theme-akai');
             }
+        };
+        window.applyEloTheme = (id = null) => {
+            id = id || localStorage.getItem(eloThemeKey()) || 'akai';
+            setEloThemeVisual(id);
             localStorage.setItem(eloThemeKey(), id);
+        };
+        const removeEloThemePreviewDock = () => {
+            document.getElementById('elo-theme-preview-dock')?.remove();
+            document.body.classList.remove('elo-theme-previewing');
+        };
+        window.exitEloThemePreview = () => {
+            const restore = eloThemePreviewState?.restore || localStorage.getItem(eloThemeKey()) || 'akai';
+            eloThemePreviewState = null;
+            removeEloThemePreviewDock();
+            setEloThemeVisual(restore);
+        };
+        const renderEloThemePreviewDock = () => {
+            removeEloThemePreviewDock();
+            if(!eloThemePreviewState) return;
+            const theme=ELO_THEME_CATALOG[eloThemePreviewState.id];
+            if(!theme) return;
+            const dock=document.createElement('div');
+            dock.id='elo-theme-preview-dock';
+            dock.innerHTML=`<div><span>${theme.icon}</span><p><small>PRÉVIA · não foi comprado</small><b>${theme.name}</b></p></div><div class="elo-theme-preview-actions"><button type="button" onclick="exitEloThemePreview()">Sair</button><button type="button" class="is-buy" onclick="buyPreviewedEloTheme()">Comprar · ${theme.price} 🪙</button></div>`;
+            document.body.appendChild(dock);
+            document.body.classList.add('elo-theme-previewing');
+        };
+        window.previewEloTheme = id => {
+            const theme=ELO_THEME_CATALOG[id]; if(!theme) return;
+            const restore=eloThemePreviewState?.restore || localStorage.getItem(eloThemeKey()) || 'akai';
+            eloThemePreviewState={id,restore};
+            setEloThemeVisual(id);
+            closeGenericModal();
+            renderEloThemePreviewDock();
+            showToast(`👁 Prévia ${theme.name}: navegue pelo Elo antes de decidir.`, 'success');
+        };
+        window.buyPreviewedEloTheme = async () => {
+            const id=eloThemePreviewState?.id; if(!id) return;
+            await window.selectEloTheme(id);
         };
         window.selectEloTheme = async id => {
             const theme=ELO_THEME_CATALOG[id]; if(!theme)return;
@@ -2141,7 +2179,7 @@ window.checkInToday = async (buttonEl = null) => {
                     owned.add(id); saveOwnedThemes(owned); showToast(`${theme.icon} Tema ${theme.name} desbloqueado!`,'success');
                 }catch(e){return showToast('Não foi possível desbloquear o tema.','error');}
             }
-            applyEloTheme(id); closeGenericModal(); updateUI(); setTimeout(()=>openThemeStudio(),80);
+            eloThemePreviewState=null; removeEloThemePreviewDock(); applyEloTheme(id); closeGenericModal(); updateUI(); setTimeout(()=>openThemeStudio(),80);
         };
         window.openCustomThemeCreator = () => {
             let cfg={primary:'#b4233f',background:'#130d10',surface:'#21161a',thread:'#d52c49'}; try{cfg={...cfg,...JSON.parse(localStorage.getItem(eloCustomThemeKey())||'{}')}}catch(_){}
@@ -2158,7 +2196,12 @@ window.checkInToday = async (buttonEl = null) => {
         };
         window.openThemeStudio = () => {
             const current=localStorage.getItem(eloThemeKey())||'akai', owned=ownedThemes(), hasCustom=!!localStorage.getItem(eloCustomThemeKey());
-            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div class="elo-theme-hero"><div class="elo-thread-mark">∞</div><div><p class="elo-kicker">Aparência individual</p><h3>Temas do Elo</h3><p>O tema muda apenas para você. Seu amor pode escolher outro.</p></div></div><div class="elo-theme-list">${Object.entries(ELO_THEME_CATALOG).map(([id,t])=>`<button onclick="selectEloTheme('${id}')" class="elo-theme-choice ${current===id?'is-selected':''}"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.description}</small></span><em>${owned.has(id)?(current===id?'Usando':'Usar'):`${t.price} 🪙`}</em></button>`).join('')}</div>${hasCustom?`<button onclick="applyEloTheme('custom');closeGenericModal();updateUI()" class="elo-theme-choice ${current==='custom'?'is-selected':''}"><span class="elo-theme-icon">🎨</span><span><b>Meu tema</b><small>Sua criação personalizada.</small></span><em>${current==='custom'?'Usando':'Usar'}</em></button>`:''}<button onclick="openCustomThemeCreator()" class="elo-primary-action">${hasCustom?'Editar meu tema':'Criar meu tema · 500 🪙'}</button></div>`);
+            const rows=Object.entries(ELO_THEME_CATALOG).map(([id,t])=>{
+                const isOwned=owned.has(id);
+                if(isOwned) return `<button onclick="selectEloTheme('${id}')" class="elo-theme-choice ${current===id?'is-selected':''}"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.description}</small></span><em>${current===id?'Usando':'Usar'}</em></button>`;
+                return `<div class="elo-theme-choice elo-theme-choice-locked"><span class="elo-theme-icon">${t.icon}</span><span><b>${t.name}</b><small>${t.description}</small></span><div class="elo-theme-actions"><button type="button" onclick="previewEloTheme('${id}')"><i class="ph-bold ph-eye"></i> Testar</button><button type="button" class="is-buy" onclick="selectEloTheme('${id}')">${t.price} 🪙</button></div></div>`;
+            }).join('');
+            openGenericModal(`<div class="space-y-4 elo-theme-studio"><div class="elo-theme-hero"><div class="elo-thread-mark">∞</div><div><p class="elo-kicker">Aparência individual</p><h3>Temas do Elo</h3><p>Teste qualquer tema antes de gastar suas Elo Coins. O tema muda apenas para você.</p></div></div><div class="elo-theme-test-note"><i class="ph-bold ph-eye"></i><span><b>Teste antes de comprar</b><small>A prévia muda o Elo inteiro temporariamente. Você pode navegar normalmente e sair sem gastar nada.</small></span></div><div class="elo-theme-list">${rows}</div>${hasCustom?`<button onclick="applyEloTheme('custom');closeGenericModal();updateUI()" class="elo-theme-choice ${current==='custom'?'is-selected':''}"><span class="elo-theme-icon">🎨</span><span><b>Meu tema</b><small>Sua criação personalizada.</small></span><em>${current==='custom'?'Usando':'Usar'}</em></button>`:''}<button onclick="openCustomThemeCreator()" class="elo-primary-action">${hasCustom?'Editar meu tema':'Criar meu tema · 500 🪙'}</button></div>`);
         };
         applyEloTheme();
 

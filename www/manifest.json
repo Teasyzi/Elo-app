@@ -4,8 +4,8 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#0f172a",
+  "background_color": "#130d10",
+  "theme_color": "#b4233f",
   "description": "Um espaço só de vocês dois.",
   "icons": [
     {

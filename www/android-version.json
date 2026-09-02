@@ -1,14 +1,14 @@
 {
   "available": false,
-  "versionName": "0.8.0",
-  "versionCode": 24,
+  "versionName": "0.8.1",
+  "versionCode": 25,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "TEMAS chegam ao Elo com Akai Ito como nova identidade padrão.",
-    "Sakura, Midnight e Cozy podem ser desbloqueados individualmente com Elo Coins.",
-    "Criação de tema personalizado custa 500 Elo Coins.",
-    "Prévia do personagem permanece fixa durante a edição.",
-    "Nova interface já reserva área segura para o futuro Pet flutuante."
+    "Novo ícone Akai Ito em site, PWA, iPhone e APK Android.",
+    "Temas pagos agora podem ser testados no Elo inteiro antes da compra.",
+    "A prévia é gratuita e não desconta Elo Coins.",
+    "Durante o teste você pode navegar pelo app e sair ou comprar pelo painel de prévia.",
+    "Mantidos temas individuais, criador de tema e área segura para o futuro Pet flutuante."
   ]
 }

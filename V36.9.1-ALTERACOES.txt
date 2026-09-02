@@ -1,0 +1,12 @@
+ELO V36.9.1 / APK 0.8.1
+
+- Novo ícone inspirado no Akai Ito aplicado ao Web/PWA/iPhone/Android.
+- Tema Akai Ito mantém-se como padrão gratuito.
+- Temas premium agora possuem botão Testar.
+- Teste aplica o tema ao Elo inteiro sem compra e sem descontar moedas.
+- Painel de prévia permanece disponível durante a navegação para Sair ou Comprar.
+- Compra durante a prévia mantém a transação segura já existente.
+- Manifest atualizado para as cores Akai Ito.
+- Web 36.9.1, APK 0.8.1, versionCode 25.
+- CACHE: elo-v36-9-1-akai-icon-theme-preview-20260902.
+- Sem alterações no Cloudflare Worker.
