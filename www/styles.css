@@ -393,7 +393,7 @@ body[data-elo-tab="chat"] #main-content{padding-top:.35rem}
 /* V22 Stability */
 :root{--elo-visible-vh:100dvh}
 body[data-elo-tab="chat"] .elo-chat-shell{height:calc(var(--elo-visible-vh) - 176px);max-height:calc(var(--elo-visible-vh) - 176px)}
-body[data-elo-tab="chat"].elo-keyboard-open #main-nav{visibility:hidden;pointer-events:none}
+@media(max-width:1023px){body[data-elo-tab="chat"].elo-keyboard-open #main-nav{visibility:hidden;pointer-events:none}}
 body[data-elo-tab="chat"].elo-keyboard-open #main-content{padding-bottom:max(.25rem,env(safe-area-inset-bottom))}
 .elo-chat-composer{position:relative;z-index:30;padding-bottom:max(.34rem,env(safe-area-inset-bottom))}
 #chat-input{font-size:16px}
@@ -709,8 +709,8 @@ body[data-elo-tab="friends"] #main-content{overscroll-behavior:contain}
   body[data-elo-tab="home"] #main-content>.space-y-4>:nth-child(5){grid-column:span 6!important}
   body[data-elo-tab="home"] #main-content>.space-y-4>:nth-child(6){grid-column:span 6!important}
   body[data-elo-tab="home"] #main-content>.space-y-4>:nth-child(n+7){grid-column:span 6!important}
-  body[data-elo-tab="chat"] #main-content{padding-top:16px!important;padding-bottom:18px!important}
-  body[data-elo-tab="chat"] .elo-chat-shell{width:min(100%,1040px)!important;height:calc(100dvh - 106px)!important;margin-inline:auto;border:1px solid rgba(51,65,85,.7);border-radius:22px;background:rgba(15,23,42,.52);box-shadow:0 24px 70px rgba(0,0,0,.24);overflow:hidden}
+  body[data-elo-tab="chat"] #main-content{width:calc(100% - 224px)!important;max-width:none!important;margin-left:224px!important;margin-right:0!important;padding:14px clamp(20px,2.4vw,34px) 16px!important}
+  body[data-elo-tab="chat"] .elo-chat-shell{width:min(100%,1280px)!important;max-width:1280px!important;height:calc(100dvh - 100px)!important;margin-inline:auto;border:1px solid rgba(51,65,85,.7);border-radius:22px;background:rgba(15,23,42,.52);box-shadow:0 24px 70px rgba(0,0,0,.24);overflow:hidden}
   body[data-elo-tab="chat"] .elo-chat-header{border-radius:0!important}
   body[data-elo-tab="chat"] .elo-chat-composer{border-radius:18px!important;margin:0 8px 8px!important}
   body[data-elo-tab="store"] #main-content>.space-y-3{height:calc(100dvh - 112px)!important}
@@ -899,4 +899,87 @@ body[data-elo-tab="chat"] .elo-message-row.is-swiping .elo-message-stack{will-ch
     padding-bottom:max(.28rem,env(safe-area-inset-bottom))!important;
   }
   body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-messages{padding-bottom:.35rem!important}
+}
+
+/* ===== ELO V36.8 · CHAT FINALIZATION ===== */
+@media(max-width:639px){
+  body[data-elo-tab="chat"].elo-keyboard-open #main-header,
+  body[data-elo-tab="chat"].elo-keyboard-open #main-nav{display:none!important}
+  body[data-elo-tab="chat"].elo-keyboard-open{overflow:hidden!important}
+  body[data-elo-tab="chat"].elo-keyboard-open #main-content{
+    position:fixed!important;
+    z-index:80!important;
+    left:0!important;right:0!important;
+    top:var(--elo-vv-top,0px)!important;
+    width:100%!important;
+    height:var(--elo-visible-vh,100dvh)!important;
+    max-height:var(--elo-visible-vh,100dvh)!important;
+    padding:.2rem .4rem max(.16rem,env(safe-area-inset-bottom))!important;
+    margin:0!important;
+    overflow:hidden!important;
+    background:#020617!important;
+  }
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-shell{
+    height:100%!important;max-height:100%!important;min-height:0!important;
+    display:flex!important;flex-direction:column!important;margin:0!important;
+  }
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-header{display:flex!important;flex:0 0 auto!important;padding:.42rem .5rem!important}
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-messages{min-height:0!important;flex:1 1 auto!important;padding-bottom:.4rem!important}
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-composer{flex:0 0 auto!important;margin:.12rem 0 0!important;transform:none!important}
+}
+
+.elo-message-stack{transition:transform .18s cubic-bezier(.2,.8,.2,1),opacity .16s ease}
+.elo-message-bubble{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.elo-message-row:active .elo-message-bubble{transform:scale(.992)}
+.elo-message-enter .elo-message-stack{animation:eloMsgIn .24s cubic-bezier(.2,.9,.2,1) both}
+@keyframes eloMsgIn{from{opacity:0;transform:translateY(9px) scale(.985)}to{opacity:1;transform:none}}
+
+.elo-reaction-picker{gap:.08rem!important;padding:.22rem .3rem!important;box-shadow:0 12px 38px rgba(0,0,0,.44)!important}
+.elo-reaction-choice{width:38px!important;height:38px!important;font-size:20px!important;transition:transform .13s ease,background .13s ease!important}
+.elo-reaction-choice:active{transform:scale(.82)!important}.elo-reaction-choice.more{font-size:17px!important}
+.elo-reaction-fly{position:fixed;z-index:99999;pointer-events:none;font-size:25px;transform:translate(-50%,-50%);animation:eloReactionFly .58s cubic-bezier(.2,.9,.2,1) forwards}
+@keyframes eloReactionFly{0%{opacity:0;transform:translate(-50%,-15%) scale(.55)}35%{opacity:1;transform:translate(-50%,-70%) scale(1.25)}100%{opacity:0;transform:translate(-50%,-120%) scale(.85)}}
+
+.elo-typing-row{pointer-events:none}.elo-typing-bubble{display:flex;align-items:center;gap:4px;width:max-content;padding:10px 13px;border-radius:18px 18px 18px 5px;background:#172236;border:1px solid #29364a;box-shadow:0 5px 16px rgba(0,0,0,.15)}
+.elo-typing-bubble i{width:6px;height:6px;border-radius:50%;background:#94a3b8;animation:eloTypingDot 1s infinite ease-in-out}.elo-typing-bubble i:nth-child(2){animation-delay:.14s}.elo-typing-bubble i:nth-child(3){animation-delay:.28s}
+@keyframes eloTypingDot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}
+
+.elo-audio-player{padding:.3rem .16rem!important;gap:.48rem!important}.elo-audio-main{min-width:0!important}
+.elo-audio-wave{height:28px!important;display:flex!important;align-items:center!important;gap:2px!important;overflow:hidden}
+.elo-audio-wave i{width:2px!important;min-width:2px!important;border-radius:999px;background:#64748b!important;opacity:.7;transition:background .08s,opacity .08s,transform .08s}
+.elo-audio-wave i.played{background:#ec4899!important;opacity:1}.elo-audio-player.them .elo-audio-wave i.played{background:#60a5fa!important}
+.elo-audio-track{height:16px!important;position:relative;cursor:pointer;touch-action:none!important;background:transparent!important;margin-top:-7px!important}
+.elo-audio-track:before{content:"";position:absolute;left:0;right:0;top:7px;height:3px;border-radius:99px;background:rgba(148,163,184,.22)}
+.elo-audio-progress{position:absolute!important;left:0;top:7px!important;height:3px!important;border-radius:99px;background:#ec4899!important}
+.elo-audio-thumb{position:absolute;top:3px;width:11px;height:11px;border-radius:50%;background:#ec4899;transform:translateX(-50%);box-shadow:0 0 0 3px rgba(236,72,153,.13);pointer-events:none}
+.elo-audio-info{margin-top:0!important}.elo-audio-heard{display:flex;align-items:center;gap:3px;font-size:9px;color:#60a5fa;font-weight:800}.elo-audio-speed{min-width:36px!important;font-size:10px!important}
+.elo-rec-wave i{transition:height .18s ease!important}.elo-chat-recording{animation:eloRecordIn .18s ease both}@keyframes eloRecordIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.elo-image-batch-review{display:flex;flex-direction:column;gap:14px}.elo-batch-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-height:48vh;overflow:auto}.elo-batch-photo{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;background:#0f172a;border:1px solid #334155}.elo-batch-photo img{width:100%;height:100%;object-fit:cover}.elo-batch-photo button{position:absolute;right:5px;top:5px;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:rgba(2,6,23,.85);color:#fff}.elo-batch-photo span{position:absolute;left:6px;bottom:6px;min-width:22px;height:22px;padding:0 5px;border-radius:999px;background:rgba(2,6,23,.8);color:#fff;font-size:10px;font-weight:900;display:grid;place-items:center}.elo-batch-caption{width:100%;resize:none;border-radius:14px;background:#0f172a;border:1px solid #334155;color:#fff;padding:11px 12px;outline:none}.elo-batch-caption:focus{border-color:#ec4899}
+
+@media(prefers-reduced-motion:reduce){.elo-reaction-fly,.elo-typing-bubble i,.elo-message-enter .elo-message-stack,.elo-chat-recording{animation:none!important}}
+.elo-image-caption{padding:.5rem .35rem .1rem;font-size:13px;line-height:1.35;color:#f8fafc;overflow-wrap:anywhere}
+\n\n/* ===== ELO V36.8.1 · DESKTOP CHAT + PHOTO ALBUMS ===== */
+.elo-message-bubble.image-album{padding:.22rem!important;overflow:hidden;min-width:min(18rem,72vw)}
+.elo-image-group{display:grid;gap:3px;width:min(22rem,72vw);height:min(22rem,72vw);max-height:25rem;border-radius:15px;overflow:hidden;background:#0b1220}
+.elo-image-group.count-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.elo-image-group.count-3,.elo-image-group.count-4{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+.elo-image-group.count-3 .elo-image-group-tile:first-child{grid-row:span 2}
+.elo-image-group-tile{position:relative;display:block;width:100%;height:100%;min-width:0;min-height:0;overflow:hidden;background:#111827;border:0;padding:0;cursor:pointer}
+.elo-image-group-tile>img,.elo-image-group-holder>img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s ease,opacity .18s ease}
+.elo-image-group-tile:hover>img,.elo-image-group-tile:hover .elo-image-group-holder>img{transform:scale(1.025)}
+.elo-image-group-holder{position:relative;display:block;width:100%;height:100%}
+.elo-image-group-holder .elo-chat-media-loading{position:absolute;inset:0;display:grid;place-items:center;background:#0f172a;color:#64748b;font-size:1.1rem}
+.elo-image-group-more{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,6,23,.62);color:white;font-size:2rem;font-weight:900;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+.elo-message-bubble.image-album .elo-image-caption{padding:.58rem .62rem .35rem}
+.elo-message-bubble.image-album .elo-message-meta{padding:0 .45rem .25rem}
+@media(max-width:639px){.elo-image-group{width:min(76vw,20rem);height:min(76vw,20rem)}.elo-message-bubble.image-album{min-width:min(18rem,76vw)}}
+@media(min-width:1024px){
+  body[data-elo-tab="chat"].elo-keyboard-open #main-nav{display:block!important;visibility:visible!important;pointer-events:auto!important}
+  body[data-elo-tab="chat"].elo-keyboard-open #main-header{display:flex!important}
+  body[data-elo-tab="chat"].elo-keyboard-open #main-content{position:relative!important;left:auto!important;right:auto!important;top:auto!important;height:auto!important;max-height:none!important;margin-left:224px!important;overflow:visible!important;background:transparent!important}
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-shell{height:calc(100dvh - 100px)!important;max-height:calc(100dvh - 100px)!important;margin-inline:auto!important}
+  body[data-elo-tab="chat"].elo-keyboard-open .elo-chat-header{display:flex!important}
+  body[data-elo-tab="chat"] .elo-message-stack{max-width:min(72%,760px)}
+  body[data-elo-tab="chat"] .elo-chat-messages{padding-inline:clamp(18px,3vw,42px)}
 }

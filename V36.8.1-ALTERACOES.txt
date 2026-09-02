@@ -1,0 +1,33 @@
+ELO V36.8.1 / APK 0.7.1 — DESKTOP CHAT + PHOTO ALBUMS
+
+FOCO
+- Revisão pontual do Chat para computador sem alterar a experiência mobile que já estava funcionando.
+- Organização visual das fotos enviadas em lote.
+- Correção do botão de novas mensagens.
+
+DESKTOP
+- Menu lateral permanece visível enquanto o usuário digita.
+- Chat usa uma área horizontal maior, chegando a 1280 px quando houver espaço.
+- Cabeçalho e composer continuam disponíveis no desktop durante foco no campo de texto.
+- Mensagens usam melhor a largura disponível sem virarem linhas excessivamente longas.
+
+FOTOS EM LOTE
+- Cada foto continua como mensagem/R2 independente para manter upload, leitura e galeria robustos.
+- Um mediaBatchId une visualmente as fotos escolhidas no mesmo envio.
+- Até quatro miniaturas aparecem em grade.
+- Quando houver mais de quatro, a quarta mostra +N.
+- Ao abrir uma foto de um lote, o visualizador navega somente pelas fotos daquele envio.
+- Lotes antigos sem mediaBatchId continuam aparecendo como mensagens individuais.
+
+NOVAS MENSAGENS
+- O botão ↓ novas mensagens agora faz rolagem em múltiplas etapas.
+- Uma ancoragem final é feita depois que mídias/lazy loading alteram a altura da conversa.
+
+VERSÕES
+Web 36.8.1
+APK 0.7.1
+versionCode 17
+CACHE elo-v36-8-1-desktop-chat-photo-albums-20260902
+
+WORKER
+- Sem alterações nesta versão.

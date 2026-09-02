@@ -1,13 +1,13 @@
 {
   "available": false,
-  "versionName": "0.6.2",
-  "versionCode": 15,
+  "versionName": "0.7.1",
+  "versionCode": 17,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Gestos do Chat refeitos para responder e reagir",
-    "Teclado não sobrepõe mais o campo de mensagem",
-    "Preparação guiada de permissões no primeiro uso",
-    "Seleção de mensagens pela linha inteira"
+    "Chat desktop mais amplo e navegação lateral preservada ao digitar",
+    "Fotos enviadas juntas aparecem em álbum compacto com +N",
+    "Galeria de lote abre somente as fotos daquele envio",
+    "Botão de novas mensagens garante rolagem completa até o final"
   ]
 }

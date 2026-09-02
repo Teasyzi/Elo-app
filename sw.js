@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-8-chat-finalization-20260902';
+const CACHE = 'elo-v36-8-1-desktop-chat-photo-albums-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.8.0',
-  './tailwind.css?v=36.8.0',
-  './styles.css?v=36.8.0',
+  './app.js?v=36.8.1',
+  './tailwind.css?v=36.8.1',
+  './styles.css?v=36.8.1',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

@@ -67,13 +67,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.0';
+        const ELO_WEB_VERSION = '36.8.1';
         const ELO_RELEASE_NOTES = [
-            'O Chat entrou na fase Messenger: teclado, gestos, áudio, anexos múltiplos e encaminhamento receberam uma nova rodada completa.',
-            'No APK, as permissões do sistema são solicitadas diretamente no primeiro uso, sem uma tela intermediária do Elo.',
-            'Mensagens de voz ganharam waveform interativa, progresso, velocidades e confirmação de áudio ouvido.',
-            'Fotos podem ser selecionadas em lote, revisadas antes do envio e receber legenda.',
-            'Ações e reações ficaram menores, mais fluidas e com áreas de toque mais naturais.'
+            'O Chat no computador ganhou mais espaço e mantém a navegação lateral disponível enquanto você digita.',
+            'Fotos enviadas juntas agora aparecem em um único álbum compacto, com indicador +N para abrir o restante.',
+            'O botão de novas mensagens agora garante a descida completa até o fim da conversa, mesmo após mídias carregarem.',
+            'A experiência mobile da V36.8 foi preservada enquanto os ajustes desta versão ficam concentrados no desktop e na organização de fotos.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -171,7 +170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.0', versionCode:16 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.1', versionCode:17 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2384,6 +2383,9 @@ window.checkInToday = async (buttonEl = null) => {
             fileSize: Number(m.fileSize || m.mediaSize || 0),
             sendState: m.sendState || 'sent',
             localMediaUrl: m.localMediaUrl || '',
+            mediaBatchId: m.mediaBatchId || m.batchId || '',
+            mediaBatchIndex: Number.isFinite(Number(m.mediaBatchIndex)) ? Number(m.mediaBatchIndex) : -1,
+            mediaBatchCount: Number(m.mediaBatchCount || 0),
             _optimistic: !!m._optimistic,
             _uploading: !!m._uploading,
             _failed: !!m._failed
@@ -3172,7 +3174,7 @@ window.checkInToday = async (buttonEl = null) => {
             pendingChatImageBatch.forEach(item=>{try{URL.revokeObjectURL(item.previewUrl)}catch(_){}});
             pendingChatImageBatch=[];
         };
-        const queueChatImageFile = async (file, caption='') => {
+        const queueChatImageFile = async (file, caption='', batchMeta=null) => {
             if (!file || !coupleData || !currentUser || !coupleId) return;
             if (!file.type.startsWith('image/')) return showToast('Selecione uma imagem.', 'error');
             if (file.size > 12 * 1024 * 1024) return showToast(`${file.name||'A imagem'} deve ter até 12 MB.`, 'error');
@@ -3189,6 +3191,7 @@ window.checkInToday = async (buttonEl = null) => {
             const optimistic={
                 id,senderId:currentUser.uid,type:'image',mediaKey:'',mediaUrl:'',localMediaUrl:localUrl,
                 mimeType:file.type,mediaSize:file.size,text:cleanCaption,timestamp:Date.now(),replyTo:replySnapshot,
+                mediaBatchId:batchMeta?.id||'',mediaBatchIndex:Number(batchMeta?.index??-1),mediaBatchCount:Number(batchMeta?.count||0),
                 reactions:{},readBy:{[currentUser.uid]:true},sendState:'uploading',_optimistic:true,_uploading:true
             };
 
@@ -3207,7 +3210,8 @@ window.checkInToday = async (buttonEl = null) => {
                     const finalMsg={
                         id,senderId:currentUser.uid,type:'image',mediaKey:uploaded.key,mediaUrl:'',
                         mimeType:uploaded.contentType,mediaSize:uploaded.size,text:cleanCaption,timestamp:optimistic.timestamp,
-                        replyTo:replySnapshot,reactions:{},readBy:{[currentUser.uid]:true},sendState:'sent'
+                        replyTo:replySnapshot,mediaBatchId:batchMeta?.id||'',mediaBatchIndex:Number(batchMeta?.index??-1),mediaBatchCount:Number(batchMeta?.count||0),
+                        reactions:{},readBy:{[currentUser.uid]:true},sendState:'sent'
                     };
                     chatMessages=chatMessages.map(m=>m.id===id?{...finalMsg,localMediaUrl:localUrl}:m);
                     renderChatOnly();
@@ -3242,7 +3246,8 @@ window.checkInToday = async (buttonEl = null) => {
         window.sendChatImageBatch = async () => {
             const caption=String(document.getElementById('elo-image-batch-caption')?.value||'').trim();
             const items=pendingChatImageBatch.slice(); pendingChatImageBatch=[]; closeGenericModal();
-            items.forEach((item,index)=>{ try{URL.revokeObjectURL(item.previewUrl)}catch(_){}; queueChatImageFile(item.file,index===0?caption:''); });
+            const batchId=`photos_${Date.now()}_${currentUser?.uid||'user'}_${Math.random().toString(36).slice(2,7)}`;
+            items.forEach((item,index)=>{ try{URL.revokeObjectURL(item.previewUrl)}catch(_){}; queueChatImageFile(item.file,index===0?caption:'',{id:batchId,index,count:items.length}); });
             showToast(`${items.length} foto${items.length>1?'s':''} adicionada${items.length>1?'s':''} ao envio.`,'success');
         };
         window.sendChatImage = async (e) => {
@@ -3543,7 +3548,18 @@ window.checkInToday = async (buttonEl = null) => {
                 else el.scrollTop = el.scrollHeight;
             });
         };
-        window.scrollChatToLatest = () => scrollChatToBottom(true);
+        window.scrollChatToLatest = () => {
+            scrollChatToBottom(true);
+            // Fotos/áudios podem terminar de hidratar enquanto a rolagem suave ainda está acontecendo.
+            // Reancoramos no fim algumas vezes para que o botão sempre leve à mensagem mais recente de verdade.
+            [140, 320, 650].forEach((delay,index)=>setTimeout(()=>{
+                const el=document.getElementById('chat-messages');
+                if(!el||window.activeTab!=='chat')return;
+                chatUserAwayFromBottom=false; chatWasNearBottom=true; chatNewMessagesWhileAway=0; updateChatNewMessagesButton();
+                if(index===0 && el.scrollTo) el.scrollTo({top:el.scrollHeight,behavior:'smooth'});
+                else el.scrollTop=el.scrollHeight;
+            },delay));
+        };
         const forceChatToLatestOnEntry = () => {
             if (window.activeTab !== 'chat') return;
             chatForceBottomOnOpen = true;
@@ -3617,9 +3633,11 @@ window.checkInToday = async (buttonEl = null) => {
             overlay.querySelector('[data-media-prev]')?.toggleAttribute('disabled',chatMediaViewerIndex<=0);
             overlay.querySelector('[data-media-next]')?.toggleAttribute('disabled',chatMediaViewerIndex>=ids.length-1);
         };
-        window.openChatMediaViewer = async id => {
+        window.openChatMediaViewer = async (id, batchId='') => {
             if(!chatArchiveComplete){try{await ensureCompleteChatArchive({});}catch(_){}}
-            const images=getChatImageMessages(); chatMediaViewerIds=images.map(m=>m.id); chatMediaViewerIndex=Math.max(0,chatMediaViewerIds.indexOf(id));
+            const allImages=getChatImageMessages();
+            const images=batchId ? allImages.filter(m=>m.mediaBatchId===batchId) : allImages;
+            chatMediaViewerIds=images.map(m=>m.id); chatMediaViewerIndex=Math.max(0,chatMediaViewerIds.indexOf(id));
             document.getElementById('elo-chat-media-viewer')?.remove();
             const overlay=document.createElement('div');overlay.id='elo-chat-media-viewer';overlay.className='elo-media-viewer';
             overlay.innerHTML=`<div class="elo-media-viewer-top"><button onclick="closeChatMediaViewer()"><i class="ph-bold ph-x"></i></button><div class="min-w-0 flex-1"><b data-media-label>Foto</b><small data-media-count></small></div><button onclick="downloadCurrentChatMedia()" title="Salvar foto"><i class="ph-bold ph-download-simple"></i></button></div><div class="elo-media-viewer-stage"><button data-media-prev onclick="stepChatMediaViewer(-1)" class="elo-media-nav prev"><i class="ph-bold ph-caret-left"></i></button><img alt="Foto da conversa"><button data-media-next onclick="stepChatMediaViewer(1)" class="elo-media-nav next"><i class="ph-bold ph-caret-right"></i></button></div>`;
@@ -3656,9 +3674,29 @@ window.checkInToday = async (buttonEl = null) => {
             const readState=m=>Object.keys(m.readBy||{}).length>1?'<i class="ph-bold ph-checks text-[11px] text-sky-400" title="Lida"></i>':'<i class="ph-bold ph-check text-[11px] text-white/55" title="Enviada"></i>';
             let lastDay='';
 
-            const msgHTML=chatMessages.map((m,index)=>{
+            // Fotos escolhidas no mesmo envio continuam sendo mensagens independentes no Firestore/R2,
+            // mas são apresentadas como um único álbum no Chat (estilo mensageiro moderno).
+            const renderMessages=[];
+            const consumedPhotoBatches=new Set();
+            chatMessages.forEach(message=>{
+                if(message.type==='image' && message.mediaBatchId){
+                    if(consumedPhotoBatches.has(message.mediaBatchId))return;
+                    consumedPhotoBatches.add(message.mediaBatchId);
+                    const group=chatMessages
+                        .filter(x=>x.type==='image' && x.mediaBatchId===message.mediaBatchId && x.senderId===message.senderId)
+                        .sort((a,b)=>(a.mediaBatchIndex-b.mediaBatchIndex)||(a.timestamp-b.timestamp));
+                    if(group.length>1){
+                        const first=group[0], last=group[group.length-1];
+                        renderMessages.push({...first,id:first.id,type:'image_group',imageGroup:group,text:group.find(x=>x.text)?.text||'',timestamp:last.timestamp,readBy:last.readBy||{},_uploading:group.some(x=>x._uploading),_failed:group.some(x=>x._failed),sendState:group.some(x=>x.sendState==='uploading')?'uploading':'sent'});
+                        return;
+                    }
+                }
+                renderMessages.push(message);
+            });
+
+            const msgHTML=renderMessages.map((m,index)=>{
                 const isMe=m.senderId===currentUser.uid;
-                const prev=chatMessages[index-1], next=chatMessages[index+1];
+                const prev=renderMessages[index-1], next=renderMessages[index+1];
                 const closeInTime=(a,b)=>a&&b&&Math.abs(Number(a.timestamp||0)-Number(b.timestamp||0))<5*60*1000&&chatDateKey(a.timestamp)===chatDateKey(b.timestamp);
                 const groupedPrev=!!(prev&&prev.senderId===m.senderId&&closeInTime(prev,m));
                 const groupedNext=!!(next&&next.senderId===m.senderId&&closeInTime(m,next));
@@ -3668,7 +3706,26 @@ window.checkInToday = async (buttonEl = null) => {
                 const reply=m.replyTo?`<button type="button" class="elo-message-reply" onclick="event.stopPropagation();jumpToChatMessage('${escapeHTML(m.replyTo.id||'')}')"><span>↩ ${escapeHTML(getProfileName(m.replyTo.senderId))}</span><b>${escapeHTML(m.replyTo.text||'Mídia')}</b></button>`:'';
                 let content='';
                 let mediaClass='';
-                if(m.type==='image'){
+                if(m.type==='image_group'){
+                    const group=m.imageGroup||[];
+                    const visible=group.slice(0,4);
+                    const tiles=visible.map((img,tileIndex)=>{
+                        const remaining=group.length-4;
+                        const more=(tileIndex===3&&remaining>0)?`<span class="elo-image-group-more">+${remaining}</span>`:'';
+                        let image='';
+                        if(img.localMediaUrl){
+                            image=`<img src="${escapeHTML(img.localMediaUrl)}" decoding="async" alt="Foto ${tileIndex+1}" draggable="false">`;
+                        }else if(img.mediaKey){
+                            image=`<span data-media-holder class="elo-image-group-holder"><span class="elo-chat-media-loading"><i class="ph-bold ph-image"></i></span><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(img.mediaKey)}" src="" class="opacity-0" alt="Foto ${tileIndex+1}" draggable="false"></span>`;
+                        }else{
+                            image=`<img src="${escapeHTML(img.mediaUrl||img.text)}" loading="lazy" decoding="async" alt="Foto ${tileIndex+1}" draggable="false">`;
+                        }
+                        return `<button type="button" class="elo-image-group-tile" onclick="event.stopPropagation();openChatMediaViewer('${escapeHTML(img.id)}','${escapeHTML(m.mediaBatchId||'')}')" aria-label="Abrir foto ${tileIndex+1} de ${group.length}">${image}${more}</button>`;
+                    }).join('');
+                    content=`<div class="elo-image-group count-${Math.min(group.length,4)}">${tiles}</div>`;
+                    if(m.text)content+=`<div class="elo-image-caption">${renderChatText(m.text)}</div>`;
+                    mediaClass=' media image-album';
+                } else if(m.type==='image'){
                     if(m.localMediaUrl){
                         const src=escapeHTML(m.localMediaUrl);
                         content=`<img src="${src}" decoding="async" class="elo-message-image ${m._failed?'opacity-70':''}" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')">`;

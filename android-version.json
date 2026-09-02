@@ -1,14 +1,13 @@
 {
   "available": false,
-  "versionName": "0.7.0",
-  "versionCode": 16,
+  "versionName": "0.7.1",
+  "versionCode": 17,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Chat ocupa corretamente a área acima do teclado no Android/iPhone",
-    "Permissões do sistema solicitadas diretamente no primeiro uso",
-    "Áudios com waveform, seek, velocidades e confirmação de ouvido",
-    "Seleção e revisão de várias fotos antes do envio",
-    "Encaminhamento para chats de Elos amigos e reações mais fluidas"
+    "Chat desktop mais amplo e navegação lateral preservada ao digitar",
+    "Fotos enviadas juntas aparecem em álbum compacto com +N",
+    "Galeria de lote abre somente as fotos daquele envio",
+    "Botão de novas mensagens garante rolagem completa até o final"
   ]
 }
