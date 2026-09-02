@@ -67,12 +67,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.2';
+        const ELO_WEB_VERSION = '36.8.3';
         const ELO_RELEASE_NOTES = [
-            'Responder com swipe preserva exatamente a posição da conversa e não joga o Chat para o final.',
-            'O cabeçalho geral do Elo some dentro do Chat: a conversa passa a destacar apenas o perfil do parceiro.',
-            'Envio de várias fotos ficou mais estável e o álbum ganhou composição mais compacta e elegante.',
-            'No computador o Chat encosta melhor na navegação lateral, usa mais da tela e recebeu transições mais suaves.'
+            'O lembrete superior de notificações agora só aparece quando a permissão foi realmente negada.',
+            'Fotos já carregadas permanecem na tela durante novos envios, reduzindo recarregamentos e piscadas no Chat.',
+            'O botão Voltar do Android/PWA fecha primeiro o perfil da conversa antes de sair do Elo.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -170,7 +169,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.2', versionCode:18 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.3', versionCode:19 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2929,6 +2928,16 @@ window.checkInToday = async (buttonEl = null) => {
             return objectUrl;
         };
 
+        const cachedPrivateChatMediaUrl = key => {
+            if (!key || !chatMediaObjectUrls.has(key)) return '';
+            const cached = chatMediaObjectUrls.get(key);
+            // Mantém o item quente no LRU e, principalmente, permite reutilizar a mesma
+            // URL no HTML seguinte sem voltar ao placeholder a cada render do Chat.
+            chatMediaObjectUrls.delete(key);
+            chatMediaObjectUrls.set(key, cached);
+            return cached || '';
+        };
+
         const fetchPrivateChatMedia = async key => {
             if (!key) throw new Error('Mídia sem chave');
             if (chatMediaObjectUrls.has(key)) {
@@ -3745,7 +3754,10 @@ window.checkInToday = async (buttonEl = null) => {
                         if(img.localMediaUrl){
                             image=`<img src="${escapeHTML(img.localMediaUrl)}" decoding="async" alt="Foto ${tileIndex+1}" draggable="false">`;
                         }else if(img.mediaKey){
-                            image=`<span data-media-holder class="elo-image-group-holder"><span class="elo-chat-media-loading"><i class="ph-bold ph-image"></i></span><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(img.mediaKey)}" src="" class="opacity-0" alt="Foto ${tileIndex+1}" draggable="false"></span>`;
+                            const cachedSrc=cachedPrivateChatMediaUrl(img.mediaKey);
+                            image=cachedSrc
+                                ? `<span data-media-holder class="elo-image-group-holder"><img decoding="async" data-private-media-key="${escapeHTML(img.mediaKey)}" data-media-hydrated="1" src="${escapeHTML(cachedSrc)}" alt="Foto ${tileIndex+1}" draggable="false"></span>`
+                                : `<span data-media-holder class="elo-image-group-holder"><span class="elo-chat-media-loading"><i class="ph-bold ph-image"></i></span><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(img.mediaKey)}" src="" class="opacity-0" alt="Foto ${tileIndex+1}" draggable="false"></span>`;
                         }else{
                             image=`<img src="${escapeHTML(img.mediaUrl||img.text)}" loading="lazy" decoding="async" alt="Foto ${tileIndex+1}" draggable="false">`;
                         }
@@ -3759,7 +3771,10 @@ window.checkInToday = async (buttonEl = null) => {
                         const src=escapeHTML(m.localMediaUrl);
                         content=`<img src="${src}" decoding="async" class="elo-message-image ${m._failed?'opacity-70':''}" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')">`;
                     } else if(m.mediaKey){
-                        content=`<div data-media-holder class="elo-chat-media-loading-wrap"><div class="elo-chat-media-loading"><i class="ph-bold ph-image text-xl mb-1"></i><span>Carregando foto…</span></div><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(m.mediaKey)}" src="" class="elo-message-image opacity-0" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')"></div>`;
+                        const cachedSrc=cachedPrivateChatMediaUrl(m.mediaKey);
+                        content=cachedSrc
+                            ? `<div data-media-holder><img decoding="async" data-private-media-key="${escapeHTML(m.mediaKey)}" data-media-hydrated="1" src="${escapeHTML(cachedSrc)}" class="elo-message-image" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')"></div>`
+                            : `<div data-media-holder class="elo-chat-media-loading-wrap"><div class="elo-chat-media-loading"><i class="ph-bold ph-image text-xl mb-1"></i><span>Carregando foto…</span></div><img loading="lazy" decoding="async" data-private-media-key="${escapeHTML(m.mediaKey)}" src="" class="elo-message-image opacity-0" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')"></div>`;
                     } else {
                         const src=escapeHTML(m.mediaUrl||m.text); content=`<img src="${src}" loading="lazy" decoding="async" class="elo-message-image" alt="Imagem enviada no chat" draggable="false" onclick="event.stopPropagation();openChatMediaViewer('${m.id}')">`;
                     }
@@ -4343,7 +4358,10 @@ window.checkInToday = async (buttonEl = null) => {
             if (!currentUser) { box.classList.add('hidden'); return; }
             const state = await getNotificationPermissionState();
             const enabled = state === 'granted';
-            box.classList.toggle('hidden', enabled || state === 'unsupported');
+            // O primeiro acesso já tenta abrir a permissão do sistema. O banner superior
+            // só faz sentido como recuperação quando a pessoa realmente recusou/bloqueou.
+            const denied = state === 'denied';
+            box.classList.toggle('hidden', !denied);
             const title = document.getElementById('elo-notification-nudge-title');
             const text = document.getElementById('elo-notification-nudge-text');
             const action = document.getElementById('elo-notification-nudge-action');
@@ -4351,19 +4369,10 @@ window.checkInToday = async (buttonEl = null) => {
                 await ensurePushRegistrationSilently();
                 return;
             }
-            if (isIOSWebRuntime() && !isStandaloneWebRuntime()) {
-                if (title) title.textContent = 'Não perca nada do seu Elo';
-                if (text) text.textContent = 'No iPhone, adicione o Elo à Tela de Início para receber notificações mesmo fechado.';
-                if (action) action.textContent = 'Como instalar';
-            } else if (state === 'denied') {
-                if (title) title.textContent = 'Notificações bloqueadas';
-                if (text) text.textContent = 'A experiência fica melhor com avisos do seu amor. Libere o Elo nas configurações do aparelho ou navegador.';
-                if (action) action.textContent = 'Como ativar';
-            } else {
-                if (title) title.textContent = 'Fique pertinho, mesmo longe';
-                if (text) text.textContent = 'Ative as notificações para receber mensagens, presentes, Chama e outras novidades do seu amor.';
-                if (action) action.textContent = 'Ativar';
-            }
+            if (!denied) return;
+            if (title) title.textContent = 'Notificações bloqueadas';
+            if (text) text.textContent = 'Você recusou as notificações neste aparelho. Ative nas configurações para não perder mensagens do seu amor.';
+            if (action) action.textContent = 'Como ativar';
         };
 
         window.openNotificationPermissionPrompt = async ({manual=false}={}) => {
@@ -6408,11 +6417,37 @@ const centerActiveStoreCategory = (smooth = true) => {
             document.querySelectorAll('[data-chat-profile-tab]').forEach(b=>b.classList.toggle('active',b.dataset.chatProfileTab===tab));
             const body=document.getElementById('elo-chat-profile-section'); if(body)body.innerHTML=chatPartnerProfileSectionHTML(tab);
         };
+        let chatProfileHistoryArmed = false;
+        const markChatProfileModal = () => {
+            const modal=document.getElementById('generic-modal');
+            if(modal) modal.dataset.eloModal='chat-profile';
+        };
+        const closeChatProfileFromHistory = () => {
+            const modal=document.getElementById('generic-modal');
+            if(modal?.dataset?.eloModal==='chat-profile') modal.remove();
+            chatProfileHistoryArmed=false;
+        };
+        window.closePartnerChatProfile = () => {
+            if(chatProfileHistoryArmed && history.state?.eloOverlay==='chat-profile'){
+                history.back();
+                return;
+            }
+            closeChatProfileFromHistory();
+        };
+        window.addEventListener('popstate',()=>{
+            const modal=document.getElementById('generic-modal');
+            if(modal?.dataset?.eloModal==='chat-profile') closeChatProfileFromHistory();
+        });
+
         window.openPartnerChatProfile = async () => {
             const partnerUid=partnerUidOf(); const partner=partnerUid?coupleData?.users?.[partnerUid]:null;
             if(!partner)return;
             const avatar=partner.photoUrl?`<img src="${escapeHTML(partner.photoUrl)}" alt="${escapeHTML(partner.name||'Parceiro')}">`:`<span>${escapeHTML((partner.name||'A').charAt(0).toUpperCase())}</span>`;
-            openGenericModal(`<div class="elo-chat-profile"><div class="flex items-start justify-between"><div></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400"><i class="ph-bold ph-x"></i></button></div><div class="elo-chat-profile-hero"><div class="elo-chat-profile-avatar">${avatar}</div><h3>${escapeHTML(partner.name||'Seu amor')}</h3><p>${partner.lastSeen&&Date.now()-Number(partner.lastSeen)<90000?'online agora':'Seu par no Elo ❤️'}</p></div><div id="elo-chat-profile-stats" class="elo-chat-profile-stats"><div><b>…</b><span>mensagens</span></div><div><b>…</b><span>fotos</span></div><div><b>…</b><span>áudios</span></div></div><div class="elo-chat-profile-tabs hide-scrollbar">${[['media','Mídia'],['audio','Áudios'],['links','Links'],['favorites','Favoritos'],['files','Arquivos']].map(([id,label],i)=>`<button data-chat-profile-tab="${id}" onclick="setPartnerChatProfileTab('${id}')" class="${i===0?'active':''}">${label}</button>`).join('')}</div><div id="elo-chat-profile-section"><div class="elo-profile-empty"><i class="ph-bold ph-spinner-gap elo-spin"></i><span>Organizando a conversa…</span></div></div></div>`);
+            openGenericModal(`<div class="elo-chat-profile"><div class="flex items-start justify-between"><div></div><button onclick="closePartnerChatProfile()" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400"><i class="ph-bold ph-x"></i></button></div><div class="elo-chat-profile-hero"><div class="elo-chat-profile-avatar">${avatar}</div><h3>${escapeHTML(partner.name||'Seu amor')}</h3><p>${partner.lastSeen&&Date.now()-Number(partner.lastSeen)<90000?'online agora':'Seu par no Elo ❤️'}</p></div><div id="elo-chat-profile-stats" class="elo-chat-profile-stats"><div><b>…</b><span>mensagens</span></div><div><b>…</b><span>fotos</span></div><div><b>…</b><span>áudios</span></div></div><div class="elo-chat-profile-tabs hide-scrollbar">${[['media','Mídia'],['audio','Áudios'],['links','Links'],['favorites','Favoritos'],['files','Arquivos']].map(([id,label],i)=>`<button data-chat-profile-tab="${id}" onclick="setPartnerChatProfileTab('${id}')" class="${i===0?'active':''}">${label}</button>`).join('')}</div><div id="elo-chat-profile-section"><div class="elo-profile-empty"><i class="ph-bold ph-spinner-gap elo-spin"></i><span>Organizando a conversa…</span></div></div></div>`);
+            markChatProfileModal();
+            if(!chatProfileHistoryArmed){
+                try{history.pushState({...history.state,eloOverlay:'chat-profile'},'',location.href);chatProfileHistoryArmed=true;}catch(_){}
+            }
             try{
                 const all=await ensureCompleteChatArchive({onProgress:n=>{const sec=document.getElementById('elo-chat-profile-section');if(sec)sec.innerHTML=`<div class="elo-profile-empty"><i class="ph-bold ph-spinner-gap elo-spin"></i><span>${n} mensagens verificadas…</span></div>`;}});
                 const images=all.filter(m=>m.type==='image').length, audios=all.filter(m=>m.type==='audio').length;

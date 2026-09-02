@@ -1,0 +1,7 @@
+ELO V36.8.3 / APK 0.7.3
+
+- O aviso superior de notificações fica oculto enquanto a permissão está pendente/default e só reaparece após uma recusa/bloqueio real.
+- O cache de mídia privada agora é reaproveitado diretamente no HTML do Chat; fotos já carregadas não voltam para o placeholder sempre que outro upload força uma renderização.
+- Perfil da conversa ganhou integração com history.pushState/popstate. No Android/PWA, o botão Voltar fecha primeiro o perfil em vez de sair imediatamente do Elo.
+- Botão X do perfil utiliza o mesmo fluxo de navegação para manter a pilha consistente.
+- Service Worker e assets atualizados para 36.8.3.

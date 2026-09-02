@@ -1,14 +1,12 @@
 {
   "available": false,
-  "versionName": "0.7.2",
-  "versionCode": 18,
+  "versionName": "0.7.3",
+  "versionCode": 19,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Swipe para responder preserva a posição da conversa",
-    "Cabeçalho do Chat mostra apenas o parceiro",
-    "Envio de múltiplas fotos com menos reconstruções e menos piscadas",
-    "Álbuns de fotos mais compactos e refinados",
-    "Chat desktop ocupa melhor o espaço junto ao menu lateral"
+    "Banner de notificações só aparece após recusa/bloqueio da permissão",
+    "Imagens já carregadas são reutilizadas sem voltar ao placeholder durante novos envios",
+    "Botão Voltar do Android/PWA fecha o perfil da conversa antes de sair do app"
   ]
 }
