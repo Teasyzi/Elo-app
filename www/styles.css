@@ -1088,3 +1088,133 @@ body:not([data-elo-tab="chat"]) #main-content::after{content:"";display:block;he
 .elo-theme-preview-actions{display:flex;gap:.35rem;flex-shrink:0}.elo-theme-preview-actions button{min-height:2.15rem;padding:0 .65rem;border-radius:.7rem;background:var(--elo-surface-2);border:1px solid color-mix(in srgb,var(--elo-primary) 20%,transparent);color:var(--elo-text);font-size:.57rem;font-weight:950;touch-action:manipulation}.elo-theme-preview-actions button.is-buy{background:var(--elo-primary);border-color:var(--elo-primary);color:white}
 @media(max-width:430px){.elo-theme-choice-locked{grid-template-columns:2.4rem minmax(0,1fr)}.elo-theme-choice-locked>.elo-theme-actions{grid-column:1/-1;width:100%;justify-content:flex-end}.elo-theme-actions button{flex:1}.elo-theme-preview-actions button{padding:0 .5rem}.elo-theme-preview-actions .is-buy{max-width:9rem}#elo-theme-preview-dock{bottom:calc(4.7rem + env(safe-area-inset-bottom));padding:.48rem}.elo-theme-preview-dock small{display:none}}
 @media(min-width:1024px){#elo-theme-preview-dock{bottom:1rem}}
+
+/* ===== ELO V36.9.2 · HOME AKAI ITO + THEMES THAT REALLY TRANSFORM ===== */
+:root{
+  --elo-primary:#c52f47;
+  --elo-secondary:#7b2134;
+  --elo-accent:#f0a4af;
+  --elo-bg:#10090c;
+  --elo-bg-2:#1b0e13;
+  --elo-surface:#1d1115;
+  --elo-surface-2:#28161c;
+  --elo-surface-3:#351b23;
+  --elo-text:#fff7f3;
+  --elo-muted:#bca6a8;
+  --elo-border:rgba(220,93,113,.18);
+  --elo-thread:#df334f;
+  --elo-glow:rgba(218,49,76,.20);
+  --elo-card-pattern:none;
+  --elo-home-pattern:radial-gradient(circle at 25% 0%,rgba(223,51,79,.16),transparent 35%),radial-gradient(circle at 85% 30%,rgba(123,33,52,.16),transparent 35%);
+  --elo-radius-card:1.55rem;
+}
+body.elo-theme-akai{
+  --elo-primary:#c52f47;--elo-secondary:#7b2134;--elo-accent:#f3a5b0;
+  --elo-bg:#10090c;--elo-bg-2:#1b0e13;--elo-surface:#1d1115;--elo-surface-2:#28161c;--elo-surface-3:#351b23;
+  --elo-text:#fff7f3;--elo-muted:#bca6a8;--elo-border:rgba(220,93,113,.18);--elo-thread:#df334f;--elo-glow:rgba(218,49,76,.22);
+  --elo-home-pattern:radial-gradient(circle at 12% 0%,rgba(223,51,79,.18),transparent 31%),radial-gradient(circle at 94% 24%,rgba(108,26,48,.23),transparent 37%);
+  --elo-card-pattern:linear-gradient(135deg,rgba(255,255,255,.018),transparent 42%);
+}
+body.elo-theme-sakura{
+  --elo-primary:#ef7f9c;--elo-secondary:#973d68;--elo-accent:#ffd0dc;
+  --elo-bg:#28141e;--elo-bg-2:#351a27;--elo-surface:#3a202c;--elo-surface-2:#4b2838;--elo-surface-3:#5a3042;
+  --elo-text:#fff7fa;--elo-muted:#ddbac6;--elo-border:rgba(255,177,201,.24);--elo-thread:#ff9db7;--elo-glow:rgba(239,127,156,.25);
+  --elo-home-pattern:radial-gradient(circle at 20% 5%,rgba(255,178,201,.26),transparent 34%),radial-gradient(circle at 78% 18%,rgba(239,127,156,.20),transparent 34%),linear-gradient(160deg,rgba(255,211,223,.035),transparent 55%);
+  --elo-card-pattern:radial-gradient(circle at 88% 12%,rgba(255,207,220,.08),transparent 25%);
+  --elo-radius-card:1.9rem;
+}
+body.elo-theme-midnight{
+  --elo-primary:#8f83ff;--elo-secondary:#3448a5;--elo-accent:#79d7ff;
+  --elo-bg:#070915;--elo-bg-2:#0d1124;--elo-surface:#11162b;--elo-surface-2:#18203a;--elo-surface-3:#20294a;
+  --elo-text:#f5f6ff;--elo-muted:#a8b1d0;--elo-border:rgba(124,139,255,.22);--elo-thread:#9b8dff;--elo-glow:rgba(92,111,255,.24);
+  --elo-home-pattern:radial-gradient(circle at 15% -2%,rgba(103,121,255,.24),transparent 31%),radial-gradient(circle at 87% 18%,rgba(60,194,255,.13),transparent 35%),radial-gradient(circle at 65% 70%,rgba(121,78,255,.08),transparent 32%);
+  --elo-card-pattern:linear-gradient(120deg,rgba(113,134,255,.045),transparent 45%);
+  --elo-radius-card:1.35rem;
+}
+body.elo-theme-cozy{
+  --elo-primary:#d58a58;--elo-secondary:#7f4c32;--elo-accent:#f3bd80;
+  --elo-bg:#140d09;--elo-bg-2:#1d130d;--elo-surface:#281a12;--elo-surface-2:#352319;--elo-surface-3:#432d20;
+  --elo-text:#fff7eb;--elo-muted:#cfb59f;--elo-border:rgba(218,146,94,.21);--elo-thread:#e19a68;--elo-glow:rgba(194,116,69,.20);
+  --elo-home-pattern:radial-gradient(circle at 12% 4%,rgba(215,139,89,.18),transparent 32%),radial-gradient(circle at 92% 28%,rgba(119,67,40,.22),transparent 37%),linear-gradient(135deg,rgba(255,224,186,.018),transparent 50%);
+  --elo-card-pattern:linear-gradient(135deg,rgba(244,191,134,.035),transparent 38%);
+  --elo-radius-card:1.75rem;
+}
+body.elo-theme-custom{
+  --elo-secondary:color-mix(in srgb,var(--elo-primary) 62%,#111);
+  --elo-accent:color-mix(in srgb,var(--elo-primary) 58%,white);
+  --elo-bg-2:color-mix(in srgb,var(--elo-bg) 82%,var(--elo-primary));
+  --elo-surface-2:color-mix(in srgb,var(--elo-surface) 84%,var(--elo-primary));
+  --elo-surface-3:color-mix(in srgb,var(--elo-surface) 72%,var(--elo-primary));
+  --elo-text:#fff8f5;--elo-muted:color-mix(in srgb,#fff 63%,var(--elo-bg));
+  --elo-border:color-mix(in srgb,var(--elo-primary) 25%,transparent);--elo-glow:color-mix(in srgb,var(--elo-primary) 22%,transparent);
+  --elo-home-pattern:radial-gradient(circle at 14% 0%,color-mix(in srgb,var(--elo-primary) 20%,transparent),transparent 34%),radial-gradient(circle at 90% 20%,color-mix(in srgb,var(--elo-thread) 14%,transparent),transparent 38%);
+}
+
+/* Neutral surfaces now follow the selected theme across Home, Shop, Quests, modals, etc. */
+body[class*="elo-theme-"] [class*="bg-slate-950"],body[class*="elo-theme-"] [class*="bg-slate-900"]{background-color:var(--elo-surface)!important}
+body[class*="elo-theme-"] [class*="bg-slate-800"]{background-color:var(--elo-surface-2)!important}
+body[class*="elo-theme-"] [class*="border-slate-900"],body[class*="elo-theme-"] [class*="border-slate-800"],body[class*="elo-theme-"] [class*="border-slate-700"]{border-color:var(--elo-border)!important}
+body[class*="elo-theme-"] [class*="text-slate-100"],body[class*="elo-theme-"] [class*="text-slate-200"],body[class*="elo-theme-"] [class*="text-slate-300"]{color:var(--elo-text)!important}
+body[class*="elo-theme-"] [class*="text-slate-400"],body[class*="elo-theme-"] [class*="text-slate-500"],body[class*="elo-theme-"] [class*="text-slate-600"]{color:var(--elo-muted)!important}
+body[class*="elo-theme-"] [class*="text-pink-"],body[class*="elo-theme-"] [class*="text-purple-"]{color:var(--elo-primary)!important}
+body[class*="elo-theme-"] [class*="border-pink-"],body[class*="elo-theme-"] [class*="border-purple-"]{border-color:color-mix(in srgb,var(--elo-primary) 30%,transparent)!important}
+body[class*="elo-theme-"] #main-content{background:transparent}
+body[class*="elo-theme-"] #generic-modal>div,body[class*="elo-theme-"] #profile-modal>div,body[class*="elo-theme-"] .modal-content{background:var(--elo-bg-2)!important;border-color:var(--elo-border)!important}
+body[class*="elo-theme-"] input:not([type="color"]),body[class*="elo-theme-"] textarea,body[class*="elo-theme-"] select{border-color:var(--elo-border)!important}
+
+body[class*="elo-theme-"]{background:var(--elo-home-pattern),var(--elo-bg)!important;transition:background-color .28s ease,color .28s ease}
+body[class*="elo-theme-"]::before{background:linear-gradient(116deg,transparent 0 46.5%,color-mix(in srgb,var(--elo-thread) 7%,transparent) 47%,transparent 47.5% 100%);opacity:.8}
+#main-header,#main-nav{background:color-mix(in srgb,var(--elo-bg-2) 92%,transparent)!important;border-color:var(--elo-border)!important;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+#main-header{backdrop-filter:blur(18px)}
+#main-nav{backdrop-filter:blur(20px)}
+
+/* Home: one visual language, no hard-coded Slate/Pink dependency. */
+.elo-home-v2{display:grid;gap:.9rem;padding:0 0 .4rem;position:relative}
+.elo-home-cover,.elo-home-panel,.elo-home-section,.elo-home-story{position:relative;border:1px solid var(--elo-border);border-radius:var(--elo-radius-card);background:var(--elo-card-pattern),linear-gradient(145deg,color-mix(in srgb,var(--elo-surface) 96%,var(--elo-primary)),var(--elo-surface));box-shadow:0 18px 48px rgba(0,0,0,.20);overflow:hidden}
+.elo-home-cover{padding:1.15rem 1.05rem 1rem;background:var(--elo-card-pattern),radial-gradient(circle at 50% 52%,color-mix(in srgb,var(--elo-primary) 15%,transparent),transparent 38%),linear-gradient(155deg,color-mix(in srgb,var(--elo-surface) 95%,var(--elo-primary)),color-mix(in srgb,var(--elo-bg) 94%,var(--elo-secondary)));isolation:isolate}
+.elo-home-cover::after{content:"";position:absolute;inset:auto -18% -40% -18%;height:68%;background:radial-gradient(ellipse at center,color-mix(in srgb,var(--elo-primary) 17%,transparent),transparent 65%);z-index:-1}
+.elo-home-thread{position:absolute;height:1.5px;background:linear-gradient(90deg,transparent,var(--elo-thread),transparent);filter:drop-shadow(0 0 5px var(--elo-glow));opacity:.72;pointer-events:none;transform-origin:center}
+.elo-home-thread-a{width:72%;top:47%;left:-17%;transform:rotate(11deg)}.elo-home-thread-b{width:66%;top:58%;right:-14%;transform:rotate(-12deg)}
+.elo-home-cover-top,.elo-home-panel-heading,.elo-home-fire-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.9rem;position:relative;z-index:3}
+.elo-home-eyebrow{margin:0;font-size:.57rem;line-height:1.2;letter-spacing:.19em;text-transform:uppercase;font-weight:950;color:var(--elo-primary)}
+.elo-home-cover h2{margin:.18rem 0 0;font-size:clamp(1.35rem,5vw,2rem);line-height:1.08;font-weight:950;color:var(--elo-text);letter-spacing:-.035em}.elo-home-cover h2 span{color:var(--elo-primary);font-family:Georgia,serif;font-style:italic}
+.elo-home-status{margin:.3rem 0 0;max-width:28rem;font-size:.67rem;line-height:1.45;color:var(--elo-muted)}
+.elo-home-round-action{width:2.5rem;height:2.5rem;display:grid;place-items:center;flex:0 0 auto;border-radius:50%;color:var(--elo-primary);background:color-mix(in srgb,var(--elo-primary) 11%,var(--elo-surface));border:1px solid color-mix(in srgb,var(--elo-primary) 30%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.18);touch-action:manipulation}.elo-home-round-action:active{transform:scale(.94)}
+.elo-home-couple-scene{height:12.4rem;margin:.7rem 0 .2rem;display:grid;grid-template-columns:minmax(0,1fr) 4.6rem minmax(0,1fr);align-items:end;position:relative;z-index:2}
+.elo-home-person{height:10.9rem;min-width:0;display:flex;align-items:center;justify-content:flex-end;flex-direction:column;position:relative}.elo-home-person.is-me .elo-home-avatar{transform:scaleX(-1)}
+.elo-home-avatar{height:9.2rem;width:7.8rem;max-width:100%;display:flex;align-items:flex-end;justify-content:center;filter:drop-shadow(0 14px 14px rgba(0,0,0,.24))}.elo-home-avatar>svg,.elo-home-avatar>div{max-height:100%}
+.elo-home-person>span{position:absolute;bottom:.1rem;max-width:90%;padding:.25rem .55rem;border-radius:999px;font-size:.55rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--elo-text);background:color-mix(in srgb,var(--elo-bg) 80%,transparent);border:1px solid var(--elo-border);backdrop-filter:blur(8px)}
+.elo-home-empty-avatar{font-size:3.2rem;color:var(--elo-muted);margin-bottom:2.3rem}
+.elo-home-destiny{align-self:center;display:flex;flex-direction:column;align-items:center;gap:.48rem;transform:translateY(.9rem)}
+.elo-home-heart-pulse{width:3.45rem;height:3.45rem;border-radius:50%;display:grid;place-items:center;color:var(--elo-primary);font-size:1.55rem;background:color-mix(in srgb,var(--elo-bg) 75%,transparent);border:1px solid color-mix(in srgb,var(--elo-thread) 38%,transparent);box-shadow:0 0 0 .4rem color-mix(in srgb,var(--elo-primary) 5%,transparent),0 0 28px var(--elo-glow);animation:eloHeartSoft 2.7s ease-in-out infinite}
+@keyframes eloHeartSoft{50%{transform:scale(1.07);box-shadow:0 0 0 .65rem color-mix(in srgb,var(--elo-primary) 2%,transparent),0 0 34px var(--elo-glow)}}
+.elo-home-days{font-size:.5rem;font-weight:900;color:var(--elo-muted);white-space:nowrap}
+.elo-home-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.48rem;position:relative;z-index:3;margin-top:.4rem}
+.elo-home-stat{min-width:0;display:flex;align-items:center;gap:.42rem;padding:.62rem .55rem;border-radius:1rem;text-align:left;color:var(--elo-text);background:color-mix(in srgb,var(--elo-surface-2) 86%,transparent);border:1px solid var(--elo-border);touch-action:manipulation}.elo-home-stat>i{font-size:1.05rem;color:var(--elo-primary)}.elo-home-stat span{min-width:0}.elo-home-stat small,.elo-home-stat b{display:block}.elo-home-stat small{font-size:.47rem;text-transform:uppercase;letter-spacing:.07em;font-weight:900;color:var(--elo-muted)}.elo-home-stat b{font-size:.86rem;line-height:1.1;margin-top:.1rem;overflow:hidden;text-overflow:ellipsis}.elo-home-stat em{font-size:.45rem;font-style:normal;color:var(--elo-muted)}button.elo-home-stat:active{transform:scale(.97)}
+.elo-home-panel,.elo-home-section{padding:1rem}.elo-home-panel-heading h3{font-size:1rem;font-weight:950;color:var(--elo-text);margin:.15rem 0 0}.elo-home-level-pill,.elo-home-soft-label{font-size:.52rem;font-weight:900;color:var(--elo-primary);padding:.35rem .55rem;border-radius:999px;background:color-mix(in srgb,var(--elo-primary) 10%,var(--elo-surface-2));border:1px solid color-mix(in srgb,var(--elo-primary) 20%,transparent)}
+.elo-home-xp{height:.34rem;border-radius:999px;overflow:hidden;background:var(--elo-surface-3);margin:.75rem 0 .3rem}.elo-home-xp>div{height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--elo-secondary),var(--elo-primary),var(--elo-accent));box-shadow:0 0 12px var(--elo-glow)}.elo-home-xp-caption{margin:0;text-align:right;font-size:.5rem;color:var(--elo-muted);font-weight:750}
+.elo-home-today-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.78rem}.elo-home-feature-card{min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:.55rem;padding:.7rem;border-radius:1rem;text-align:left;background:var(--elo-surface-2);border:1px solid var(--elo-border);color:var(--elo-text);touch-action:manipulation}.elo-home-feature-card:active{transform:scale(.98)}.elo-home-feature-icon{width:2rem;height:2rem;border-radius:.68rem;display:grid;place-items:center;background:color-mix(in srgb,var(--elo-primary) 9%,var(--elo-surface-3));font-size:1rem}.elo-home-feature-card div{min-width:0}.elo-home-feature-card small,.elo-home-feature-card b,.elo-home-feature-card p{display:block}.elo-home-feature-card small{font-size:.47rem;text-transform:uppercase;letter-spacing:.07em;color:var(--elo-primary);font-weight:950}.elo-home-feature-card b{font-size:.66rem;margin-top:.12rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.elo-home-feature-card p{font-size:.49rem;margin:.12rem 0 0;color:var(--elo-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.elo-home-feature-card>i{font-size:.8rem;color:var(--elo-muted)}
+.elo-home-fire{background:var(--elo-card-pattern),radial-gradient(circle at 10% 0%,rgba(249,115,22,.12),transparent 34%),linear-gradient(150deg,var(--elo-surface),color-mix(in srgb,var(--elo-surface) 90%,var(--elo-primary)))}
+.elo-home-fire-title{display:flex;align-items:center;gap:.62rem}.elo-home-fire-icon{width:2.55rem;height:2.55rem;display:grid;place-items:center;border-radius:.9rem;color:#fb7b32;background:rgba(249,115,22,.10);border:1px solid rgba(249,115,22,.18);font-size:1.4rem}.elo-home-fire-title small,.elo-home-fire-title b,.elo-home-record small,.elo-home-record b{display:block}.elo-home-fire-title small,.elo-home-record small{font-size:.48rem;text-transform:uppercase;letter-spacing:.08em;color:var(--elo-muted);font-weight:900}.elo-home-fire-title b{font-size:1.65rem;line-height:1;color:var(--elo-text);margin-top:.12rem}.elo-home-fire-title em{font-style:normal;font-size:.62rem;color:var(--elo-muted)}.elo-home-record{text-align:right}.elo-home-record b{font-size:1.1rem;color:var(--elo-primary);margin-top:.12rem}
+.elo-streak-countdown{margin:.82rem 0 .65rem;border-radius:.9rem;padding:.65rem .72rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem;background:color-mix(in srgb,var(--elo-surface-2) 88%,transparent);border:1px solid var(--elo-border)}.elo-streak-countdown p{font-size:.5rem;text-transform:uppercase;letter-spacing:.06em;font-weight:900;color:var(--elo-muted);margin:0}.elo-streak-countdown span{font-size:.5rem;color:var(--elo-muted);display:block;margin-top:.12rem}.elo-streak-countdown strong{font-size:.7rem;color:var(--elo-primary);white-space:nowrap}.elo-streak-countdown.urgent{border-color:rgba(245,158,11,.38);box-shadow:0 0 22px rgba(245,158,11,.08)}
+.elo-home-fire-progress{height:.3rem;background:var(--elo-surface-3);border-radius:999px;overflow:hidden}.elo-home-fire-progress>div{height:100%;border-radius:inherit;background:linear-gradient(90deg,#f97316,var(--elo-primary),var(--elo-accent))}
+.elo-home-fire-people{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin:.72rem 0}.elo-home-fire-people>div{padding:.56rem .62rem;border-radius:.85rem;background:var(--elo-surface-2);border:1px solid var(--elo-border)}.elo-home-fire-people span,.elo-home-fire-people b{display:block}.elo-home-fire-people span{font-size:.48rem;text-transform:uppercase;letter-spacing:.06em;color:var(--elo-muted);font-weight:900}.elo-home-fire-people b{font-size:.62rem;margin-top:.1rem}.elo-home-fire-people .is-done{color:#34d399}.elo-home-fire-people .is-pending{color:#fbbf24}.elo-home-fire-people .is-waiting{color:var(--elo-muted)}
+.elo-home-fire-action{width:100%;min-height:2.65rem;border:0;border-radius:.92rem;background:linear-gradient(120deg,#ef6c2f,var(--elo-primary));color:#fff;font-size:.68rem;font-weight:950;box-shadow:0 10px 28px rgba(0,0,0,.20);touch-action:manipulation}.elo-home-fire-action:active{transform:scale(.98)}.elo-home-fire-done{text-align:center;padding:.7rem;border-radius:.9rem;background:color-mix(in srgb,var(--elo-primary) 9%,var(--elo-surface-2));border:1px solid var(--elo-border);font-size:.62rem;font-weight:850;color:var(--elo-accent)}.elo-home-fire-reward{margin:.55rem 0 0;text-align:center;font-size:.48rem;color:var(--elo-muted)}
+.elo-home-connect{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center}.elo-home-connect>span{font-size:1.8rem}.elo-home-connect h3{font-size:1rem;color:var(--elo-text);font-weight:950;margin:.1rem 0}.elo-home-connect div>p:last-child{font-size:.58rem;color:var(--elo-muted);margin:0}.elo-home-connect button{grid-column:1/-1;border-radius:.85rem;min-height:2.5rem;background:var(--elo-primary);color:#fff;font-size:.65rem;font-weight:900}
+.elo-home-activities{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.75rem}.elo-home-activity{position:relative;min-height:6.2rem;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;text-align:left;padding:.75rem;border-radius:1rem;background:var(--elo-surface-2);border:1px solid var(--elo-border);color:var(--elo-text);overflow:hidden;touch-action:manipulation}.elo-home-activity.is-featured{background:linear-gradient(145deg,color-mix(in srgb,var(--elo-primary) 20%,var(--elo-surface-2)),var(--elo-surface-2));border-color:color-mix(in srgb,var(--elo-primary) 38%,transparent)}.elo-home-activity:active{transform:scale(.98)}.elo-home-activity>span{font-size:1.35rem}.elo-home-activity b{font-size:.69rem;font-weight:950}.elo-home-activity p{font-size:.49rem;color:var(--elo-muted);line-height:1.35;margin:.13rem 0 0}.elo-home-activity>i{position:absolute;right:.65rem;top:.65rem;color:var(--elo-primary)}
+.elo-home-mini-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.5rem}.elo-home-mini-actions button{display:flex;align-items:center;gap:.45rem;padding:.58rem .65rem;text-align:left;border-radius:.85rem;background:color-mix(in srgb,var(--elo-surface-2) 72%,transparent);border:1px solid var(--elo-border);color:var(--elo-text)}.elo-home-mini-actions span{font-size:1rem}.elo-home-mini-actions b,.elo-home-mini-actions small{display:block}.elo-home-mini-actions b{font-size:.56rem}.elo-home-mini-actions small{font-size:.44rem;color:var(--elo-muted)}
+.elo-home-story{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:.5rem;padding:.5rem}.elo-home-story-main,.elo-home-achievements{min-width:0;border-radius:1rem;background:var(--elo-surface-2);border:1px solid var(--elo-border);color:var(--elo-text);text-align:left}.elo-home-story-main{display:flex;align-items:center;justify-content:space-between;gap:.65rem;padding:.75rem}.elo-home-story-main h3{font-size:.8rem;font-weight:950;margin:.1rem 0}.elo-home-story-main div>p:last-child{font-size:.48rem;color:var(--elo-muted);margin:0}.elo-home-story-main>i{font-size:1.4rem;color:var(--elo-primary)}.elo-home-achievements{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.45rem;padding:.68rem}.elo-home-achievements>span{font-size:1.1rem}.elo-home-achievements b,.elo-home-achievements small{display:block}.elo-home-achievements b{font-size:.57rem}.elo-home-achievements small{font-size:.44rem;color:var(--elo-muted)}.elo-home-achievements>i{font-size:.7rem;color:var(--elo-muted)}
+.elo-pet-safe-zone{height:var(--elo-pet-safe);pointer-events:none}
+
+/* Theme preview dock remains clearly visible over every theme. */
+#elo-theme-preview-dock{background:color-mix(in srgb,var(--elo-bg-2) 96%,black)!important;border-color:color-mix(in srgb,var(--elo-primary) 52%,transparent)!important}
+
+@media(max-width:430px){
+  .elo-home-cover{padding:.95rem .85rem .85rem}.elo-home-couple-scene{height:10.8rem;grid-template-columns:minmax(0,1fr) 3.9rem minmax(0,1fr)}.elo-home-person{height:9.6rem}.elo-home-avatar{height:8.25rem;width:6.6rem}.elo-home-heart-pulse{width:2.95rem;height:2.95rem;font-size:1.3rem}.elo-home-today-grid{grid-template-columns:1fr}.elo-home-story{grid-template-columns:1fr}.elo-home-achievements{min-height:3.2rem}.elo-home-stat{padding:.55rem .45rem}.elo-home-stat>i{display:none}
+}
+@media(min-width:768px){
+  .elo-home-v2{grid-template-columns:minmax(0,1.25fr) minmax(20rem,.75fr);align-items:start}.elo-home-cover{grid-row:span 2;min-height:33rem;padding:1.5rem}.elo-home-couple-scene{height:18rem;margin-top:1.2rem}.elo-home-person{height:16rem}.elo-home-avatar{height:14rem;width:10rem}.elo-home-panel.elo-home-today{align-self:stretch}.elo-home-section,.elo-home-story{grid-column:1/-1}.elo-home-activities{grid-template-columns:repeat(4,1fr)}.elo-home-mini-actions{grid-template-columns:1fr 1fr}.elo-home-story{grid-template-columns:2fr 1fr}.elo-pet-safe-zone{grid-column:1/-1;height:1rem}
+}
+@media(min-width:1180px){
+  .elo-home-v2{grid-template-columns:minmax(0,1.4fr) minmax(22rem,.75fr);gap:1rem}.elo-home-cover{min-height:34rem}.elo-home-cover h2{font-size:2.15rem}.elo-home-activity{min-height:7rem}
+}

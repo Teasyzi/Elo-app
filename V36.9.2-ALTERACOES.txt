@@ -1,0 +1,13 @@
+ELO V36.9.2 / APK 0.8.2
+
+- Home refeita com linguagem visual Akai Ito e fio do destino conectando os personagens.
+- Novo sistema visual semântico baseado em variáveis de tema.
+- Temas agora alteram de forma perceptível fundos, cards, superfícies, bordas, navegação, modais e detalhes do app.
+- Sakura, Midnight e Cozy receberam atmosferas próprias, não apenas troca da cor principal.
+- Tema personalizado também deriva superfícies, contraste e atmosfera a partir das cores escolhidas.
+- Teste antes de comprar continua gratuito e agora permite avaliar a aparência real do Elo.
+- Home responsiva para celular, iPhone/PWA, APK Android e PC.
+- Área segura para o futuro Pet flutuante preservada.
+- Web 36.9.2, APK 0.8.2, versionCode 26.
+- CACHE: elo-v36-9-2-home-akai-full-themes-20260902.
+- Worker Cloudflare sem alterações.

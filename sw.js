@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-9-1-akai-icon-theme-preview-20260902';
+const CACHE = 'elo-v36-9-2-home-akai-full-themes-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.9.1',
-  './tailwind.css?v=36.9.1',
-  './styles.css?v=36.9.1',
+  './app.js?v=36.9.2',
+  './tailwind.css?v=36.9.2',
+  './styles.css?v=36.9.2',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

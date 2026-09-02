@@ -67,13 +67,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.1';
+        const ELO_WEB_VERSION = '36.9.2';
         const ELO_RELEASE_NOTES = [
-            '🎨 TEMAS chegaram ao Elo: escolha uma identidade visual individual e deixe o seu espaço com a sua cara.',
-            '🧵 Akai Ito estreia como a nova identidade padrão, inspirado no fio vermelho que conecta duas pessoas.',
-            '✨ Sakura, Midnight e Cozy já podem ser desbloqueados com Elo Coins; criar um tema personalizado custa 500 Coins.',
-            '🧑‍🎨 A prévia do personagem agora permanece visível enquanto você percorre todas as opções do avatar.',
-            '🐾 A interface já reserva uma área segura para o futuro Pet do Elo flutuar sem cobrir navegação e ações importantes.'
+            '🎨 TEMAS agora transformam de verdade o Elo inteiro: fundos, cards, navegação, modais, detalhes, brilho e identidade visual.',
+            '🧵 HOME totalmente refeita na linguagem Akai Ito, com o fio do destino conectando os personagens e uma hierarquia muito mais limpa.',
+            '🌸 Sakura, 🌙 Midnight e 🧸 Cozy agora possuem atmosferas próprias bem mais perceptíveis durante o teste antes da compra.',
+            '👁️ Continue testando qualquer tema pago pelo app inteiro sem gastar nenhuma Elo Coin antes de decidir.',
+            '🐾 A nova Home já preserva a área segura para o futuro Pet do Elo flutuante.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -176,7 +176,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.1', versionCode:25 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.2', versionCode:26 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -6882,126 +6882,114 @@ const centerActiveStoreCategory = (smooth = true) => {
                             : 'Tem coisa boa esperando vocês hoje.';
 
                 html = `
-                    <div class="space-y-4 pb-4">
-
-                        <!-- 1. IDENTIDADE DO CASAL / PERSONAGENS -->
-                        <section class="elo-home-hero relative overflow-hidden rounded-[2rem] border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 shadow-2xl">
-                            <div class="absolute -right-16 -top-16 w-48 h-48 rounded-full bg-pink-500/10 blur-2xl"></div>
-                            <div class="absolute -left-20 bottom-0 w-56 h-56 rounded-full bg-purple-500/10 blur-2xl"></div>
-                            <div class="relative z-10 p-5">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div>
-                                        <p class="text-[10px] uppercase tracking-[0.25em] font-black text-pink-400">Nosso Elo</p>
-                                        <h2 class="text-2xl font-black text-white mt-1">${escapeHTML(myData.name || 'Você')} <span class="text-pink-400">&</span> ${partnerData ? escapeHTML(partnerData.name) : 'seu amor'}</h2>
-                                        <p class="text-xs text-slate-400 mt-1">${statusText}</p>
-                                    </div>
-                                    <button onclick="openCoupleModal()" class="elo-action-card shrink-0 w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700 text-pink-400 flex items-center justify-center active:scale-95"><i class="ph-fill ph-heart"></i></button>
-                                </div>
-
-                                <div class="elo-couple-stage relative h-52 mt-5 rounded-3xl bg-gradient-to-t from-slate-950/90 via-slate-900/20 to-transparent overflow-hidden border border-white/5 flex items-end justify-between px-8 pb-4">
-                                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_80%,rgba(236,72,153,0.12),transparent_45%)]"></div>
-                                    <div class="relative z-10 w-24 h-36 flex flex-col items-center">
-                                        <div class="w-full h-full transform scale-x-[-1] drop-shadow-2xl">${renderAvatar(myData.character, currentUser?.uid)}</div>
-                                        <span class="bg-slate-950/90 px-2.5 py-1 rounded-full text-[10px] text-white font-black absolute -bottom-2 border border-slate-700 max-w-full truncate">${escapeHTML(myData.name || 'Você')}</span>
-                                    </div>
-                                    <div class="relative z-20 flex flex-col items-center justify-end h-full pb-6">
-                                        <div class="w-14 h-14 rounded-full bg-slate-950/80 border border-pink-500/30 flex items-center justify-center shadow-xl">
-                                            <i class="ph-fill ph-heart text-2xl text-pink-500 animate-pulse"></i>
-                                        </div>
-                                    </div>
-                                    <div class="relative z-10 w-24 h-36 flex flex-col items-center">
-                                        <div class="w-full h-full drop-shadow-2xl">${partnerData ? renderAvatar(partnerData.character, partnerUid) : '<i class="ph-fill ph-user-plus text-5xl text-slate-700 mt-10"></i>'}</div>
-                                        <span class="bg-slate-950/90 px-2.5 py-1 rounded-full text-[10px] text-white font-black absolute -bottom-2 border border-slate-700 max-w-full truncate">${partnerData ? escapeHTML(partnerData.name) : 'Aguardando'}</span>
-                                    </div>
-                                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
-                                        <i class="ph-fill ph-fire text-5xl ${streak.bothChecked ? 'text-orange-500 animate-fire' : streak.status === 'at_risk' ? 'text-amber-500 animate-fire' : 'text-slate-700'}"></i>
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-3 gap-2 mt-4">
-                                    <button onclick="openSynergyInfo()" class="elo-home-metric elo-action-card rounded-xl bg-slate-950/60 border border-slate-800 p-3 text-left active:scale-[.98]"><p class="text-[8px] uppercase font-black text-slate-500">Sinergia</p><p class="text-lg font-black text-white mt-1">${synergy}<span class="text-[9px] text-slate-600">/100</span></p></button>
-                                    <div class="elo-home-metric rounded-xl bg-slate-950/60 border border-slate-800 p-3"><p class="text-[8px] uppercase font-black text-slate-500">Coins</p><p class="text-lg font-black text-yellow-400 mt-1">${Number(getSpendableCoins(coupleData, currentUser.uid)).toLocaleString('pt-BR')}</p></div>
-                                    <button onclick="openProfileModal()" class="elo-home-metric elo-action-card rounded-xl bg-slate-950/60 border border-purple-500/20 p-3 text-left active:scale-[.98]"><p class="text-[8px] uppercase font-black text-slate-500">Nível</p><p class="text-lg font-black text-white mt-1">${levelInfo.level}</p><p class="text-[8px] text-purple-300 truncate">${levelInfo.title}</p></button>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- 2. HOJE NO ELO -->
-                        <section class="rounded-[2rem] border border-pink-500/20 bg-gradient-to-br from-pink-500/10 via-slate-900 to-purple-500/10 p-5 shadow-xl">
-                            <div class="flex items-start justify-between gap-3">
+                    <div class="elo-home-v2">
+                        <!-- HERO / FIO VERMELHO -->
+                        <section class="elo-home-cover">
+                            <div class="elo-home-thread elo-home-thread-a"></div>
+                            <div class="elo-home-thread elo-home-thread-b"></div>
+                            <div class="elo-home-cover-top">
                                 <div>
-                                    <p class="text-[10px] uppercase tracking-[0.24em] font-black text-pink-400">Hoje no Elo</p>
-                                    <h3 class="text-lg font-black text-white mt-1">O que importa agora</h3>
+                                    <p class="elo-home-eyebrow">Nosso Elo</p>
+                                    <h2>${escapeHTML(myData.name || 'Você')} <span>&</span> ${partnerData ? escapeHTML(partnerData.name) : 'seu amor'}</h2>
+                                    <p class="elo-home-status">${statusText}</p>
                                 </div>
-                                <span class="text-[10px] font-black text-purple-300">Nível ${levelInfo.level}</span>
+                                <button onclick="openCoupleModal()" class="elo-home-round-action" aria-label="Abrir dados do casal"><i class="ph-fill ph-heart"></i></button>
                             </div>
-                            <div class="mt-3 h-2 bg-slate-950/80 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 rounded-full" style="width:${levelInfo.progress}%"></div></div>
-                            <div class="flex justify-between mt-1 text-[9px] font-bold text-slate-500"><span>${levelInfo.xp.toLocaleString('pt-BR')} XP</span><span>${levelInfo.next ? `${levelInfo.remaining} XP para o próximo nível` : 'Nível máximo'}</span></div>
 
-                            <div class="grid grid-cols-2 gap-2 mt-4">
-                                <button onclick="switchTab('quests')" class="elo-action-card rounded-2xl bg-slate-950/70 border border-slate-800 p-3 text-left active:scale-[.98]">
-                                    <p class="text-[9px] uppercase font-black text-orange-400">Missões</p>
-                                    <p class="font-black text-white text-sm mt-1">${completedTodayCount}/4 concluídas</p>
-                                    <p class="text-[9px] text-slate-500 truncate">${nextQuest ? escapeHTML(nextQuest.title) : 'Tudo feito por hoje ✨'}</p>
+                            <div class="elo-home-couple-scene">
+                                <div class="elo-home-person is-me">
+                                    <div class="elo-home-avatar">${renderAvatar(myData.character, currentUser?.uid)}</div>
+                                    <span>${escapeHTML(myData.name || 'Você')}</span>
+                                </div>
+                                <div class="elo-home-destiny">
+                                    <div class="elo-home-heart-pulse"><i class="ph-fill ph-heart"></i></div>
+                                    <span class="elo-home-days">${relationshipDays===null?'Nosso começo':`${relationshipDays.toLocaleString('pt-BR')} dias`}</span>
+                                </div>
+                                <div class="elo-home-person is-partner">
+                                    <div class="elo-home-avatar">${partnerData ? renderAvatar(partnerData.character, partnerUid) : '<i class="ph-fill ph-user-plus elo-home-empty-avatar"></i>'}</div>
+                                    <span>${partnerData ? escapeHTML(partnerData.name) : 'Aguardando'}</span>
+                                </div>
+                            </div>
+
+                            <div class="elo-home-stats">
+                                <button onclick="openSynergyInfo()" class="elo-home-stat"><i class="ph-fill ph-link"></i><span><small>Sinergia</small><b>${synergy}<em>/100</em></b></span></button>
+                                <div class="elo-home-stat"><i class="ph-fill ph-coin"></i><span><small>Suas coins</small><b>${Number(getSpendableCoins(coupleData, currentUser.uid)).toLocaleString('pt-BR')}</b></span></div>
+                                <button onclick="openProfileModal()" class="elo-home-stat"><i class="ph-fill ph-sparkle"></i><span><small>Nível</small><b>${levelInfo.level}</b></span></button>
+                            </div>
+                        </section>
+
+                        <!-- O QUE IMPORTA HOJE -->
+                        <section class="elo-home-panel elo-home-today">
+                            <div class="elo-home-panel-heading">
+                                <div><p class="elo-home-eyebrow">Hoje no Elo</p><h3>O que espera por você</h3></div>
+                                <span class="elo-home-level-pill">${levelInfo.xp.toLocaleString('pt-BR')} XP</span>
+                            </div>
+                            <div class="elo-home-xp"><div style="width:${levelInfo.progress}%"></div></div>
+                            <p class="elo-home-xp-caption">${levelInfo.next ? `${levelInfo.remaining} XP para o próximo nível` : 'Você chegou ao nível máximo ✨'}</p>
+                            <div class="elo-home-today-grid">
+                                <button onclick="switchTab('quests')" class="elo-home-feature-card">
+                                    <span class="elo-home-feature-icon">🎯</span><div><small>Missões</small><b>${completedTodayCount}/4 concluídas</b><p>${nextQuest ? escapeHTML(nextQuest.title) : 'Tudo feito por hoje ✨'}</p></div><i class="ph-bold ph-caret-right"></i>
                                 </button>
-                                <button onclick="switchTab('chat')" class="elo-action-card rounded-2xl bg-slate-950/70 border border-slate-800 p-3 text-left active:scale-[.98]">
-                                    <p class="text-[9px] uppercase font-black text-cyan-400">Chat</p>
-                                    <p class="font-black text-white text-sm mt-1">${chatUnreadCount ? `${chatUnreadCount} ${chatUnreadCount===1?'mensagem nova':'mensagens novas'}` : 'Conversar agora 💬'}</p>
-                                    <p class="text-[9px] text-slate-500">${partnerData ? `Falar com ${escapeHTML(partnerData.name)}` : 'Seu espaço de conversa'}</p>
+                                <button onclick="switchTab('chat')" class="elo-home-feature-card">
+                                    <span class="elo-home-feature-icon">💌</span><div><small>Chat</small><b>${chatUnreadCount ? `${chatUnreadCount} ${chatUnreadCount===1?'nova mensagem':'novas mensagens'}` : 'Seu amor está a um toque'}</b><p>${partnerData ? `Conversar com ${escapeHTML(partnerData.name)}` : 'Seu espaço de conversa'}</p></div><i class="ph-bold ph-caret-right"></i>
                                 </button>
                             </div>
                         </section>
 
-                        <!-- 3. CHAMA -->
+                        <!-- CHAMA -->
                         ${partnerData ? `
-                        <section id="elo-streak-card" class="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-lg">
-                            <div class="flex items-center justify-between gap-3 mb-4">
-                                <div><p class="text-[10px] uppercase tracking-[0.2em] font-black text-orange-400">Chama do casal</p><h3 class="text-3xl font-black text-white flex items-center gap-2 mt-1"><i class="ph-fill ph-fire text-orange-500"></i>${streak.current || 0}<span class="text-sm text-slate-500 mt-2">dias</span></h3></div>
-                                <div class="text-right"><p class="text-[9px] uppercase font-black text-slate-500">Recorde</p><p class="text-lg font-black text-pink-400">${streak.longest || 0}</p></div>
+                        <section id="elo-streak-card" class="elo-home-panel elo-home-fire">
+                            <div class="elo-home-fire-head">
+                                <div class="elo-home-fire-title"><span class="elo-home-fire-icon"><i class="ph-fill ph-fire"></i></span><div><small>Chama do casal</small><b>${streak.current || 0} <em>dias</em></b></div></div>
+                                <div class="elo-home-record"><small>Recorde</small><b>${streak.longest || 0}</b></div>
                             </div>
                             <div class="elo-streak-countdown ${streakUrgent && !streak.bothChecked ? 'urgent' : ''}">
-                                <div><p class="text-[9px] uppercase tracking-widest font-black text-slate-500">${streak.bothChecked ? 'Status de hoje' : 'Tempo para manter a chama'}</p><p class="text-[10px] text-slate-400 mt-0.5">${streak.bothChecked ? 'Os dois fizeram a parte de hoje ❤️' : 'Os dois precisam concluir antes da virada do dia.'}</p></div>
+                                <div><p>${streak.bothChecked ? 'Status de hoje' : 'Tempo para manter a chama'}</p><span>${streak.bothChecked ? 'Os dois cuidaram do Elo hoje ❤️' : 'Os dois precisam concluir antes da virada.'}</span></div>
                                 <strong id="home-streak-countdown">${streak.bothChecked ? 'SEGURA 🔥' : formatDailyQuestCountdown(streakRemainingMs)}</strong>
                             </div>
-                            <div class="h-2 bg-slate-800 rounded-full overflow-hidden mb-2"><div class="h-full bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 rounded-full" style="width:${streakProgress}%"></div></div>
-                            <div class="elo-streak-milestone mb-4"><span>Agora: ${streak.current || 0} dias</span><span>${nextStreakReward ? `Próximo prêmio: ${nextStreakReward.days} dias · +${nextStreakReward.reward} Coins` : 'Todos os marcos principais alcançados 🏆'}</span></div>
-                            <div class="grid grid-cols-2 gap-2 mb-4">
-                                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-[9px] uppercase font-black text-slate-500">${escapeHTML(myData.name || 'Você')}</p><p class="text-sm font-black ${myCheckedToday ? 'text-emerald-400' : 'text-amber-400'}">${myCheckedToday ? '✓ Fez hoje' : '○ Falta fazer'}</p></div>
-                                <div class="bg-slate-950 rounded-xl p-3 border border-slate-800"><p class="text-[9px] uppercase font-black text-slate-500">${escapeHTML(partnerData.name)}</p><p class="text-sm font-black ${partnerCheckedToday ? 'text-emerald-400' : 'text-slate-400'}">${partnerCheckedToday ? '✓ Fez hoje' : '○ Ainda não'}</p></div>
+                            <div class="elo-home-fire-progress"><div style="width:${streakProgress}%"></div></div>
+                            <div class="elo-home-fire-people">
+                                <div><span>${escapeHTML(myData.name || 'Você')}</span><b class="${myCheckedToday ? 'is-done' : 'is-pending'}">${myCheckedToday ? '✓ Fez hoje' : '○ Falta fazer'}</b></div>
+                                <div><span>${escapeHTML(partnerData.name)}</span><b class="${partnerCheckedToday ? 'is-done' : 'is-waiting'}">${partnerCheckedToday ? '✓ Fez hoje' : '○ Ainda não'}</b></div>
                             </div>
-                            ${!myCheckedToday ? `<button onclick="checkInToday(this)" class="elo-action-card streak-checkin-btn w-full bg-gradient-to-r from-orange-500 to-pink-600 text-white font-black py-3.5 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2"><i class="ph-fill ph-fire text-xl"></i> Manter a Chama Hoje</button>` : `<div class="w-full ${streak.bothChecked ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-pink-500/10 border-pink-500/20 text-pink-300'} border font-bold py-3.5 rounded-xl text-center text-sm">${streak.bothChecked ? '🔥 Chama mantida!' : '❤️ Sua parte está feita. Aguardando seu amor.'}</div>`}
+                            ${!myCheckedToday ? `<button onclick="checkInToday(this)" class="elo-home-fire-action"><i class="ph-fill ph-fire"></i> Manter a Chama Hoje</button>` : `<div class="elo-home-fire-done">${streak.bothChecked ? '🔥 Chama mantida!' : '❤️ Sua parte está feita. Aguardando seu amor.'}</div>`}
+                            <p class="elo-home-fire-reward">${nextStreakReward ? `Próximo prêmio: ${nextStreakReward.days} dias · +${nextStreakReward.reward} Coins` : 'Todos os grandes marcos alcançados 🏆'}</p>
                         </section>
                         ` : `
-                        <section class="bg-gradient-to-br from-indigo-900/80 to-slate-900 rounded-3xl p-5 border border-indigo-500/30">
-                            <h3 class="font-black text-white">Seu Elo está esperando</h3><p class="text-xs text-indigo-200/80 mt-1">Compartilhe o código para seu amor entrar.</p>
-                            <button onclick="openCoupleModal()" class="elo-action-card w-full mt-4 bg-indigo-600 text-white font-black py-3 rounded-xl active:scale-95">Ver código do Elo</button>
+                        <section class="elo-home-panel elo-home-connect">
+                            <span>🧵</span><div><p class="elo-home-eyebrow">O fio ainda está solto</p><h3>Conecte seu amor</h3><p>Compartilhe o código e comecem a construir esse Elo juntos.</p></div>
+                            <button onclick="openCoupleModal()">Ver código do Elo</button>
                         </section>`}
 
-                        <!-- 4. ÚNICO HUB DE JOGOS -->
-                        <section class="space-y-2">
-                            <div class="elo-home-section-title flex items-center justify-between px-1">
-                                <div><p class="text-[10px] uppercase tracking-[0.2em] font-black text-purple-400">Juntos</p><h3 class="font-black text-white">Jogos & momentos</h3></div>
-                                <span class="text-[9px] text-slate-500">Tudo em um lugar</span>
+                        <!-- JUNTOS -->
+                        <section class="elo-home-section">
+                            <div class="elo-home-panel-heading">
+                                <div><p class="elo-home-eyebrow">Juntos</p><h3>Momentos que aproximam</h3></div>
+                                <span class="elo-home-soft-label">Escolham algo</span>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="openCoupleGame()" class="elo-action-card bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left active:scale-[.98]"><span class="text-xl">🎮</span><p class="font-black text-white text-sm mt-2">Jogo rápido</p><p class="text-[9px] text-slate-500">Descubram se pensam igual</p></button>
-                                <button onclick="openDailyQuestion()" class="elo-action-card bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left active:scale-[.98]"><span class="text-xl">💭</span><p class="font-black text-white text-sm mt-2">Pergunta do dia</p><p class="text-[9px] text-slate-500">Respostas reveladas juntos</p></button>
-                                <button onclick="openMoodCheckin()" class="elo-action-card bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left active:scale-[.98]"><span class="text-xl">${todayMood?MOODS.find(m=>m[0]===todayMood.mood)?.[1]||'😊':'😊'}</span><p class="font-black text-white text-sm mt-2">Como estou</p><p class="text-[9px] text-slate-500">${partnerMood?'Seu amor também respondeu':'Check-in de humor'}</p></button>
-                                <button onclick="openMomentsModal()" class="elo-action-card bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left active:scale-[.98]"><span class="text-xl">📸</span><p class="font-black text-white text-sm mt-2">Nossos momentos</p><p class="text-[9px] text-slate-500">Fotos e lembranças</p></button>
+                            <div class="elo-home-activities">
+                                <button onclick="openCoupleGame()" class="elo-home-activity is-featured"><span>⚡</span><div><b>Jogo rápido</b><p>Isso ou aquilo, sintonia e muito mais</p></div><i class="ph-bold ph-arrow-up-right"></i></button>
+                                <button onclick="openDailyQuestion()" class="elo-home-activity"><span>💭</span><div><b>Pergunta do dia</b><p>Descubram novas respostas juntos</p></div></button>
+                                <button onclick="openMoodCheckin()" class="elo-home-activity"><span>${todayMood?MOODS.find(m=>m[0]===todayMood.mood)?.[1]||'😊':'😊'}</span><div><b>Como estou</b><p>${partnerMood?'Seu amor também respondeu':'Um check-in só de vocês'}</p></div></button>
+                                <button onclick="openMomentsModal()" class="elo-home-activity"><span>📸</span><div><b>Nossos momentos</b><p>Fotos e lembranças do casal</p></div></button>
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="openCapsulesModal()" class="elo-action-card bg-slate-900/70 border border-slate-800 rounded-xl px-3 py-3 text-left active:scale-[.98]"><p class="text-xs font-black text-white">💌 Cápsula do tempo</p><p class="text-[9px] text-slate-500 mt-1">Mensagens para o futuro</p></button>
-                                <button onclick="openWeeklyRecap()" class="elo-action-card bg-slate-900/70 border border-slate-800 rounded-xl px-3 py-3 text-left active:scale-[.98]"><p class="text-xs font-black text-white">📊 Resumo do Elo</p><p class="text-[9px] text-slate-500 mt-1">Dados atuais e recentes</p></button>
+                            <div class="elo-home-mini-actions">
+                                <button onclick="openCapsulesModal()"><span>💌</span><div><b>Cápsula do tempo</b><small>Para o futuro</small></div></button>
+                                <button onclick="openWeeklyRecap()"><span>📊</span><div><b>Resumo do Elo</b><small>Como vocês estão</small></div></button>
                             </div>
                         </section>
 
-                        <!-- 5. HISTÓRIA / SECUNDÁRIOS -->
-                        <button onclick="openRelationshipDateModal()" class="elo-action-card w-full bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-2xl p-4 flex items-center justify-between text-left">
-                            <div><p class="text-[9px] uppercase tracking-widest font-black text-pink-400">Nossa história</p><p class="text-lg font-black text-white mt-1">${relationshipDays===null?'Quando tudo começou ❤️':`${relationshipDays.toLocaleString('pt-BR')} dias juntos`}</p><p class="text-[10px] text-slate-400 mt-1">${coupleData.relationshipStartDate?new Date(`${coupleData.relationshipStartDate}T12:00:00`).toLocaleDateString('pt-BR'):'Toque para definir a data do relacionamento'}</p></div>
-                            <i class="ph-bold ph-calendar-heart text-2xl text-pink-400"></i>
-                        </button>
+                        <!-- HISTÓRIA -->
+                        <section class="elo-home-story">
+                            <button onclick="openRelationshipDateModal()" class="elo-home-story-main">
+                                <div><p class="elo-home-eyebrow">Nossa história</p><h3>${relationshipDays===null?'Quando tudo começou ❤️':`${relationshipDays.toLocaleString('pt-BR')} dias juntos`}</h3><p>${coupleData.relationshipStartDate?new Date(`${coupleData.relationshipStartDate}T12:00:00`).toLocaleDateString('pt-BR'):'Toque para definir a data do relacionamento'}</p></div>
+                                <i class="ph-bold ph-calendar-heart"></i>
+                            </button>
+                            <button onclick="openActivityModal()" class="elo-home-achievements"><span>🏆</span><div><b>Conquistas</b><small>Marcos de vocês</small></div><i class="ph-bold ph-caret-right"></i></button>
+                        </section>
 
-                        <button onclick="openActivityModal()" class="elo-action-card w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left active:scale-[.98] flex items-center justify-between gap-3"><div><span class="text-xl">🏆</span><p class="font-black text-white text-sm mt-1">Conquistas</p><p class="text-[9px] text-slate-500">Marcos desbloqueados do casal</p></div><i class="ph-bold ph-caret-right text-slate-500"></i></button>
+                        <!-- reserva física para o futuro pet flutuante -->
+                        <div class="elo-pet-safe-zone" aria-hidden="true"></div>
                     </div>`;
             }
             else if (activeTab === 'store') {

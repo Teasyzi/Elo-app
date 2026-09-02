@@ -1,14 +1,14 @@
 {
   "available": false,
-  "versionName": "0.8.1",
-  "versionCode": 25,
+  "versionName": "0.8.2",
+  "versionCode": 26,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Novo ícone Akai Ito em site, PWA, iPhone e APK Android.",
-    "Temas pagos agora podem ser testados no Elo inteiro antes da compra.",
-    "A prévia é gratuita e não desconta Elo Coins.",
-    "Durante o teste você pode navegar pelo app e sair ou comprar pelo painel de prévia.",
-    "Mantidos temas individuais, criador de tema e área segura para o futuro Pet flutuante."
+    "Home totalmente reformulada na identidade Akai Ito.",
+    "Temas agora alteram fundos, superfícies, cards, navegação, modais, bordas, brilho e detalhes por todo o Elo.",
+    "Sakura, Midnight e Cozy ganharam atmosferas visuais próprias e bem mais distintas.",
+    "Prévia antes da compra continua gratuita e agora mostra uma diferença real entre os temas.",
+    "Área segura do futuro Pet flutuante preservada na nova Home."
   ]
 }
