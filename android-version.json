@@ -1,13 +1,14 @@
 {
   "available": false,
-  "versionName": "0.7.1",
-  "versionCode": 17,
+  "versionName": "0.7.2",
+  "versionCode": 18,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Chat desktop mais amplo e navegação lateral preservada ao digitar",
-    "Fotos enviadas juntas aparecem em álbum compacto com +N",
-    "Galeria de lote abre somente as fotos daquele envio",
-    "Botão de novas mensagens garante rolagem completa até o final"
+    "Swipe para responder preserva a posição da conversa",
+    "Cabeçalho do Chat mostra apenas o parceiro",
+    "Envio de múltiplas fotos com menos reconstruções e menos piscadas",
+    "Álbuns de fotos mais compactos e refinados",
+    "Chat desktop ocupa melhor o espaço junto ao menu lateral"
   ]
 }

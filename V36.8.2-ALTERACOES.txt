@@ -1,0 +1,9 @@
+ELO V36.8.2 / APK 0.7.2
+
+- Swipe para responder não força mais a conversa para o final e não abre o teclado automaticamente.
+- Dentro do Chat, o cabeçalho global Meu Perfil / Elo Coins / Chama foi removido para priorizar o perfil do parceiro.
+- Chat desktop alinhado mais próximo da navegação lateral e usando praticamente toda a área disponível.
+- Envio de múltiplas imagens agora faz a montagem otimista do lote em uma única renderização e agrupa atualizações de upload para reduzir flicker.
+- Álbum de fotos redesenhado com proporções mais compactas, bordas, espaçamento e overlay +N refinados.
+- Transições de swipe, cabeçalho, shell e mídia suavizadas.
+- Service Worker e assets atualizados para 36.8.2.

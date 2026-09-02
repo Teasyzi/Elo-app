@@ -67,12 +67,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.1';
+        const ELO_WEB_VERSION = '36.8.2';
         const ELO_RELEASE_NOTES = [
-            'O Chat no computador ganhou mais espaço e mantém a navegação lateral disponível enquanto você digita.',
-            'Fotos enviadas juntas agora aparecem em um único álbum compacto, com indicador +N para abrir o restante.',
-            'O botão de novas mensagens agora garante a descida completa até o fim da conversa, mesmo após mídias carregarem.',
-            'A experiência mobile da V36.8 foi preservada enquanto os ajustes desta versão ficam concentrados no desktop e na organização de fotos.'
+            'Responder com swipe preserva exatamente a posição da conversa e não joga o Chat para o final.',
+            'O cabeçalho geral do Elo some dentro do Chat: a conversa passa a destacar apenas o perfil do parceiro.',
+            'Envio de várias fotos ficou mais estável e o álbum ganhou composição mais compacta e elegante.',
+            'No computador o Chat encosta melhor na navegação lateral, usa mais da tela e recebeu transições mais suaves.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -170,7 +170,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.1', versionCode:17 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.2', versionCode:18 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2665,11 +2665,27 @@ window.checkInToday = async (buttonEl = null) => {
             }
         };
 
-        window.setChatReply = id => {
+        window.setChatReply = (id, options = {}) => {
+            const chatEl = document.getElementById('chat-messages');
+            const preserveScroll = options?.preserveScroll === true;
+            const shouldFocus = options?.focus !== false;
+            const savedTop = preserveScroll && chatEl ? chatEl.scrollTop : null;
+            const savedAway = chatUserAwayFromBottom;
+            const savedNearBottom = chatWasNearBottom;
             chatReplyTo = chatMessages.find(m => m.id === id) || null;
-            chatShouldKeepFocus = true;
+            chatShouldKeepFocus = shouldFocus;
             renderChatOnly();
-            setTimeout(()=>document.getElementById('chat-input')?.focus(),50);
+            if (preserveScroll && savedTop !== null) {
+                requestAnimationFrame(() => {
+                    const next = document.getElementById('chat-messages');
+                    if (!next) return;
+                    next.scrollTop = savedTop;
+                    chatUserAwayFromBottom = savedAway;
+                    chatWasNearBottom = savedNearBottom;
+                    updateChatNewMessagesButton();
+                });
+            }
+            if (shouldFocus) setTimeout(()=>document.getElementById('chat-input')?.focus({preventScroll:true}),50);
         };
         window.cancelChatReply = () => { chatReplyTo = null; chatEditingId = null; chatShouldKeepFocus = true; renderChatOnly(); };
         window.editChatMessage = id => {
@@ -3150,7 +3166,7 @@ window.checkInToday = async (buttonEl = null) => {
                     };
 
                     chatMessages=chatMessages.map(m=>m.id===id?{...finalMsg,localMediaUrl:localUrl}:m);
-                    renderChatOnly();
+                    if (batchMeta?.id) scheduleChatMediaRender(90); else renderChatOnly();
                     await setDoc(messageDoc(id),finalMsg);
 
                     backgroundChatTask(createPartnerNotification({
@@ -3167,6 +3183,15 @@ window.checkInToday = async (buttonEl = null) => {
                     showToast('Não foi possível sincronizar o áudio.','error');
                 }
             })(),'Envio de áudio');
+        };
+
+        let chatMediaRenderTimer = null;
+        const scheduleChatMediaRender = (delay = 70) => {
+            if (chatMediaRenderTimer) clearTimeout(chatMediaRenderTimer);
+            chatMediaRenderTimer = setTimeout(() => {
+                chatMediaRenderTimer = null;
+                if (window.activeTab === 'chat') renderChatOnly();
+            }, delay);
         };
 
         let pendingChatImageBatch = [];
@@ -3198,8 +3223,10 @@ window.checkInToday = async (buttonEl = null) => {
             chatReplyTo=null;
             chatMessages=mergeChatMessages(chatMessages,optimistic);
             chatUserAwayFromBottom=false;
-            renderChatOnly();
-            scrollChatToBottom(false);
+            if (!batchMeta?.deferRender) {
+                renderChatOnly();
+                scrollChatToBottom(false);
+            }
 
             backgroundChatTask((async()=>{
                 try{
@@ -3225,7 +3252,7 @@ window.checkInToday = async (buttonEl = null) => {
                 }catch(err){
                     console.error('Envio de imagem:',err);
                     chatMessages=chatMessages.map(m=>m.id===id?{...m,_uploading:false,_failed:true,sendState:'failed'}:m);
-                    renderChatOnly();
+                    if (batchMeta?.id) scheduleChatMediaRender(90); else renderChatOnly();
                     showToast('Não foi possível sincronizar uma das fotos.','error');
                 }
             })(),'Envio de imagem');
@@ -3247,7 +3274,9 @@ window.checkInToday = async (buttonEl = null) => {
             const caption=String(document.getElementById('elo-image-batch-caption')?.value||'').trim();
             const items=pendingChatImageBatch.slice(); pendingChatImageBatch=[]; closeGenericModal();
             const batchId=`photos_${Date.now()}_${currentUser?.uid||'user'}_${Math.random().toString(36).slice(2,7)}`;
-            items.forEach((item,index)=>{ try{URL.revokeObjectURL(item.previewUrl)}catch(_){}; queueChatImageFile(item.file,index===0?caption:'',{id:batchId,index,count:items.length}); });
+            items.forEach((item,index)=>{ try{URL.revokeObjectURL(item.previewUrl)}catch(_){}; queueChatImageFile(item.file,index===0?caption:'',{id:batchId,index,count:items.length,deferRender:true}); });
+            renderChatOnly();
+            scrollChatToBottom(false);
             showToast(`${items.length} foto${items.length>1?'s':''} adicionada${items.length>1?'s':''} ao envio.`,'success');
         };
         window.sendChatImage = async (e) => {
@@ -3508,7 +3537,7 @@ window.checkInToday = async (buttonEl = null) => {
                 const finish=e=>{
                     if(pointerId!==null&&e.pointerId!==undefined&&pointerId!==e.pointerId)return;
                     clearHold();const dx=(e.clientX??lastX)-startX,dy=(e.clientY??lastY)-startY;const reply=!held&&swiping&&dx>54&&Math.abs(dy)<64;
-                    resetSwipe(true);pointerId=null;if(reply){if(navigator.vibrate)navigator.vibrate(10);window.setChatReply(id);}
+                    resetSwipe(true);pointerId=null;if(reply){if(navigator.vibrate)navigator.vibrate(10);window.setChatReply(id,{focus:false,preserveScroll:true});}
                 };
                 row.addEventListener('pointerup',finish,{passive:true});
                 row.addEventListener('pointercancel',e=>{clearHold();resetSwipe(true);pointerId=null;},{passive:true});
