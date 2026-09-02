@@ -65,7 +65,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         };
         window.notificationPrefs = {...DEFAULT_NOTIFICATION_PREFS};
 
-        const appId = "elo-app-v2"; 
+        const appId = "elo-app-v2";
+        // V36.6.2 · experiência de primeira entrada por versão + onboarding de push.
+        const ELO_WEB_VERSION = '36.6.2';
+        const ELO_RELEASE_NOTES = [
+            'O Elo agora avisa quando as notificações ainda não estão ativas neste aparelho.',
+            'A ativação de notificações ganhou um passo guiado logo na primeira entrada.',
+            'Uma tela de novidades aparece apenas uma vez em cada nova versão.'
+        ];
+        let firstEntryExperienceScheduled = false;
+        let firstEntryExperienceRunning = false;
 
         // Estados Globais
         window.currentUser = null;
@@ -146,7 +155,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.5.2', versionCode:11 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -3803,9 +3812,10 @@ window.checkInToday = async (buttonEl = null) => {
                 });
                 await nativePush.addListener('registrationError', err => console.error('FCM Android:', err));
                 await nativePush.addListener('pushNotificationReceived', notification => {
+                    // V36.6.2 · o Android já exibe a notificação nativa. Não criamos uma
+                    // segunda notificação/toast dentro da interface do Elo.
                     const data = notification?.data || {};
                     if (window.activeTab === 'chat' && ['chat','chat_image','chat_audio'].includes(String(data.type||''))) return;
-                    showToast(`🔔 ${notification?.title || data.title || 'Elo'}${(notification?.body || data.body) ? ': '+(notification.body || data.body) : ''}`, 'info');
                 });
                 await nativePush.addListener('pushNotificationActionPerformed', action => {
                     routeNativeNotification(action?.notification?.data || {});
@@ -3858,6 +3868,129 @@ window.checkInToday = async (buttonEl = null) => {
             const el=document.getElementById('push-diag');if(el)el.innerHTML=rows.map(r=>`<div class="flex justify-between gap-3 p-3 mb-2 rounded-xl bg-slate-900 border ${r[1]?'border-emerald-500/20':'border-rose-500/30'}"><div><b class="text-white">${escapeHTML(r[0])}</b><div class="text-[10px] text-slate-500 break-all">${escapeHTML(String(r[2]||''))}</div></div><span>${r[1]?'✅':'❌'}</span></div>`).join('');
         };
 
+        const isIOSWebRuntime = () => !isNativeApp && !!window.eloIsIOS;
+        const isStandaloneWebRuntime = () => !isNativeApp && (!!window.eloIsStandalone || window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone === true);
+        const notificationIntroKey = () => `elo_push_intro_seen_v1_${currentUser?.uid || 'device'}`;
+        const whatsNewKey = () => `elo_whatsnew_seen_${ELO_WEB_VERSION}`;
+
+        const getNotificationPermissionState = async () => {
+            if (isNativeApp) {
+                if (!nativePush?.checkPermissions) return 'unsupported';
+                try { return (await nativePush.checkPermissions())?.receive || 'prompt'; }
+                catch (_) { return 'unsupported'; }
+            }
+            if (!messagingSupported || !('Notification' in window)) return 'unsupported';
+            return Notification.permission || 'default';
+        };
+
+        const ensurePushRegistrationSilently = async () => {
+            if (!currentUser) return false;
+            if (isNativeApp) {
+                try { return await initNativePush({requestPermission:false, silent:true}); }
+                catch (_) { return false; }
+            }
+            if (!messagingSupported || Notification.permission !== 'granted') return false;
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const token = await getToken(messaging, {vapidKey:FCM_VAPID_KEY, serviceWorkerRegistration:registration});
+                if (!token) return false;
+                await saveFcmToken(token, 'web');
+                pushInitialized = true;
+                return true;
+            } catch (e) {
+                console.warn('Registro silencioso de push web:', e);
+                return false;
+            }
+        };
+
+        window.refreshNotificationNudge = async () => {
+            const box = document.getElementById('elo-notification-nudge');
+            if (!box) return;
+            if (!currentUser) { box.classList.add('hidden'); return; }
+            const state = await getNotificationPermissionState();
+            const enabled = state === 'granted';
+            box.classList.toggle('hidden', enabled || state === 'unsupported');
+            const title = document.getElementById('elo-notification-nudge-title');
+            const text = document.getElementById('elo-notification-nudge-text');
+            const action = document.getElementById('elo-notification-nudge-action');
+            if (enabled) {
+                await ensurePushRegistrationSilently();
+                return;
+            }
+            if (isIOSWebRuntime() && !isStandaloneWebRuntime()) {
+                if (title) title.textContent = 'Não perca nada do seu Elo';
+                if (text) text.textContent = 'No iPhone, adicione o Elo à Tela de Início para receber notificações mesmo fechado.';
+                if (action) action.textContent = 'Como instalar';
+            } else if (state === 'denied') {
+                if (title) title.textContent = 'Notificações bloqueadas';
+                if (text) text.textContent = 'A experiência fica melhor com avisos do seu amor. Libere o Elo nas configurações do aparelho ou navegador.';
+                if (action) action.textContent = 'Como ativar';
+            } else {
+                if (title) title.textContent = 'Fique pertinho, mesmo longe';
+                if (text) text.textContent = 'Ative as notificações para receber mensagens, presentes, Chama e outras novidades do seu amor.';
+                if (action) action.textContent = 'Ativar';
+            }
+        };
+
+        window.openNotificationPermissionPrompt = async ({manual=false}={}) => {
+            if (!currentUser) return;
+            const state = await getNotificationPermissionState();
+            if (state === 'granted') {
+                await ensurePushRegistrationSilently();
+                await window.refreshNotificationNudge();
+                if (manual) showToast('🔔 As notificações já estão ativas neste aparelho.', 'success');
+                return;
+            }
+            const iosNeedsInstall = isIOSWebRuntime() && !isStandaloneWebRuntime();
+            const denied = state === 'denied';
+            const unsupported = state === 'unsupported';
+            const html = `<div class="space-y-5 text-center">
+                <div class="mx-auto w-16 h-16 rounded-3xl bg-pink-500/10 border border-pink-500/20 text-pink-400 grid place-items-center text-3xl"><i class="ph-fill ph-bell-ringing"></i></div>
+                <div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">Não perca o que importa</p><h3 class="text-2xl font-black text-white mt-1">O Elo fica melhor com notificações</h3><p class="text-sm text-slate-400 mt-2 leading-relaxed">Receba mensagens, presentes, lembretes da Chama e novidades do seu amor mesmo quando não estiver olhando o app.</p></div>
+                ${iosNeedsInstall ? `<div class="text-left rounded-2xl bg-slate-900 border border-slate-800 p-4"><p class="text-xs font-black text-white">🍎 No iPhone</p><p class="text-[11px] text-slate-400 mt-1">Para receber notificações, primeiro adicione o Elo à Tela de Início pelo Safari e abra pelo ícone instalado.</p></div><button onclick="closeGenericModal();setTimeout(()=>window.showIOSInstallGuide?.(),120)" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl">Ver como instalar</button>` : unsupported ? `<div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 text-xs text-slate-400">Este navegador não disponibilizou notificações para o Elo. Tente pelo app instalado ou por um navegador compatível.</div>` : denied ? `<div class="text-left rounded-2xl bg-slate-900 border border-amber-500/20 p-4"><p class="text-xs font-black text-amber-300">Permissão bloqueada</p><p class="text-[11px] text-slate-400 mt-1">Como o bloqueio já foi feito pelo sistema, o Elo não pode reabrir a caixa de permissão sozinho. Libere as notificações nas configurações do site/aplicativo e volte aqui.</p></div><button onclick="closeGenericModal()" class="w-full bg-slate-800 text-white font-black py-3.5 rounded-2xl">Entendi</button>` : `<button onclick="enablePushNotifications()" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl flex items-center justify-center gap-2"><i class="ph-bold ph-bell"></i> Ativar notificações</button>`}
+                <button onclick="closeGenericModal()" class="w-full py-2 text-xs font-black text-slate-500">Agora não</button>
+            </div>`;
+            openGenericModal(html);
+        };
+
+        window.showWhatsNew = ({force=false}={}) => {
+            const key = whatsNewKey();
+            if (!force && localStorage.getItem(key) === '1') return false;
+            localStorage.setItem(key, '1');
+            openGenericModal(`<div class="space-y-5">
+                <div class="flex items-start justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">✨ Novidades do Elo</p><h3 class="text-2xl font-black text-white mt-1">Versão ${ELO_WEB_VERSION}</h3><p class="text-xs text-slate-500 mt-1">Veja o que mudou antes de continuar.</p></div><div class="w-12 h-12 rounded-2xl bg-pink-500/10 text-pink-400 grid place-items-center text-2xl shrink-0"><i class="ph-fill ph-sparkle"></i></div></div>
+                <div class="space-y-2">${ELO_RELEASE_NOTES.map((note,i)=>`<div class="flex gap-3 rounded-2xl bg-slate-900 border border-slate-800 p-3"><div class="w-7 h-7 rounded-xl bg-pink-500/10 text-pink-400 grid place-items-center text-xs font-black shrink-0">${i+1}</div><p class="text-xs text-slate-300 leading-relaxed">${escapeHTML(note)}</p></div>`).join('')}</div>
+                <button onclick="closeGenericModal();setTimeout(()=>window.maybeShowNotificationIntro?.(),220)" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl">Continuar</button>
+            </div>`);
+            return true;
+        };
+
+        window.maybeShowNotificationIntro = async () => {
+            if (!currentUser) return;
+            await window.refreshNotificationNudge();
+            const state = await getNotificationPermissionState();
+            if (state === 'granted' || state === 'unsupported') return;
+            const key = notificationIntroKey();
+            if (localStorage.getItem(key) === '1') return;
+            localStorage.setItem(key, '1');
+            window.openNotificationPermissionPrompt();
+        };
+
+        const scheduleFirstEntryExperience = () => {
+            if (firstEntryExperienceScheduled || !currentUser) return;
+            firstEntryExperienceScheduled = true;
+            setTimeout(async () => {
+                if (firstEntryExperienceRunning || !currentUser) return;
+                firstEntryExperienceRunning = true;
+                try {
+                    await window.refreshNotificationNudge();
+                    await ensurePushRegistrationSilently();
+                    const opened = window.showWhatsNew();
+                    if (!opened) await window.maybeShowNotificationIntro();
+                } finally { firstEntryExperienceRunning = false; }
+            }, 700);
+        };
+
         window.openNotificationSettings = () => {
             const p = {...DEFAULT_NOTIFICATION_PREFS, ...(window.notificationPrefs||{})};
             const rows = [
@@ -3871,7 +4004,7 @@ window.checkInToday = async (buttonEl = null) => {
                 ['system','✨ Sistema','Avisos gerais do Elo'],
                 ['hideContent','🔐 Ocultar conteúdo','Mostra apenas “Você recebeu uma nova notificação no Elo” na tela bloqueada']
             ];
-            openGenericModal(`<div class="space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">⚙️ Preferências</p><h3 class="text-xl font-black text-white">Notificações</h3></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div><p class="text-xs text-slate-400">Escolha quais tipos podem gerar notificações no seu aparelho. A Central do Elo continua registrando as atividades.</p><div class="space-y-2">${rows.map(([key,title,desc])=>`<label class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900 border border-slate-800 cursor-pointer"><div><p class="text-sm font-bold text-white">${title}</p><p class="text-[10px] text-slate-500 mt-1">${desc}</p></div><input type="checkbox" class="w-5 h-5 accent-pink-600" data-notif-pref="${key}" ${p[key]?'checked':''}></label>`).join('')}</div><button onclick="saveNotificationSettingsFromUI()" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Salvar preferências</button></div>`);
+            openGenericModal(`<div class="space-y-4"><div class="flex items-center justify-between"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">⚙️ Preferências</p><h3 class="text-xl font-black text-white">Notificações</h3></div><button onclick="closeGenericModal()" class="text-slate-500">✕</button></div><p class="text-xs text-slate-400">Escolha quais tipos podem gerar notificações no seu aparelho. O Elo não cria uma segunda central de avisos dentro do app.</p><div class="space-y-2">${rows.map(([key,title,desc])=>`<label class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900 border border-slate-800 cursor-pointer"><div><p class="text-sm font-bold text-white">${title}</p><p class="text-[10px] text-slate-500 mt-1">${desc}</p></div><input type="checkbox" class="w-5 h-5 accent-pink-600" data-notif-pref="${key}" ${p[key]?'checked':''}></label>`).join('')}</div><button onclick="saveNotificationSettingsFromUI()" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Salvar preferências</button></div>`);
         };
 
         window.saveNotificationSettingsFromUI = async () => {
@@ -3884,7 +4017,10 @@ window.checkInToday = async (buttonEl = null) => {
         window.enablePushNotifications = async () => {
             if (isNativeApp) {
                 nativePushInitialized = false;
-                return initNativePush({requestPermission:true});
+                const ok = await initNativePush({requestPermission:true});
+                if (ok) closeGenericModal();
+                await window.refreshNotificationNudge?.();
+                return ok;
             }
             if (!messagingSupported) return showToast('Este aparelho/navegador não suporta notificações push.', 'error');
             if (FCM_VAPID_KEY.includes('COLE_SUA')) return showToast('Configure a chave VAPID do Firebase antes de ativar as notificações.', 'info');
@@ -3897,6 +4033,8 @@ window.checkInToday = async (buttonEl = null) => {
                 if (!token || !currentUser) throw new Error('Token FCM não disponível.');
                 await saveFcmToken(token, 'web');
                 pushInitialized = true;
+                closeGenericModal();
+                await window.refreshNotificationNudge?.();
                 showToast('🔔 Notificações ativadas neste aparelho!', 'success');
             } catch (e) { console.error('FCM:', e); showToast('Não foi possível ativar as notificações. Verifique o FCM/VAPID.', 'error'); }
         };
@@ -3906,8 +4044,9 @@ window.checkInToday = async (buttonEl = null) => {
             foregroundPushInitialized = true;
             try {
                 onMessage(messaging, payload => {
-                    const n = payload.notification || payload.data || {};
-                    showToast(`🔔 ${n.title || 'Elo'}${n.body ? ': '+n.body : ''}`, 'info');
+                    // V36.6.2 · sem "notificação dentro da notificação". O conteúdo
+                    // do Elo é atualizado pelos listeners do Firestore naturalmente.
+                    // Mantemos o listener apenas para o ciclo de vida do FCM em foreground.
                 });
             } catch(e) {
                 foregroundPushInitialized = false;
@@ -6157,7 +6296,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                                 <p class="text-[9px] uppercase tracking-widest font-black text-slate-500">Código de amizade do Elo</p>
                                 ${socialCode ? `
                                 <div class="flex items-center gap-2 mt-2">
-                                    <button onclick="copySocialCode()" class="flex-1 rounded-xl bg-slate-900 border border-slate-700 px-3 py-3 text-center font-mono text-xl font-black tracking-[.18em] text-purple-300 active:scale-[.99]">${escapeHTML(socialCode)}</button>
+                                    <button onclick="copySocialCode()" class="flex-1 rounded-xl bg-slate-900 border border-slate-700 px-3 py-3 text-center font-mono text-xl font-black tracking-widest text-purple-300 active:scale-[.99]">${escapeHTML(socialCode)}</button>
                                     <button onclick="copySocialCode()" class="w-11 h-11 rounded-xl bg-purple-600 text-white grid place-items-center"><i class="ph-bold ph-copy"></i></button>
                                 </div>` : `
                                 <div class="mt-2 flex items-center gap-2 text-xs text-slate-400"><i class="ph-bold ph-spinner-gap animate-spin text-purple-400"></i> Preparando código social…</div>`}
@@ -6408,6 +6547,8 @@ const centerActiveStoreCategory = (smooth = true) => {
 
                             // V36.6: sem central interna; push continua pelo Worker/FCM.
                             initForegroundPush();
+                            // V36.6.2: novidades + onboarding de notificações, uma vez e sem spam.
+                            scheduleFirstEntryExperience();
 
                             // V34: cria o perfil social apenas quando o Elo já possui as duas pessoas.
                             if (Object.keys(coupleData.users || {}).length >= 2) {
@@ -6446,6 +6587,8 @@ const centerActiveStoreCategory = (smooth = true) => {
         // Auth Loop — Google obrigatório, sem login anônimo.
         onAuthStateChanged(auth, async (u) => {
             currentUser = u || null;
+            firstEntryExperienceScheduled = false;
+            firstEntryExperienceRunning = false;
             const finishBoot = () => {
                 const boot=document.getElementById('loading-screen');
                 if(!boot)return;
@@ -6454,7 +6597,7 @@ const centerActiveStoreCategory = (smooth = true) => {
             };
             updateGoogleAccountUI(currentUser);
             updateInviteUI();
-            if (u && isNativeApp) initNativePush({requestPermission:false, silent:true}).catch(()=>{});
+            if (u && isNativeApp) initNativePush({requestPermission:false, silent:true}).then(()=>window.refreshNotificationNudge?.()).catch(()=>{});
 
             if (!u) {
                 coupleId = '';

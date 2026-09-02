@@ -1,0 +1,11 @@
+Elo V36.6.2 / APK 0.5.2
+
+- Onboarding de notificações na primeira entrada autenticada.
+- Aviso discreto permanece visível enquanto a permissão não estiver concedida.
+- No iPhone fora do modo instalado, o Elo orienta a adicionar à Tela de Início antes do push.
+- Permissões já concedidas registram/renovam o token FCM silenciosamente.
+- Tela "Novidades do Elo" aparece uma única vez por versão usando localStorage.
+- Foreground não cria mais toast interno duplicando a notificação do sistema.
+- APK: versionCode 11 / versionName 0.5.2.
+- Web: 36.6.2.
+- CACHE: elo-v36-6-2-first-run-push-whats-new-20260902.

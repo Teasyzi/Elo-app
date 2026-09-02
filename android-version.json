@@ -1,12 +1,12 @@
 {
   "available": false,
-  "versionName": "0.5.1",
-  "versionCode": 10,
+  "versionName": "0.5.2",
+  "versionCode": 11,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Chat no iPhone sem zoom acidental de duplo toque",
-    "Itens da Loja podem ser presenteados diretamente ao parceiro",
-    "Presentes virtuais agora são interativos e revelam animações específicas"
+    "Convite guiado para ativar notificações na primeira entrada",
+    "Aviso persistente enquanto notificações não estiverem habilitadas",
+    "Tela de novidades exibida somente uma vez por nova versão"
   ]
 }
