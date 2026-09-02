@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-6-2-first-run-push-whats-new-20260902';
+const CACHE = 'elo-v36-6-3-chat-notification-home-web-fixes-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.6.2',
-  './tailwind.css?v=36.6.2',
-  './styles.css?v=36.6.2',
+  './app.js?v=36.6.3',
+  './tailwind.css?v=36.6.3',
+  './styles.css?v=36.6.3',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

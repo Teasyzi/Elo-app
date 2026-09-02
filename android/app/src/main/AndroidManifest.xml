@@ -39,6 +39,11 @@
             android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
             tools:node="remove" />
 
+        <!-- Ações Responder/Marcar como lida executadas em background, sem abrir a WebView. -->
+        <receiver
+            android:name=".EloNotificationActionReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

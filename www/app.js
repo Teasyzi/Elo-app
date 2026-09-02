@@ -66,15 +66,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         window.notificationPrefs = {...DEFAULT_NOTIFICATION_PREFS};
 
         const appId = "elo-app-v2";
-        // V36.6.2 · experiência de primeira entrada por versão + onboarding de push.
-        const ELO_WEB_VERSION = '36.6.2';
+        // V36.6.3 · correções de notificações, HOME e novidades web.
+        const ELO_WEB_VERSION = '36.6.3';
         const ELO_RELEASE_NOTES = [
-            'O Elo agora avisa quando as notificações ainda não estão ativas neste aparelho.',
-            'A ativação de notificações ganhou um passo guiado logo na primeira entrada.',
-            'Uma tela de novidades aparece apenas uma vez em cada nova versão.'
+            'Notificações de conversa não repetem mais mensagens antigas depois que você já abriu e leu o Chat.',
+            'A HOME ficou mais estável: o avatar não deve mais piscar quando seu amor estiver digitando.',
+            'A tela de novidades agora funciona separadamente no APK, site e iPhone/PWA e só é marcada como vista ao tocar em Continuar.',
+            'Seguimos preparando o Chat para a próxima etapa de recursos de um mensageiro completo.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
+
+        // Firestore pode devolver mapas com ordem interna de chaves diferente após um update parcial.
+        // JSON.stringify simples interpretava isso como mudança real e recriava a HOME, causando
+        // a piscada dos avatares quando o parceiro apenas atualizava typing/lastSeen.
+        const stableSerialize = value => {
+            if (value === null || typeof value !== 'object') return JSON.stringify(value);
+            if (Array.isArray(value)) return `[${value.map(stableSerialize).join(',')}]`;
+            return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(',')}}`;
+        };
 
         // Estados Globais
         window.currentUser = null;
@@ -155,7 +165,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.5.2', versionCode:11 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.5.3', versionCode:12 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2483,6 +2493,14 @@ window.checkInToday = async (buttonEl = null) => {
             chatUnreadCount = 0;
             updateChatBadge();
 
+            // A lista de mensagens exibida pela NotificationCompat.MessagingStyle é mantida
+            // no Android. Sempre que o Chat é efetivamente visualizado, limpamos essa fila
+            // nativa para que a próxima notificação comece apenas pela nova mensagem.
+            if (isNativeApp && nativeNotificationActions?.dismissConversation && coupleId) {
+                const senderUid = partnerUidOf();
+                if (senderUid) nativeNotificationActions.dismissConversation({coupleId, senderUid}).catch(()=>{});
+            }
+
             const unread = chatMessages
                 .filter(m =>
                     m.senderId !== currentUser.uid &&
@@ -3871,7 +3889,10 @@ window.checkInToday = async (buttonEl = null) => {
         const isIOSWebRuntime = () => !isNativeApp && !!window.eloIsIOS;
         const isStandaloneWebRuntime = () => !isNativeApp && (!!window.eloIsStandalone || window.matchMedia?.('(display-mode: standalone)')?.matches || navigator.standalone === true);
         const notificationIntroKey = () => `elo_push_intro_seen_v1_${currentUser?.uid || 'device'}`;
-        const whatsNewKey = () => `elo_whatsnew_seen_${ELO_WEB_VERSION}`;
+        const whatsNewRuntime = () => isNativeApp
+            ? 'android'
+            : (isIOSWebRuntime() ? (isStandaloneWebRuntime() ? 'ios-pwa' : 'ios-safari') : 'web');
+        const whatsNewKey = () => `elo_whatsnew_seen_${currentUser?.uid || 'device'}_${whatsNewRuntime()}_${ELO_WEB_VERSION}`;
 
         const getNotificationPermissionState = async () => {
             if (isNativeApp) {
@@ -3953,14 +3974,22 @@ window.checkInToday = async (buttonEl = null) => {
             openGenericModal(html);
         };
 
+        window.confirmWhatsNew = () => {
+            try { localStorage.setItem(whatsNewKey(), '1'); } catch (_) {}
+            closeGenericModal();
+            setTimeout(()=>window.maybeShowNotificationIntro?.(),220);
+        };
+
         window.showWhatsNew = ({force=false}={}) => {
             const key = whatsNewKey();
             if (!force && localStorage.getItem(key) === '1') return false;
-            localStorage.setItem(key, '1');
+            // Só registramos como visualizada depois que a pessoa toca em Continuar.
+            // Assim, se outro modal disputar a tela no carregamento web, a atualização
+            // não é perdida silenciosamente.
             openGenericModal(`<div class="space-y-5">
                 <div class="flex items-start justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">✨ Novidades do Elo</p><h3 class="text-2xl font-black text-white mt-1">Versão ${ELO_WEB_VERSION}</h3><p class="text-xs text-slate-500 mt-1">Veja o que mudou antes de continuar.</p></div><div class="w-12 h-12 rounded-2xl bg-pink-500/10 text-pink-400 grid place-items-center text-2xl shrink-0"><i class="ph-fill ph-sparkle"></i></div></div>
                 <div class="space-y-2">${ELO_RELEASE_NOTES.map((note,i)=>`<div class="flex gap-3 rounded-2xl bg-slate-900 border border-slate-800 p-3"><div class="w-7 h-7 rounded-xl bg-pink-500/10 text-pink-400 grid place-items-center text-xs font-black shrink-0">${i+1}</div><p class="text-xs text-slate-300 leading-relaxed">${escapeHTML(note)}</p></div>`).join('')}</div>
-                <button onclick="closeGenericModal();setTimeout(()=>window.maybeShowNotificationIntro?.(),220)" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl">Continuar</button>
+                <button onclick="confirmWhatsNew()" class="w-full bg-pink-600 text-white font-black py-3.5 rounded-2xl">Continuar</button>
             </div>`);
             return true;
         };
@@ -6522,7 +6551,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                                 })
                             );
                             const {messages, moments, logs, ...stableRelationshipData} = coupleData;
-                            const signature = JSON.stringify({
+                            const signature = stableSerialize({
                                 ...stableRelationshipData,
                                 users: renderUsers
                             });
@@ -6547,7 +6576,7 @@ const centerActiveStoreCategory = (smooth = true) => {
 
                             // V36.6: sem central interna; push continua pelo Worker/FCM.
                             initForegroundPush();
-                            // V36.6.2: novidades + onboarding de notificações, uma vez e sem spam.
+                            // V36.6.3: novidades + onboarding de notificações, uma vez por versão/runtime e sem spam.
                             scheduleFirstEntryExperience();
 
                             // V34: cria o perfil social apenas quando o Elo já possui as duas pessoas.

@@ -1,0 +1,14 @@
+ELO V36.6.3 / APK 0.5.3
+
+CORRECOES
+- Notifications MessagingStyle: ao visualizar o Chat, o historico nativo da conversa e limpo. A proxima notificacao comeca pela nova mensagem, sem repetir mensagens antigas ja visualizadas.
+- Android: se uma mensagem chega enquanto o Chat esta aberto, qualquer historico nativo residual da conversa tambem e limpo.
+- HOME: assinatura de renderizacao agora usa serializacao canonica com chaves ordenadas. Updates volateis de typing/lastSeen nao recriam a HOME nem fazem os avatares piscarem.
+- Novidades: tela agora e registrada como vista somente apos tocar em Continuar.
+- Novidades: controle separado por usuario + runtime (Android, Web, Safari/iOS PWA) + versao. Assim o APK ter mostrado a tela nao impede a experiencia do site/iPhone.
+
+VERSOES
+- Web: 36.6.3
+- APK: 0.5.3
+- versionCode: 12
+- Service Worker cache: elo-v36-6-3-chat-notification-home-web-fixes-20260902

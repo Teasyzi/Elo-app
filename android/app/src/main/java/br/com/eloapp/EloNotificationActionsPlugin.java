@@ -12,6 +12,9 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class EloNotificationActionsPlugin extends Plugin {
     static final String PREFS = "elo_notification_actions";
     static final String KEY_PENDING = "pending_action";
+    static final String KEY_CHAT_ACTIVE = "chat_active";
+    static final String KEY_CHAT_COUPLE = "chat_couple";
+    static final String KEY_CHAT_UPDATED = "chat_updated";
 
     @PluginMethod
     public void consumePendingAction(PluginCall call) {
@@ -40,5 +43,30 @@ public class EloNotificationActionsPlugin extends Plugin {
             empty.put("action", "");
             call.resolve(empty);
         }
+    }
+
+    @PluginMethod
+    public void setChatActive(PluginCall call) {
+        boolean active = call.getBoolean("active", false);
+        String coupleId = call.getString("coupleId", "");
+        SharedPreferences prefs = getContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE);
+        prefs.edit()
+            .putBoolean(KEY_CHAT_ACTIVE, active)
+            .putString(KEY_CHAT_COUPLE, coupleId == null ? "" : coupleId)
+            .putLong(KEY_CHAT_UPDATED, System.currentTimeMillis())
+            .apply();
+        JSObject result = new JSObject();
+        result.put("ok", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void dismissConversation(PluginCall call) {
+        String coupleId = call.getString("coupleId", "");
+        String senderUid = call.getString("senderUid", "");
+        EloMessagingService.dismissConversation(getContext(), coupleId, senderUid);
+        JSObject result = new JSObject();
+        result.put("ok", true);
+        call.resolve(result);
     }
 }

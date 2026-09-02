@@ -64,6 +64,13 @@ public class EloMessagingService extends FirebaseMessagingService {
         long timestamp = parseLong(data.get("sentAt"), System.currentTimeMillis());
 
         boolean isConversation = isConversationType(type);
+        if (isConversation && isConversationOpen(coupleId)) {
+            // Se o usuário já está com o Chat deste Elo visível, não cria heads-up duplicado
+            // e também zera o histórico nativo. Isso evita que uma mensagem antiga volte
+            // a aparecer junto da próxima notificação depois que o Chat já foi lido.
+            dismissConversation(this, coupleId, senderUid);
+            return;
+        }
         Bitmap avatar = loadCachedAvatar(senderUid);
         if (avatar == null) avatar = loadHttpsBitmap(senderPhotoUrl);
 
@@ -221,16 +228,22 @@ public class EloMessagingService extends FirebaseMessagingService {
         String senderUid,
         String conversationKey
     ) {
+        String actionToken = clean(data.get("actionToken"), "");
+        String actionEndpoint = clean(data.get("actionEndpoint"), "");
+        if (actionToken.isEmpty() || actionEndpoint.isEmpty()) return;
+
         RemoteInput remoteInput = new RemoteInput.Builder(REMOTE_INPUT_KEY)
             .setLabel("Responder")
             .build();
 
-        Intent replyIntent = buildOpenIntent(data, remoteMessage, notificationId, "reply");
-        replyIntent.putExtra("coupleId", coupleId);
-        replyIntent.putExtra("senderUid", senderUid);
-        PendingIntent replyPendingIntent = PendingIntent.getActivity(
+        int androidNotificationId = stableId(conversationKey);
+
+        Intent replyIntent = new Intent(this, EloNotificationActionReceiver.class);
+        replyIntent.setAction("br.com.eloapp.REPLY." + stableId(conversationKey));
+        copyActionExtras(replyIntent, data, notificationId, coupleId, senderUid, conversationKey, actionToken, actionEndpoint, androidNotificationId, "reply");
+        PendingIntent replyPendingIntent = PendingIntent.getBroadcast(
             this,
-            stableId(conversationKey + ":reply"),
+            stableId(conversationKey + ":reply-bg"),
             replyIntent,
             mutableUpdateFlags()
         );
@@ -238,14 +251,14 @@ public class EloMessagingService extends FirebaseMessagingService {
             0,
             "Responder",
             replyPendingIntent
-        ).addRemoteInput(remoteInput).setAllowGeneratedReplies(true).build();
+        ).addRemoteInput(remoteInput).setAllowGeneratedReplies(true).setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY).build();
 
-        Intent readIntent = buildOpenIntent(data, remoteMessage, notificationId, "mark_read");
-        readIntent.putExtra("coupleId", coupleId);
-        readIntent.putExtra("senderUid", senderUid);
-        PendingIntent readPendingIntent = PendingIntent.getActivity(
+        Intent readIntent = new Intent(this, EloNotificationActionReceiver.class);
+        readIntent.setAction("br.com.eloapp.MARK_READ." + stableId(conversationKey));
+        copyActionExtras(readIntent, data, notificationId, coupleId, senderUid, conversationKey, actionToken, actionEndpoint, androidNotificationId, "mark_read");
+        PendingIntent readPendingIntent = PendingIntent.getBroadcast(
             this,
-            stableId(conversationKey + ":read"),
+            stableId(conversationKey + ":read-bg"),
             readIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -253,9 +266,32 @@ public class EloMessagingService extends FirebaseMessagingService {
             0,
             "Marcar como lida",
             readPendingIntent
-        ).build();
+        ).setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ).build();
 
         builder.addAction(replyAction).addAction(readAction);
+    }
+
+    private void copyActionExtras(
+        Intent intent,
+        Map<String, String> data,
+        String notificationId,
+        String coupleId,
+        String senderUid,
+        String conversationKey,
+        String actionToken,
+        String actionEndpoint,
+        int androidNotificationId,
+        String action
+    ) {
+        intent.putExtra("elo_action", action);
+        intent.putExtra("elo_action_token", actionToken);
+        intent.putExtra("elo_action_endpoint", actionEndpoint);
+        intent.putExtra("elo_conversation_key", conversationKey);
+        intent.putExtra("elo_android_notification_id", androidNotificationId);
+        intent.putExtra("notificationId", notificationId);
+        intent.putExtra("coupleId", coupleId);
+        intent.putExtra("senderUid", senderUid);
+        intent.putExtra("type", clean(data.get("type"), "chat"));
     }
 
     private Intent buildOpenIntent(Map<String, String> data, RemoteMessage remoteMessage, String notificationId, String action) {
@@ -320,6 +356,36 @@ public class EloMessagingService extends FirebaseMessagingService {
         String couple = clean(coupleId, "solo");
         String sender = clean(senderUid, "partner");
         return "elo-conversation:" + couple + ":" + sender;
+    }
+
+    private boolean isConversationOpen(String coupleId) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(EloNotificationActionsPlugin.PREFS, MODE_PRIVATE);
+            boolean active = prefs.getBoolean(EloNotificationActionsPlugin.KEY_CHAT_ACTIVE, false);
+            String activeCouple = prefs.getString(EloNotificationActionsPlugin.KEY_CHAT_COUPLE, "");
+            long updatedAt = prefs.getLong(EloNotificationActionsPlugin.KEY_CHAT_UPDATED, 0L);
+            boolean fresh = System.currentTimeMillis() - updatedAt < 12000L;
+            return active && fresh && !coupleId.isEmpty() && coupleId.equals(activeCouple);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public static void dismissConversation(Context context, String coupleId, String senderUid) {
+        if (context == null) return;
+        String key = "elo-conversation:" + clean(coupleId, "solo") + ":" + clean(senderUid, "partner");
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) manager.cancel(stableId(key));
+        clearConversationHistory(context, key);
+    }
+
+    public static void clearConversationHistory(Context context, String conversationKey) {
+        if (context == null || conversationKey == null || conversationKey.trim().isEmpty()) return;
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(HISTORY_PREFS, Context.MODE_PRIVATE);
+            String prefKey = "history_" + Integer.toHexString(conversationKey.hashCode());
+            prefs.edit().remove(prefKey).apply();
+        } catch (Exception ignored) {}
     }
 
     private Bitmap loadCachedAvatar(String senderUid) {
