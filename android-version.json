@@ -1,13 +1,13 @@
 {
   "available": false,
-  "versionName": "0.7.6",
-  "versionCode": 22,
+  "versionName": "0.7.7",
+  "versionCode": 23,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Jogo Rápido usa uma única rodada compartilhada: mesma pergunta e resultado para os dois.",
-    "Resultado do Jogo Rápido aparece automaticamente nos dois aparelhos quando a segunda pessoa responde.",
-    "Áudio voltou a sincronizar após corrigir um erro no envio que interrompia antes de salvar no Firestore.",
-    "APK valida e solicita a permissão nativa de microfone antes de iniciar a gravação."
+    "APK grava mensagens de voz com gravador nativo Android, sem depender do MediaRecorder da WebView.",
+    "O último resultado do Jogo Rápido fica salvo para quem estava fora e aparece antes da rodada atual.",
+    "Respostas e troca de modo dão feedback visual antes da sincronização com o Firestore.",
+    "Jogo Rápido abre pelo estado em memória e sincroniza em segundo plano para reduzir espera."
   ]
 }

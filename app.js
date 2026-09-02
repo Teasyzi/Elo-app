@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.8.6';
+        const ELO_WEB_VERSION = '36.8.7';
         const ELO_RELEASE_NOTES = [
             'Jogo Rápido agora usa uma única rodada compartilhada: mesma pergunta, mesmas opções e resultado sincronizado para os dois.',
             'Áudios voltaram a sincronizar no Chat e o APK passou a pedir/validar o microfone pelo Android antes de gravar.',
@@ -106,6 +106,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         const CHAT_HISTORY_PAGE = 30;
         const chatMediaObjectUrls = new Map();
         let chatAudioRecorder = null;
+        let nativeChatAudioRecording = false;
         let chatAudioStream = null;
         let chatAudioChunks = [];
         let chatAudioStartedAt = 0;
@@ -173,7 +174,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.6', versionCode:22 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.7.7', versionCode:23 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -3116,26 +3117,40 @@ window.checkInToday = async (buttonEl = null) => {
         };
         const updateRecordingUI = () => {
             const normal=document.getElementById('chat-compose-normal'), rec=document.getElementById('chat-recording-panel');
-            const recording=!!chatAudioRecorder && chatAudioRecorder.state==='recording';
+            const recording=nativeChatAudioRecording || (!!chatAudioRecorder && chatAudioRecorder.state==='recording');
             if(normal) normal.style.display=recording?'none':'flex';
             if(rec) rec.style.display=recording?'flex':'none';
         };
         const stopRecordingTracks = () => { chatAudioStream?.getTracks?.().forEach(track=>track.stop()); chatAudioStream=null; };
         const clearAudioTimer = () => { if(chatAudioTimer){clearInterval(chatAudioTimer);chatAudioTimer=null;} };
-        window.cancelChatAudioRecording = () => {
+        const startAudioRecordingTimer=()=>{
+            const timeEl=document.getElementById('chat-record-time');
+            const tick=()=>{const seconds=Math.floor((Date.now()-chatAudioStartedAt)/1000);if(timeEl)timeEl.textContent=formatAudioDuration(seconds);document.querySelectorAll('.elo-rec-wave i').forEach((bar,i)=>{bar.style.height=`${8+Math.round(Math.abs(Math.sin((seconds*1.7+i)*.9))*18)}px`;});if(seconds>=300)window.finishChatAudioRecording();};
+            tick();chatAudioTimer=setInterval(tick,500);
+        };
+        const nativeAudioRecorderPlugin=()=>window.Capacitor?.Plugins?.EloAudioRecorder;
+        window.cancelChatAudioRecording = async () => {
+            if(nativeChatAudioRecording){
+                nativeChatAudioRecording=false;clearAudioTimer();updateRecordingUI();
+                try{await nativeAudioRecorderPlugin()?.cancelRecording?.();}catch(e){console.warn('Cancelar áudio nativo:',e)}
+                return;
+            }
             if(!chatAudioRecorder)return;
             chatAudioRecorder._eloSend=false;
             if(chatAudioRecorder.state!=='inactive') chatAudioRecorder.stop();
             else {stopRecordingTracks();clearAudioTimer();chatAudioRecorder=null;updateRecordingUI();}
         };
         window.startChatAudioRecording = async () => {
-            if(chatAudioRecorder?.state==='recording')return;
-            if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return showToast('Gravação de áudio não é suportada neste aparelho.','error');
+            if(nativeChatAudioRecording || chatAudioRecorder?.state==='recording')return;
             try{
-                if(isNativeApp){
+                if(isNativeApp && nativeAudioRecorderPlugin()?.startRecording){
                     const nativeAllowed=await requestNativeMicrophoneAccess();
                     if(!nativeAllowed)return showToast('Permita o microfone nas configurações do Elo para gravar áudio.','error');
+                    await nativeAudioRecorderPlugin().startRecording();
+                    nativeChatAudioRecording=true;chatAudioStartedAt=Date.now();updateRecordingUI();startAudioRecordingTimer();
+                    return;
                 }
+                if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return showToast('Gravação de áudio não é suportada neste aparelho.','error');
                 chatAudioStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
                 chatAudioMimeType=preferredAudioMimeType(); chatAudioChunks=[]; chatAudioStartedAt=Date.now();
                 const options={audioBitsPerSecond:32000}; if(chatAudioMimeType)options.mimeType=chatAudioMimeType;
@@ -3152,11 +3167,24 @@ window.checkInToday = async (buttonEl = null) => {
                     if(blob.size>8*1024*1024)return showToast('O áudio ficou grande demais. Grave uma mensagem menor.','error');
                     await sendRecordedChatAudio(blob,duration);
                 };
-                chatAudioRecorder.start(500); updateRecordingUI();
-                const timeEl=document.getElementById('chat-record-time'); const tick=()=>{const seconds=Math.floor((Date.now()-chatAudioStartedAt)/1000);if(timeEl)timeEl.textContent=formatAudioDuration(seconds);document.querySelectorAll('.elo-rec-wave i').forEach((bar,i)=>{bar.style.height=`${8+Math.round(Math.abs(Math.sin((seconds*1.7+i)*.9))*18)}px`;});if(seconds>=300)window.finishChatAudioRecording();}; tick();chatAudioTimer=setInterval(tick,500);
-            }catch(e){ stopRecordingTracks();chatAudioRecorder=null;updateRecordingUI();console.warn(e);showToast(e?.name==='NotAllowedError'?'Permita o acesso ao microfone para enviar áudio.':'Não foi possível iniciar o microfone.','error'); }
+                chatAudioRecorder.start(500); updateRecordingUI();startAudioRecordingTimer();
+            }catch(e){ stopRecordingTracks();nativeChatAudioRecording=false;chatAudioRecorder=null;clearAudioTimer();updateRecordingUI();console.warn(e);showToast(e?.message?`Não foi possível iniciar o microfone: ${e.message}`:(e?.name==='NotAllowedError'?'Permita o acesso ao microfone para enviar áudio.':'Não foi possível iniciar o microfone.'),'error'); }
         };
-        window.finishChatAudioRecording = () => {
+        window.finishChatAudioRecording = async () => {
+            if(nativeChatAudioRecording){
+                const duration=Math.max(1,(Date.now()-chatAudioStartedAt)/1000);
+                nativeChatAudioRecording=false;clearAudioTimer();updateRecordingUI();
+                try{
+                    const result=await nativeAudioRecorderPlugin()?.stopRecording?.();
+                    if(!result?.base64)throw new Error('O Android não retornou o áudio gravado.');
+                    const mime=String(result.mimeType||'audio/mp4');
+                    const blob=dataUrlToBlob(`data:${mime};base64,${result.base64}`);
+                    if(!blob.size)throw new Error('O áudio gravado ficou vazio.');
+                    if(blob.size>8*1024*1024)return showToast('O áudio ficou grande demais. Grave uma mensagem menor.','error');
+                    await sendRecordedChatAudio(blob,Number(result.duration||duration));
+                }catch(e){console.error('Áudio nativo:',e);showToast(`Não foi possível finalizar o áudio${e?.message?`: ${e.message}`:''}.`,'error');}
+                return;
+            }
             if(!chatAudioRecorder||chatAudioRecorder.state==='inactive')return; chatAudioRecorder._eloSend=true; chatAudioRecorder.stop();
         };
         const sendRecordedChatAudio = async (blob,duration) => {
@@ -6215,27 +6243,68 @@ const centerActiveStoreCategory = (smooth = true) => {
             const creator=game?.createdBy||currentUser?.uid; const ids=Object.keys(coupleData?.users||{}); const other=ids.find(id=>id!==creator);
             return [getProfileName(creator),other?getProfileName(other):'Seu amor'];
         };
+        const quickGamePendingResult=()=>{
+            const result=coupleData?.quickGameLastResult;
+            if(!result?.id||result.status!=='done')return null;
+            return result?.seenBy?.[currentUser?.uid] ? null : result;
+        };
+        const quickGameResultCardHtml=game=>{
+            const choices=game?.choices||{};const names=quickGameNames();const opts=quickGameResolvedOptions(game);
+            const myChoice=choices[currentUser?.uid],partnerChoice=names.partnerUid?choices[names.partnerUid]:undefined;
+            const both=myChoice!==undefined&&partnerChoice!==undefined,same=both&&myChoice===partnerChoice;
+            if(!both)return '';
+            return `<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div>`;
+        };
+        const quickGamePastResultHtml=result=>{
+            const mode=QUICK_GAME_MODES[result?.mode]||QUICK_GAME_MODES.either;
+            return `<div id="quick-game-content" class="text-center space-y-4" data-result-id="${escapeHTML(result?.id||'')}"><div class="flex items-center justify-between gap-2"><div class="text-left"><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">⏮ Resultado que você não viu</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-500">✕</button></div>${result?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(result.prompt)}</p>`:''}${quickGameResultCardHtml(result)}<p class="text-xs text-slate-500">Esse resultado ficou salvo para ninguém perder a rodada quando estiver fora do jogo.</p><button onclick="ackQuickGameResult('${escapeHTML(result?.id||'')}')" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Ver rodada atual</button></div>`;
+        };
         const quickGameHtml=game=>{
             const choices=game?.choices||{}; const myChoice=choices[currentUser?.uid]; const names=quickGameNames();
-            const partnerChoice=names.partnerUid?choices[names.partnerUid]:undefined; const both=myChoice!==undefined&&partnerChoice!==undefined; const same=both&&myChoice===partnerChoice;
+            const partnerChoice=names.partnerUid?choices[names.partnerUid]:undefined; const both=myChoice!==undefined&&partnerChoice!==undefined;
             const mode=QUICK_GAME_MODES[game?.mode]||QUICK_GAME_MODES.either; const opts=quickGameResolvedOptions(game);
-            return `<div id="quick-game-content" class="text-center space-y-4" data-game-id="${escapeHTML(game?.id||'')}"><div class="flex items-center justify-between gap-2"><div class="text-left"><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><div class="flex items-center gap-2"><button onclick="openQuickGameModePicker()" class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-black text-slate-300"><i class="ph-bold ph-squares-four mr-1"></i>Modos</button><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-500">✕</button></div></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i},'${escapeHTML(game.id||'')}')" class="p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100 transition active:scale-[.98]">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`<div class="rounded-2xl p-4 ${same?'bg-pink-500/10 border-pink-500/30':'bg-slate-900 border-slate-800'} border"><div class="text-3xl mb-2">${same?'💖':'😄'}</div><p class="font-black text-white">${same?'Vocês combinaram!':'Respostas diferentes desta vez.'}</p><p class="text-xs text-slate-400 mt-1">${escapeHTML(names.myName)}: ${escapeHTML(opts[myChoice])} · ${escapeHTML(names.partnerName)}: ${escapeHTML(opts[partnerChoice])}</p></div><button onclick="newCoupleGame('${game.mode||'either'}',true)" class="w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
+            return `<div id="quick-game-content" class="text-center space-y-4" data-game-id="${escapeHTML(game?.id||'')}"><div class="flex items-center justify-between gap-2"><div class="text-left"><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-2xl font-black text-white">${mode.title}</h3></div><div class="flex items-center gap-2"><button onclick="openQuickGameModePicker()" class="elo-qg-button px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-black text-slate-300"><i class="ph-bold ph-squares-four mr-1"></i>Modos</button><button onclick="closeGenericModal()" class="elo-qg-button w-9 h-9 rounded-xl bg-slate-900 text-slate-500">✕</button></div></div>${game?.prompt?`<p class="text-sm font-black text-white">${escapeHTML(game.prompt)}</p>`:`<p class="text-sm text-slate-300">${mode.subtitle}</p>`}<div class="grid grid-cols-2 gap-3">${opts.map((o,i)=>`<button ${myChoice!==undefined?'disabled':''} onclick="chooseCoupleGame(${i},'${escapeHTML(game.id||'')}')" class="elo-qg-button p-4 rounded-2xl border ${myChoice===i?'border-pink-500 bg-pink-500/20':'border-slate-800 bg-slate-900'} text-white font-black text-sm disabled:opacity-100 transition active:scale-[.98]">${escapeHTML(o)}</button>`).join('')}</div>${myChoice!==undefined?`<p class="text-xs text-slate-400">Resposta de ${escapeHTML(names.myName)} registrada. ${partnerChoice!==undefined?`${escapeHTML(names.partnerName)} já respondeu!`:`Aguardando ${escapeHTML(names.partnerName)}…`}</p>`:'<p class="text-xs text-slate-500">Cada um responde no próprio celular.</p>'}${both?`${quickGameResultCardHtml(game)}<button onclick="newCoupleGame('${game.mode||'either'}',true)" class="elo-qg-button w-full bg-pink-600 text-white font-black py-3 rounded-xl">Outra rodada</button>`:''}</div>`;
         };
         const quickGameLoadingHtml=(modeId='either')=>{const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;return `<div id="quick-game-content" class="text-center space-y-5 py-3"><div class="w-12 h-12 mx-auto rounded-2xl bg-pink-500/10 text-pink-400 grid place-items-center"><i class="ph-bold ph-spinner-gap elo-spin text-2xl"></i></div><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎲 Jogo rápido</p><h3 class="text-xl font-black text-white mt-1">${mode.title}</h3><p class="text-xs text-slate-500 mt-2">Sincronizando a mesma rodada para vocês dois…</p></div></div>`};
-        const renderCoupleGameModal=()=>{const el=document.getElementById('quick-game-content');if(el&&coupleData?.quickGame&&el.dataset.gameId!==String(coupleData.quickGame.id||''))el.outerHTML=quickGameHtml(coupleData.quickGame);else if(el&&coupleData?.quickGame)el.outerHTML=quickGameHtml(coupleData.quickGame)};
-        const quickGameModePickerHtml=()=>`<div class="space-y-3"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Jogo Rápido</p><h3 class="text-xl font-black text-white">Escolha um modo</h3><p class="text-xs text-slate-500 mt-1">A nova rodada será a mesma nos dois aparelhos.</p></div><button onclick="closeGenericModal()" class="w-9 h-9 rounded-xl bg-slate-900 text-slate-400">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}',true)" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left transition active:scale-[.99]"><div class="flex items-center justify-between gap-3"><div><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></div><i class="ph-bold ph-caret-right text-slate-600"></i></div></button>`).join('')}</div>`;
+        const markQuickGameResultSeen=async resultId=>{
+            if(!resultId||!coupleId||!currentUser?.uid)return;
+            const result=coupleData?.quickGameLastResult;
+            if(result?.id!==resultId||result?.seenBy?.[currentUser.uid])return;
+            coupleData={...coupleData,quickGameLastResult:{...result,seenBy:{...(result.seenBy||{}),[currentUser.uid]:true}}};
+            try{await updateDoc(quickGameRef(),{[`quickGameLastResult.seenBy.${currentUser.uid}`]:true});}catch(e){console.warn('Resultado visto:',e)}
+        };
+        const renderCoupleGameModal=()=>{
+            const el=document.getElementById('quick-game-content');if(!el)return;
+            const pending=quickGamePendingResult();
+            if(pending){el.outerHTML=quickGamePastResultHtml(pending);return;}
+            if(coupleData?.quickGame){
+                const game=coupleData.quickGame;el.outerHTML=quickGameHtml(game);
+                if(game.status==='done'&&game.choices?.[currentUser?.uid]!==undefined) markQuickGameResultSeen(game.id);
+            }
+        };
+        const quickGameModePickerHtml=()=>`<div class="space-y-3"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] uppercase tracking-widest font-black text-pink-400">🎮 Jogo Rápido</p><h3 class="text-xl font-black text-white">Escolha um modo</h3><p class="text-xs text-slate-500 mt-1">A nova rodada será a mesma nos dois aparelhos.</p></div><button onclick="closeGenericModal()" class="elo-qg-button w-9 h-9 rounded-xl bg-slate-900 text-slate-400">✕</button></div>${Object.entries(QUICK_GAME_MODES).map(([id,m])=>`<button onclick="newCoupleGame('${id}',true)" class="elo-qg-button w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-left transition active:scale-[.99]"><div class="flex items-center justify-between gap-3"><div><p class="font-black text-white">${m.title}</p><p class="text-xs text-slate-500 mt-1">${m.subtitle}</p></div><i class="ph-bold ph-caret-right text-slate-600"></i></div></button>`).join('')}</div>`;
         window.openQuickGameModePicker=()=>openGenericModal(quickGameModePickerHtml());
+        window.ackQuickGameResult=async resultId=>{
+            await markQuickGameResultSeen(resultId);
+            const game=coupleData?.quickGame;
+            if(game)openGenericModal(quickGameHtml(game));else window.openQuickGameModePicker();
+        };
         window.openCoupleGame=async()=>{
-            // Não cria pergunta local. Primeiro lê o estado compartilhado para nunca mostrar rodada diferente.
-            openGenericModal('<div id="quick-game-content" class="py-10 text-center"><i class="ph-bold ph-spinner-gap elo-spin text-3xl text-pink-400"></i><p class="text-xs text-slate-500 mt-3">Abrindo a rodada do casal…</p></div>');
+            const pending=quickGamePendingResult();
+            if(pending)openGenericModal(quickGamePastResultHtml(pending));
+            else if(coupleData?.quickGame)openGenericModal(quickGameHtml(coupleData.quickGame));
+            else openGenericModal('<div id="quick-game-content" class="py-10 text-center"><i class="ph-bold ph-spinner-gap elo-spin text-3xl text-pink-400"></i><p class="text-xs text-slate-500 mt-3">Abrindo a rodada do casal…</p></div>');
             try{
                 const snap=await getDoc(quickGameRef());
-                const fresh=snap.exists()?snap.data()?.quickGame:null;
-                if(fresh){coupleData={...coupleData,quickGame:fresh};renderCoupleGameModal();}
-                else window.openQuickGameModePicker();
+                if(!snap.exists())return;
+                const data=snap.data();coupleData={...coupleData,quickGame:data.quickGame||null,quickGameLastResult:data.quickGameLastResult||null};
+                if(document.getElementById('quick-game-content')){
+                    if(quickGamePendingResult())renderCoupleGameModal();
+                    else if(coupleData?.quickGame)renderCoupleGameModal();
+                    else window.openQuickGameModePicker();
+                }
             }catch(e){
-                const game=coupleData?.quickGame;
-                if(game)renderCoupleGameModal();else window.openQuickGameModePicker();
+                if(!coupleData?.quickGame&&!quickGamePendingResult())window.openQuickGameModePicker();
             }
         };
         const quickRoundIndex=(modeId,sequence)=>{
@@ -6245,31 +6314,39 @@ const centerActiveStoreCategory = (smooth = true) => {
             for(let i=0;i<seed.length;i++){hash^=seed.charCodeAt(i);hash=Math.imul(hash,16777619);}
             return (hash>>>0)%rounds.length;
         };
+        const buildQuickGameCandidate=(modeId,sequence,data=coupleData)=>{
+            const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;
+            const roundIndex=quickRoundIndex(modeId,sequence),round=mode.rounds[roundIndex];
+            const ids=Object.keys(data?.users||{}),partnerUid=ids.find(id=>id!==currentUser.uid);
+            const optionUserIds=modeId==='likely'?[currentUser.uid,partnerUid].filter(Boolean):null;
+            return {id:`qg_${sequence}_${modeId}`,sequence,roundIndex,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid};
+        };
+        const yieldQuickGamePaint=()=>new Promise(resolve=>requestAnimationFrame(()=>resolve()));
         window.newCoupleGame=async(modeId='either',forceMode=false)=>{
             if(quickGameCreating)return;
             quickGameCreating=true;
-            openGenericModal(quickGameLoadingHtml(modeId));
+            const known=coupleData?.quickGame||null;
+            if(known?.status==='done')markQuickGameResultSeen(known.id);
+            const optimisticSequence=Math.max(0,Number(known?.sequence||0))+1;
+            const optimistic=buildQuickGameCandidate(modeId,optimisticSequence,coupleData);
+            coupleData={...coupleData,quickGame:optimistic};openGenericModal(quickGameHtml(optimistic));
+            await yieldQuickGamePaint();
             try{
                 let selected=null;
                 await runTransaction(db,async tx=>{
                     const ref=quickGameRef();const snap=await tx.get(ref);
                     if(!snap.exists())throw new Error('Elo não encontrado.');
                     const data=snap.data(); const existing=data?.quickGame||null;
-                    // Ao simplesmente entrar/jogar, uma rodada aberta SEMPRE vence. Nada de pergunta local concorrente.
                     if(existing&&existing.status==='open'&&!forceMode){selected=existing;return;}
-                    const mode=QUICK_GAME_MODES[modeId]||QUICK_GAME_MODES.either;
                     const sequence=Math.max(0,Number(existing?.sequence||0))+1;
-                    const roundIndex=quickRoundIndex(modeId,sequence);
-                    const round=mode.rounds[roundIndex];
-                    const ids=Object.keys(data.users||{}); const partnerUid=ids.find(id=>id!==currentUser.uid);
-                    const optionUserIds=modeId==='likely'?[currentUser.uid,partnerUid].filter(Boolean):null;
-                    selected={id:`qg_${sequence}_${Date.now()}`,sequence,roundIndex,mode:modeId,options:round.slice(0,2),...(optionUserIds?.length===2?{optionUserIds}:{}),prompt:round[2]||'',choices:{},status:'open',createdAt:Date.now(),createdBy:currentUser.uid};
+                    selected=buildQuickGameCandidate(modeId,sequence,data);
                     tx.update(ref,{quickGame:selected});
                 });
-                coupleData={...coupleData,quickGame:selected};
-                renderCoupleGameModal();
+                coupleData={...coupleData,quickGame:selected};renderCoupleGameModal();
             }catch(e){
                 console.error(e);showToast('Não foi possível sincronizar a rodada.','error');
+                try{const snap=await getDoc(quickGameRef());if(snap.exists()){const data=snap.data();coupleData={...coupleData,quickGame:data.quickGame||null,quickGameLastResult:data.quickGameLastResult||coupleData?.quickGameLastResult};}}
+                catch(_){}
                 const fresh=coupleData?.quickGame;if(fresh)openGenericModal(quickGameHtml(fresh));else window.openQuickGameModePicker();
             }finally{quickGameCreating=false}
         };
@@ -6280,8 +6357,9 @@ const centerActiveStoreCategory = (smooth = true) => {
             const previous={...localGame,choices:{...(localGame.choices||{})}};
             const optimistic={...localGame,choices:{...(localGame.choices||{}),[currentUser.uid]:index}};
             coupleData={...coupleData,quickGame:optimistic};renderCoupleGameModal();
+            await yieldQuickGamePaint();
             try{
-                let next=null;
+                let next=null,lastResult=null;
                 await runTransaction(db,async tx=>{
                     const ref=quickGameRef();const snap=await tx.get(ref);
                     if(!snap.exists())throw new Error('Elo não encontrado.');
@@ -6294,10 +6372,14 @@ const centerActiveStoreCategory = (smooth = true) => {
                     const choices={...(game.choices||{}),[currentUser.uid]:index};
                     next={...game,choices,status:partnerAnswered?'done':'open',...(partnerAnswered?{finishedAt:Date.now()}:{})};
                     const updates={[`quickGame.choices.${currentUser.uid}`]:index};
-                    if(partnerAnswered){updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1)}
+                    if(partnerAnswered){
+                        updates['quickGame.status']='done';updates['quickGame.finishedAt']=next.finishedAt;updates['quickStats.rounds']=increment(1);if(same)updates['quickStats.matches']=increment(1);
+                        lastResult={...next,seenBy:{[currentUser.uid]:true}};
+                        updates['quickGameLastResult']=lastResult;
+                    }
                     tx.update(ref,updates);
                 });
-                coupleData={...coupleData,quickGame:next};renderCoupleGameModal();
+                coupleData={...coupleData,quickGame:next,...(lastResult?{quickGameLastResult:lastResult}:{})};renderCoupleGameModal();
             }catch(e){
                 console.error(e);coupleData={...coupleData,quickGame:previous};renderCoupleGameModal();showToast(e.message||'Não foi possível registrar sua escolha.','error');
             }

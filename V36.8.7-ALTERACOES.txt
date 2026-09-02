@@ -1,0 +1,25 @@
+Elo V36.8.7 / APK 0.7.7
+
+ÁUDIO APK
+- Android agora usa EloAudioRecorder nativo (MediaRecorder AAC/M4A).
+- O APK não depende mais do MediaRecorder/getUserMedia da WebView para gravar voz.
+- O áudio nativo volta ao mesmo fluxo privado R2 + Firestore já usado pelo site.
+- Permissão RECORD_AUDIO continua validada antes de iniciar.
+
+JOGO RÁPIDO
+- quickGameLastResult preserva a rodada concluída até quem estava fora visualizá-la.
+- Ao abrir o jogo, um resultado não visto aparece antes da rodada atual.
+- Nova rodada recebe preview determinístico imediato e sincroniza em background.
+- Resposta local pinta imediatamente antes da transação do Firestore.
+- touch-action: manipulation remove atraso de toque em WebView/mobile.
+- A rodada oficial continua sendo reconciliada pelo Firestore para manter os dois aparelhos iguais.
+
+VERSÕES
+- Web: 36.8.7
+- APK: 0.7.7
+- versionCode: 23
+- Cache: elo-v36-8-7-native-audio-quick-game-memory-20260902
+
+WORKER
+- Nenhuma alteração de lógica no Worker nesta versão.
+- wrangler.jsonc do projeto completo mantém o binding R2 ELO_MEDIA -> elo-chat-media.

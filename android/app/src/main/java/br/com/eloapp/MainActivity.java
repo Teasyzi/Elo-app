@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(EloAvatarPlugin.class);
         registerPlugin(EloNotificationActionsPlugin.class);
         registerPlugin(EloDevicePermissionsPlugin.class);
+        registerPlugin(EloAudioRecorderPlugin.class);
         captureNotificationAction(getIntent());
         super.onCreate(savedInstanceState);
     }

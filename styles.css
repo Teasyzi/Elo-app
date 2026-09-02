@@ -1037,3 +1037,8 @@ body[data-elo-tab="chat"] #main-content{overflow:hidden!important}
   body[data-elo-tab="chat"] #main-content{height:100dvh!important;min-height:0!important;padding:6px 8px 6px 8px!important;overflow:hidden!important}
   body[data-elo-tab="chat"] .elo-chat-shell{height:100%!important;max-height:none!important;margin:0 0 0 4px!important}
 }
+
+
+/* ===== ELO V36.8.7 · QUICK GAME INSTANT TOUCH ===== */
+.elo-qg-button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;will-change:transform}
+.elo-qg-button:active{transform:scale(.985)}
