@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-5-admin-web-fluidity-20260903';
+const CACHE = 'elo-v36-11-6-fluidity-phase-2-20260903';
 const CORE=[
   './',
   './index.html',
