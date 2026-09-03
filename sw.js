@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-11-celestial-interstellar-blackhole-20260903';
+const CACHE = 'elo-v36-11-12-celestial-infall-20260903';
 const CORE=[
   './',
   './index.html',
   './app.js?v=36.11.8',
   './v36-11.js?v=36.11.8',
   './app-fluidity.js?v=36.11.8',
-  './app-fluidity.js?v=36.11.11',
+  './app-fluidity.js?v=36.11.12',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
@@ -31,7 +31,6 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  // Runtimes/CSS principais: rede primeiro para evitar versão antiga presa no Web/PWA.
   if(/\/(app|app-fluidity|v36-11)\.js$/.test(u.pathname)||/\/(styles|tailwind)\.css$/.test(u.pathname)){
     e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;}).catch(()=>caches.match(e.request)));
     return;
