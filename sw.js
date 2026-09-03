@@ -1,23 +1,19 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-2-admin-permanent-sandbox-20260903';
+const CACHE = 'elo-v36-11-3-daily-ux-performance-qa-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.11.2',
-  './v36-11.js?v=36.11.2',
-  './tailwind.css?v=36.11.2',
-  './styles.css?v=36.11.2',
+  './app.js?v=36.11.3',
+  './v36-11.js?v=36.11.3',
+  './tailwind.css?v=36.11.3',
+  './styles.css?v=36.11.3',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
 
 self.addEventListener('install',e=>{
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(c=>c.addAll(CORE))
-      .then(()=>self.skipWaiting())
-  );
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate',e=>{
   e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
@@ -27,16 +23,11 @@ self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
   if(u.pathname.endsWith('/android-version.json')){e.respondWith(fetch(e.request,{cache:'no-store'}));return;}
   if(u.origin!==location.origin)return;
-
   if(e.request.mode==='navigate'){
-    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{
-      const copy=r.clone(); caches.open(CACHE).then(cache=>cache.put('./index.html',copy)); return r;
-    }).catch(()=>caches.match('./index.html')));
+    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put('./index.html',copy));return r;}).catch(()=>caches.match('./index.html')));
     return;
   }
-  e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{
-    const copy=r.clone(); caches.open(CACHE).then(cache=>cache.put(e.request,copy)); return r;
-  })));
+  e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;})));
 });
 
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
@@ -52,7 +43,6 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-
 messaging.onBackgroundMessage(payload => {
   const data = payload.data || {};
   const title = data.title || data.senderName || 'Elo 💕';
@@ -60,7 +50,6 @@ messaging.onBackgroundMessage(payload => {
   const appIcon = './icons/icon-192.png';
   const senderPhoto = /^https?:\/\//i.test(data.senderPhotoUrl || '') ? data.senderPhotoUrl : '';
   const notificationId = data.notificationId || `${data.type || 'elo'}-${Date.now()}`;
-
   return self.registration.showNotification(title, {
     body,
     icon: senderPhoto || appIcon,
