@@ -1,0 +1,53 @@
+Elo V36.11.14
+Data: 03/09/2026
+Branch: feature/v36.11-admin-theme-sync
+
+1) Celestial / buraco negro
+- Luz externa reduzida para não dominar a tela.
+- Disco de acreção, lente e anel de fótons ficaram menores e menos estourados.
+- Clique no buraco negro usa uma trajetória curva, com desvio tangencial e aceleração progressiva.
+- A espaguetificação acontece mais perto do horizonte, reduzindo a aparência de animação linear/artificial.
+- Todos os cometas visíveis continuam participando do puxão.
+
+2) Fundos de Chat
+- Akai Ito: fios cruzados e pontos rubi.
+- Sakura: pétalas agrupadas e profundidade rosa.
+- Midnight: estrelas + linhas de constelação.
+- Cozy: textura quente e trama de tecido.
+- Celestial: campo estelar, nebulosas e traços luminosos.
+- Novos temas também possuem fundo próprio.
+
+3) Novos temas padrão gratuitos
+- Vermelho
+- Azul
+- Verde
+- Museu
+- Cinema Noir
+- Rústico
+
+Os novos temas alteram a paleta do Elo e possuem identidade própria no Chat.
+Museu usa marfim/sépia e referência visual a molduras/galeria.
+Cinema Noir usa preto/grafite e textura de filme/projetor.
+Rústico usa madeira escura/cobre e veios de madeira.
+
+4) Pets / ovos / incubadora
+Diagnóstico: a V36.11 possuía uma proteção chamada elo-pet-ui-guard. Ela escondia a entrada da Central dos Pets quando ainda não existia Pet, ovo, incubadora ou proposta. Isso criou um ciclo: quem ainda não tinha iniciado a jornada não conseguia encontrar onde comprar o primeiro ovo.
+
+Correção:
+- A entrada da Central dos Pets permanece visível mesmo antes do primeiro ovo.
+- O Pet flutuante continua escondido enquanto não existir Pet/incubação.
+- A Central continua contendo Coleção, Ovos, Incubadora e Loja de Ovos.
+
+5) Notificações internas
+- Toasts/pop-ups internos continuam totalmente desativados.
+- Push real do Android/PWA continua independente.
+
+6) Cache / APK
+- CACHE do service worker alterado para elo-v36-11-14-themes-gravity-pet-entry-20260903.
+- prepare-capacitor mantém app-fluidity.js na paridade Web/PWA/APK.
+
+Teste sugerido
+- Perfil > Temas: testar os 6 novos temas.
+- Abrir o Chat em cada tema e observar o fundo.
+- Celestial: clicar no buraco negro com cometas em posições diferentes.
+- Conta sem Pet: confirmar que a Central dos Pets pode ser aberta e que Loja de Ovos/Inventário/Incubadora aparecem.
