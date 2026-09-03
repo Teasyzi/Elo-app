@@ -5,6 +5,7 @@ const VERSION='36.11.8';
 const nativeInnerHTML=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
 const state={chatPatches:0,chatFallbacks:0,gravityRuns:0,observer:null};
 const lowEnd=!!window.ELO_FLUIDITY?.lowEnd||Number(navigator.hardwareConcurrency||4)<=4||Number(navigator.deviceMemory||4)<=4;
+window.ELO_V36_11={...(window.ELO_V36_11||{}),version:VERSION};
 window.ELO_FLUIDITY={...(window.ELO_FLUIDITY||{}),version:VERSION,phase:4,lowEnd,chatIncremental:true,blackHoleV2:true,stats:state};
 
 const style=document.createElement('style');
@@ -68,11 +69,10 @@ function messageIds(root){return [...root.querySelectorAll('[data-chat-message]'
 function topRowForMessage(root,id){const bubble=[...root.querySelectorAll('[data-chat-message]')].find(el=>el.dataset.chatMessage===id);return bubble?.closest('.elo-message-row')||null}
 function patchChatHtml(el,html){const template=document.createElement('template');template.innerHTML=String(html);const next=template.content;const oldIds=messageIds(el),newIds=messageIds(next);
   if(!oldIds.length||newIds.length<oldIds.length||!oldIds.every((id,i)=>newIds[i]===id)){state.chatFallbacks++;return nativeInnerHTML.set.call(el,html)}
-  let changed=0;
-  for(const id of oldIds){const oldRow=topRowForMessage(el,id),newRow=topRowForMessage(next,id);if(!oldRow||!newRow){state.chatFallbacks++;return nativeInnerHTML.set.call(el,html)}if(oldRow.outerHTML!==newRow.outerHTML){oldRow.replaceWith(newRow.cloneNode(true));changed++}}
+  for(const id of oldIds){const oldRow=topRowForMessage(el,id),newRow=topRowForMessage(next,id);if(!oldRow||!newRow){state.chatFallbacks++;return nativeInnerHTML.set.call(el,html)}if(oldRow.outerHTML!==newRow.outerHTML)oldRow.replaceWith(newRow.cloneNode(true))}
   // Indicador de digitação é o único nó efêmero que não tem id de mensagem.
-  const oldTyping=el.querySelector('.elo-typing-row'),newTyping=next.querySelector('.elo-typing-row');if(oldTyping&&!newTyping){oldTyping.remove();changed++}else if(!oldTyping&&newTyping){el.appendChild(newTyping.cloneNode(true));changed++}else if(oldTyping&&newTyping&&oldTyping.outerHTML!==newTyping.outerHTML){oldTyping.replaceWith(newTyping.cloneNode(true));changed++}
-  if(newIds.length>oldIds.length){const lastOld=oldIds[oldIds.length-1],lastBubble=[...next.querySelectorAll('[data-chat-message]')].find(x=>x.dataset.chatMessage===lastOld),lastRow=lastBubble?.closest('.elo-message-row');let node=lastRow?.nextSibling;while(node){const copy=node.cloneNode(true);if(!(copy.nodeType===1&&copy.classList?.contains('elo-typing-row')))el.appendChild(copy);node=node.nextSibling}changed+=newIds.length-oldIds.length}
+  const oldTyping=el.querySelector('.elo-typing-row'),newTyping=next.querySelector('.elo-typing-row');if(oldTyping&&!newTyping)oldTyping.remove();else if(!oldTyping&&newTyping)el.appendChild(newTyping.cloneNode(true));else if(oldTyping&&newTyping&&oldTyping.outerHTML!==newTyping.outerHTML)oldTyping.replaceWith(newTyping.cloneNode(true));
+  if(newIds.length>oldIds.length){const lastOld=oldIds[oldIds.length-1],lastBubble=[...next.querySelectorAll('[data-chat-message]')].find(x=>x.dataset.chatMessage===lastOld),lastRow=lastBubble?.closest('.elo-message-row');let node=lastRow?.nextSibling;while(node){const copy=node.cloneNode(true);if(!(copy.nodeType===1&&copy.classList?.contains('elo-typing-row')))el.appendChild(copy);node=node.nextSibling}}
   state.chatPatches++;return html
 }
 function patchChatElement(el){if(!el||el.dataset.eloIncrementalChat==='1'||!nativeInnerHTML?.set)return;el.dataset.eloIncrementalChat='1';Object.defineProperty(el,'innerHTML',{configurable:true,get(){return nativeInnerHTML.get.call(el)},set(html){return patchChatHtml(el,html)}})}
