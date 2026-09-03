@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-13-chat-themes-slow-gravity-no-popups-20260903';
+const CACHE = 'elo-v36-11-14-themes-gravity-pet-entry-20260903';
 const CORE=[
   './',
   './index.html',
   './app.js?v=36.11.8',
   './v36-11.js?v=36.11.8',
   './app-fluidity.js?v=36.11.8',
-  './app-fluidity.js?v=36.11.13',
+  './app-fluidity.js?v=36.11.14',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
