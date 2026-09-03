@@ -1,0 +1,33 @@
+Elo V36.11.9
+
+1. Galáxia Celestial / buraco negro
+- Restaura a sensação de espaguetificação durante a interação.
+- Objetos agora passam por várias etapas de alongamento antes de desaparecer no horizonte do buraco negro.
+- Todos os cometas visíveis entram na interação; partículas e parte das estrelas também são afetadas.
+- Reaproveita os estados visuais is-feeding/is-gravity-active do buraco negro original.
+- Mantém disco de acreção, lente gravitacional, anel de fótons e poeira orbital vivos.
+- A interação é mais lenta e progressiva do que na V36.11.8, evitando o efeito de simplesmente sumir no centro.
+
+2. Fluidez fase 5
+- Chat incremental melhorado: atributos internos de gesto não fazem mais mensagens intactas serem substituídas desnecessariamente.
+- main-content ganhou guarda contra render idêntico: se o HTML final não mudou, a árvore DOM não é destruída/recriada.
+- Quando a mesma aba realmente precisa redesenhar, o scroll é preservado e o foco de inputs identificáveis é recuperado.
+- Home, Missões, Loja, Bolsa e Amigos usam pintura sob demanda em conteúdo fora da viewport quando aplicável.
+- Observador de runtime foi reduzido: não observa mais toda a árvore do body em subtree, diminuindo trabalho em mudanças pequenas.
+- Imagens não críticas recebem decoding assíncrono e lazy loading.
+
+3. Diagnóstico
+window.ELO_FLUIDITY agora expõe phase: 5 e estatísticas:
+- chatPatches
+- chatFallbacks
+- mainWrites
+- mainSkips
+- scrollRestores
+- gravityRuns
+
+4. PWA/APK
+- CACHE do Service Worker alterado para elo-v36-11-9-blackhole-spaghettification-fluidity-phase-5-20260903.
+- app-fluidity.js está incluído na preparação do Capacitor para manter a mesma otimização no APK.
+
+Observação
+O app.js principal ainda preserva a lógica de negócio atual. A otimização continua em uma camada carregada depois dele para reduzir o risco de regressão durante os testes. Depois de validar a fase 5, os hot paths aprovados podem ser incorporados diretamente ao app.js em uma limpeza estrutural posterior.
