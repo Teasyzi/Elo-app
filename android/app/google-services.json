@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "107299510923-e6sfq4oj36f6hep84tn3klrvaevee644.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.eloapp",
+            "certificate_hash": "72c7c410aaa2ce60a149ffa375666be00f050ac9"
+          }
+        },
+        {
           "client_id": "107299510923-k9mf02b6fgnm992t2c9jh8fr9hrlokcs.apps.googleusercontent.com",
           "client_type": 3
         }

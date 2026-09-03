@@ -1,15 +1,15 @@
 {
   "available": false,
-  "versionName": "0.8.5",
-  "versionCode": 29,
+  "versionName": "0.8.6",
+  "versionCode": 30,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Midnight ganhou um campo estelar animado mais denso, lua viva e mais meteoros.",
-    "Galáxia Celestial virou um tema black galaxy premium com nebulosas em movimento, estrelas densas e meteoros.",
-    "Na Home, o fio Akai Ito fica sozinho entre os avatares, sem o coração/“Nosso começo” sobreposto.",
-    "Papéis de parede do Chat agora ficam fixos enquanto as mensagens rolam; presets e cores das bolhas foram corrigidos.",
-    "Ao sair do teste de um tema, a tela Temas do Elo abre novamente para facilitar comparações.",
-    "A abertura do Perfil foi estabilizada para evitar o flash visual rápido."
+    "Midnight agora é uma noite romântica de luar, visualmente separado da Galáxia Celestial.",
+    "O fio Akai Ito da Home ficou mais orgânico, contínuo e reage ao toque com um pulso de energia.",
+    "PET V1: três Pets iniciais com raridades e adoção compartilhada entre o casal.",
+    "A adoção pode ser paga por uma pessoa ou dividida 50/50 e depende da aprovação do parceiro.",
+    "O nome do Pet é decidido em conjunto; renomeações custam 150 Elo Coins após aprovação.",
+    "Carinho, alimentação e brincadeiras são sincronizados e dão XP ao Pet."
   ]
 }

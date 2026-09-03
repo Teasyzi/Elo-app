@@ -1,14 +1,15 @@
 {
   "available": false,
-  "versionName": "0.8.4",
-  "versionCode": 28,
+  "versionName": "0.8.6",
+  "versionCode": 30,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Galáxia Celestial redesenhada com nebulosas, estrelas e meteoros.",
-    "Midnight e Cozy ganharam animações próprias mais marcantes.",
-    "Corrigida a personalização do Chat: cores das bolhas e papel de parede agora têm prioridade sobre o tema.",
-    "Criador de temas ganhou partículas animadas opcionais com cor personalizada e desbloqueios por Elo Coins.",
-    "O fio Akai Ito da Home agora conecta os dois avatares e forma um coração no centro."
+    "Midnight agora é uma noite romântica de luar, visualmente separado da Galáxia Celestial.",
+    "O fio Akai Ito da Home ficou mais orgânico, contínuo e reage ao toque com um pulso de energia.",
+    "PET V1: três Pets iniciais com raridades e adoção compartilhada entre o casal.",
+    "A adoção pode ser paga por uma pessoa ou dividida 50/50 e depende da aprovação do parceiro.",
+    "O nome do Pet é decidido em conjunto; renomeações custam 150 Elo Coins após aprovação.",
+    "Carinho, alimentação e brincadeiras são sincronizados e dão XP ao Pet."
   ]
 }

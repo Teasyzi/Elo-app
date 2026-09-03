@@ -1,0 +1,15 @@
+ELO V36.9.6 / APK 0.8.6
+
+- Midnight redesenhado como noite romântica de luar: lua, nuvens e estrelas discretas.
+- Galáxia Celestial permanece como espaço profundo premium, sem ficar parecida com Midnight.
+- Fio Akai Ito da Home agora é contínuo, mais orgânico e interativo ao toque.
+- PET V1 implementado no Firestore do casal:
+  * Shiba Inu (Comum), Gatinho da noite (Raro) e Raposinha do destino (Épico).
+  * Proposta de adoção com aprovação do parceiro.
+  * Pagamento integral ou divisão 50/50.
+  * Nome inicial decidido pelos dois.
+  * Renomeação por 150 Elo Coins, cobrada apenas após aprovação.
+  * Carinho, alimentação e brincadeiras com cooldown, XP e nível.
+  * Pet aparece na Home e reage ao toque.
+- Web 36.9.6; APK 0.8.6; versionCode 30.
+- CACHE atualizado para elo-v36-9-6-pet-akai-midnight-20260902.

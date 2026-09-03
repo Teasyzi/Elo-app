@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-9-5-space-chat-fixed-profile-20260902';
+const CACHE = 'elo-v36-9-6-pet-akai-midnight-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.9.5',
-  './tailwind.css?v=36.9.5',
-  './styles.css?v=36.9.5',
+  './app.js?v=36.9.6',
+  './tailwind.css?v=36.9.6',
+  './styles.css?v=36.9.6',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

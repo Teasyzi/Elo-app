@@ -67,13 +67,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.5';
+        const ELO_WEB_VERSION = '36.9.6';
         const ELO_RELEASE_NOTES = [
-            '🎨 TEMAS agora transformam de verdade o Elo inteiro: fundos, cards, navegação, modais, detalhes, brilho e identidade visual.',
-            '🧵 HOME totalmente refeita na linguagem Akai Ito, com o fio do destino conectando os personagens e uma hierarquia muito mais limpa.',
-            '🌸 Sakura, 🌙 Midnight e 🧸 Cozy agora possuem atmosferas próprias bem mais perceptíveis durante o teste antes da compra.',
-            '👁️ Continue testando qualquer tema pago pelo app inteiro sem gastar nenhuma Elo Coin antes de decidir.',
-            '🐾 A nova Home já preserva a área segura para o futuro Pet do Elo flutuante.'
+            '🌙 Midnight agora é uma noite romântica de luar, com lua grande, nuvens lentas e poucas estrelas — visual bem diferente da Galáxia.',
+            '🌌 Galáxia Celestial mantém o espaço profundo premium, com nebulosas, estrelas densas e meteoros.',
+            '🧵 O fio Akai Ito da Home ficou mais orgânico e agora reage ao toque com uma onda de energia entre o casal.',
+            '🐾 PET V1 chegou: adoção compartilhada, divisão de custo, aprovação do parceiro, nome em conjunto e cuidados sincronizados.',
+            '💞 O Pet ganha XP e vínculo com carinho, comida e brincadeiras, aparecendo junto do casal na Home.'
         ];
         let firstEntryExperienceScheduled = false;
         let firstEntryExperienceRunning = false;
@@ -2103,7 +2103,7 @@ window.checkInToday = async (buttonEl = null) => {
         const ELO_THEME_CATALOG = {
             akai: {name:'Akai Ito', icon:'🧵', price:0, className:'elo-theme-akai', description:'Vermelho profundo, fio do destino e atmosfera romântica.', effect:'thread'},
             sakura: {name:'Sakura', icon:'🌸', price:1200, className:'elo-theme-sakura', description:'Primavera japonesa com pétalas animadas e chat rosado.', premium:true, effect:'sakura'},
-            midnight: {name:'Midnight', icon:'🌙', price:1700, className:'elo-theme-midnight', description:'Noite profunda com constelações, estrelas vivas e chuva de meteoros.', premium:true, effect:'stars'},
+            midnight: {name:'Midnight', icon:'🌙', price:1700, className:'elo-theme-midnight', description:'Noite romântica de luar com lua grande, nuvens lentas e estrelas discretas.', premium:true, effect:'moonlight'},
             cozy: {name:'Cozy', icon:'🧸', price:800, className:'elo-theme-cozy', description:'Âmbar, madeira e pequenos brilhos aconchegantes.', effect:'fireflies'},
             celestial: {name:'Galáxia Celestial', icon:'🌌', price:3200, className:'elo-theme-celestial', description:'Black galaxy premium com nebulosas em movimento, estrelas densas e meteoros.', premium:true, effect:'galaxy'}
         };
@@ -2141,7 +2141,7 @@ window.checkInToday = async (buttonEl = null) => {
             const fx=document.createElement('div');
             fx.id='elo-theme-fx'; fx.className=`elo-theme-fx fx-${effect}`; fx.setAttribute('aria-hidden','true');
             if(particleColor) fx.style.setProperty('--elo-fx-color', particleColor);
-            const count = effect==='sakura'?22 : effect==='galaxy'?72 : effect==='stars'?54 : effect==='fireflies'?24 : 24;
+            const count = effect==='sakura'?22 : effect==='galaxy'?72 : effect==='moonlight'?18 : effect==='stars'?54 : effect==='fireflies'?24 : 24;
             fx.innerHTML=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--y:${(i*53)%97};--d:${7+(i%8)*1.25}s;--delay:${-(i%11)*1.05}s;--size:${3+(i%4)}px"></i>`).join('');
             document.body.appendChild(fx);
         };
@@ -2183,6 +2183,151 @@ window.checkInToday = async (buttonEl = null) => {
             if(cfg.them) target.style.setProperty('--elo-chat-them',hexSafe(cfg.them,'#28161c'),'important');
             paintChatWallpaper(cfg);
         };
+
+
+        // ===== PET DO ELO · V36.9.6 =====
+        const ELO_PET_CATALOG = {
+            shiba: {id:'shiba', name:'Mochi', species:'Shiba Inu', emoji:'🐕', rarity:'Comum', price:900, accent:'Âmbar', description:'Animado, leal e sempre pronto para brincar com vocês.'},
+            cat: {id:'cat', name:'Yoru', species:'Gatinho da noite', emoji:'🐈‍⬛', rarity:'Raro', price:1400, accent:'Violeta', description:'Curioso, carinhoso e com uma quedinha por cochilos no meio do Elo.'},
+            kitsune: {id:'kitsune', name:'Akane', species:'Raposinha do destino', emoji:'🦊', rarity:'Épico', price:2400, accent:'Carmesim', description:'Uma pequena guardiã do fio vermelho, rara e cheia de personalidade.'}
+        };
+        const ELO_PET_RENAME_PRICE = 150;
+        const getPetPartnerUid = data => Object.keys(data?.users || {}).find(uid => uid !== currentUser?.uid) || null;
+        const getPetLevel = pet => Math.max(1, Math.floor(Number(pet?.xp || 0) / 100) + 1);
+        const getPetCare = pet => ({
+            affection: Math.max(0, Math.min(100, Number(pet?.care?.affection ?? 70))),
+            hunger: Math.max(0, Math.min(100, Number(pet?.care?.hunger ?? 70))),
+            energy: Math.max(0, Math.min(100, Number(pet?.care?.energy ?? 70)))
+        });
+        const petCatalogItem = pet => ELO_PET_CATALOG[pet?.type] || ELO_PET_CATALOG.shiba;
+        const petDisplayName = pet => String(pet?.name || pet?.pendingName?.value || petCatalogItem(pet).name || 'Pet').slice(0,20);
+
+        const renderHomePet = pet => {
+            if (!pet) return `<button class="elo-home-pet-empty" onclick="openPetCenter()" aria-label="Adotar Pet do Elo"><span>🐾</span><small>Adotar Pet</small></button>`;
+            if (pet.status === 'proposal') {
+                const item=petCatalogItem(pet), waiting=pet.proposedBy===currentUser?.uid;
+                return `<button class="elo-home-pet-float is-pending" onclick="openPetCenter()" aria-label="Abrir proposta de Pet"><span class="elo-home-pet-emoji">${item.emoji}</span><small>${waiting?'Aguardando 💌':'Pedido novo!'}</small></button>`;
+            }
+            if (pet.status !== 'adopted') return '';
+            const item=petCatalogItem(pet), level=getPetLevel(pet);
+            return `<button class="elo-home-pet-float" onclick="petHomeReact(event)" aria-label="Abrir ${escapeHTML(petDisplayName(pet))}"><span class="elo-home-pet-spark" aria-hidden="true">♥</span><span class="elo-home-pet-emoji">${item.emoji}</span><b>${escapeHTML(petDisplayName(pet))}</b><small>Nv. ${level}</small></button>`;
+        };
+
+        window.petHomeReact = event => {
+            const button=event?.currentTarget;
+            button?.classList.remove('is-reacting');
+            void button?.offsetWidth;
+            button?.classList.add('is-reacting');
+            setTimeout(()=>openPetCenter(),260);
+        };
+
+        window.pulseEloThread = event => {
+            const scene=document.querySelector('.elo-home-couple-scene');
+            if(!scene) return;
+            scene.classList.remove('elo-thread-reacting');
+            void scene.offsetWidth;
+            scene.classList.add('elo-thread-reacting');
+            const rect=scene.getBoundingClientRect();
+            const x=Math.max(18,Math.min(rect.width-18,(event?.clientX||rect.left+rect.width/2)-rect.left));
+            const y=Math.max(18,Math.min(rect.height-18,(event?.clientY||rect.top+rect.height/2)-rect.top));
+            const burst=document.createElement('span'); burst.className='elo-thread-burst'; burst.style.left=`${x}px`; burst.style.top=`${y}px`;
+            burst.innerHTML='<i>♥</i><i>♥</i><i>♥</i><i>♥</i>';
+            scene.appendChild(burst); setTimeout(()=>burst.remove(),950);
+            const phrases=['O fio encontrou vocês. ❤️','Akai Ito: conectados. 🧵','Um pulso atravessou o Elo. ✨'];
+            showToast(phrases[Math.floor(Math.random()*phrases.length)],'success');
+        };
+
+        window.openPetCenter = () => {
+            const pet=coupleData?.pet || null;
+            if(!getPetPartnerUid(coupleData)) {
+                return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🐾</span><div><p class="elo-kicker">Pet do Elo</p><h3>Um companheiro de vocês</h3><p>Conecte seu amor primeiro. O Pet pertence ao casal e todas as decisões são compartilhadas.</p></div></div><button class="elo-primary-action" onclick="closeGenericModal()">Entendi</button></div>`);
+            }
+            if(!pet){
+                const cards=Object.values(ELO_PET_CATALOG).map(item=>`<article class="elo-pet-adopt-card"><div class="elo-pet-adopt-icon">${item.emoji}</div><div><span class="elo-pet-rarity">${item.rarity}</span><h4>${item.species}</h4><p>${item.description}</p><b>${item.price.toLocaleString('pt-BR')} 🪙</b></div><div class="elo-pet-adopt-actions"><button onclick="proposePetAdoption('${item.id}','split')">Dividir 50/50</button><button class="is-primary" onclick="proposePetAdoption('${item.id}','full')">Eu pago tudo</button></div></article>`).join('');
+                return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🐾</span><div><p class="elo-kicker">PET V1</p><h3>Adotem juntos</h3><p>Escolha um companheiro. Seu amor recebe a proposta e precisa aprovar antes da adoção.</p></div></div><div class="elo-pet-adopt-grid">${cards}</div></div>`);
+            }
+            const item=petCatalogItem(pet);
+            if(pet.status==='proposal'){
+                const mine=pet.proposedBy===currentUser.uid;
+                const minePay=Number(pet.contributions?.[currentUser.uid]||0), otherUid=getPetPartnerUid(coupleData), otherPay=Number(pet.contributions?.[otherUid]||0);
+                return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>${item.emoji}</span><div><p class="elo-kicker">Pedido de adoção</p><h3>${item.species}</h3><p>${mine?'Sua proposta está esperando seu amor.':'Seu amor quer adotar este Pet com você.'}</p></div></div><div class="elo-pet-proposal-summary"><span><small>Sua parte</small><b>${minePay.toLocaleString('pt-BR')} 🪙</b></span><span><small>Parte do amor</small><b>${otherPay.toLocaleString('pt-BR')} 🪙</b></span></div>${mine?`<button class="elo-secondary-action" onclick="cancelPetProposal()">Cancelar proposta</button>`:`<div class="elo-pet-decision"><button class="elo-secondary-action" onclick="rejectPetProposal()">Agora não</button><button class="elo-primary-action" onclick="acceptPetAdoption()">Adotar juntos ❤️</button></div>`}</div>`);
+            }
+            const care=getPetCare(pet), level=getPetLevel(pet), pending=pet.pendingName;
+            const nameBlock = !pet.name
+                ? (pending ? `<div class="elo-pet-name-box"><p>${pending.proposedBy===currentUser.uid?'Você sugeriu':'Seu amor sugeriu'} <b>“${escapeHTML(pending.value)}”</b></p>${pending.proposedBy===currentUser.uid?'<small>Aguardando aprovação.</small>':'<button onclick="acceptPetName()">Aprovar nome ❤️</button>'}</div>` : `<div class="elo-pet-name-box"><p><b>Escolham o nome juntos</b></p><div><input id="elo-pet-name-input" maxlength="20" placeholder="Nome do Pet"><button onclick="proposePetName()">Sugerir</button></div></div>`)
+                : `<div class="elo-pet-name-box"><p><b>${escapeHTML(pet.name)}</b> é oficialmente do Elo.</p>${pending?`<small>Renomeação sugerida: “${escapeHTML(pending.value)}” ${pending.proposedBy===currentUser.uid?'· aguardando':'· '} ${pending.proposedBy!==currentUser.uid?'<button onclick="acceptPetName()">Aprovar</button>':''}</small>`:`<button onclick="openPetRename()">Sugerir novo nome · ${ELO_PET_RENAME_PRICE} 🪙</button>`}</div>`;
+            openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-profile"><div class="elo-pet-profile-emoji">${item.emoji}</div><div><span class="elo-pet-rarity">${item.rarity}</span><h3>${escapeHTML(petDisplayName(pet))}</h3><p>${item.species} · Nível ${level}</p></div><b>${Number(pet.xp||0)%100}/100 XP</b></div>${nameBlock}<div class="elo-pet-bars"><label><span>❤️ Carinho</span><b>${care.affection}%</b><i><em style="width:${care.affection}%"></em></i></label><label><span>🍖 Fome</span><b>${care.hunger}%</b><i><em style="width:${care.hunger}%"></em></i></label><label><span>⚡ Energia</span><b>${care.energy}%</b><i><em style="width:${care.energy}%"></em></i></label></div><div class="elo-pet-care-actions"><button onclick="careForPet('affection')"><span>🤍</span><b>Carinho</b><small>+ vínculo</small></button><button onclick="careForPet('feed')"><span>🍖</span><b>Alimentar</b><small>+ fome</small></button><button onclick="careForPet('play')"><span>🎾</span><b>Brincar</b><small>+ XP</small></button></div><p class="elo-pet-footnote">Tudo aqui é sincronizado: vocês cuidam do mesmo Pet.</p></div>`);
+        };
+
+        window.proposePetAdoption = async (type, mode='split') => {
+            const item=ELO_PET_CATALOG[type]; if(!item||!coupleId||!currentUser)return;
+            const otherUid=getPetPartnerUid(coupleData); if(!otherUid)return showToast('Conecte seu amor antes de adotar.','error');
+            const mine=mode==='full'?item.price:Math.ceil(item.price/2), other=mode==='full'?0:item.price-mine;
+            if(getSpendableCoins(coupleData,currentUser.uid)<mine)return showToast(`Você precisa de ${mine} Elo Coins para sua parte.`,'error');
+            try{
+                await updateDoc(doc(db,'relationships',coupleId),{pet:{status:'proposal',type:item.id,price:item.price,proposedBy:currentUser.uid,mode,contributions:{[currentUser.uid]:mine,[otherUid]:other},requestedAt:Date.now()}});
+                closeGenericModal(); showToast(`${item.emoji} Proposta enviada para seu amor!`,'success');
+            }catch(e){console.error(e);showToast('Não foi possível enviar a proposta do Pet.','error');}
+        };
+        window.cancelPetProposal = async () => { try{await updateDoc(doc(db,'relationships',coupleId),{pet:deleteField()});closeGenericModal();showToast('Proposta cancelada.','success')}catch(e){showToast('Não foi possível cancelar.','error')} };
+        window.rejectPetProposal = async () => { try{await updateDoc(doc(db,'relationships',coupleId),{pet:deleteField()});closeGenericModal();showToast('Tudo bem — vocês podem escolher outro Pet depois.','success')}catch(e){showToast('Não foi possível responder agora.','error')} };
+        window.acceptPetAdoption = async () => {
+            try{
+                const ref=doc(db,'relationships',coupleId);
+                await runTransaction(db,async tx=>{
+                    const snap=await tx.get(ref); if(!snap.exists())throw new Error('elo'); const data=snap.data(), pet=data.pet;
+                    if(pet?.status!=='proposal'||pet.proposedBy===currentUser.uid)throw new Error('proposal');
+                    for(const [uid,amountRaw] of Object.entries(pet.contributions||{})){
+                        const amount=Number(amountRaw||0), balance=Number(data?.users?.[uid]?.coins||0); if(balance<amount)throw new Error('coins');
+                        if(amount>0) tx.update(ref,{[`users.${uid}.coins`]:balance-amount});
+                    }
+                    tx.update(ref,{pet:{status:'adopted',type:pet.type,price:pet.price,adoptedAt:Date.now(),adoptedBy:[pet.proposedBy,currentUser.uid],name:'',pendingName:null,xp:0,care:{affection:72,hunger:76,energy:80,lastCareAt:Date.now()},activity:{}}});
+                });
+                closeGenericModal();showToast('🐾 Vocês adotaram um Pet! Agora escolham o nome.','success');setTimeout(openPetCenter,350);
+            }catch(e){console.error(e);showToast(e?.message==='coins'?'As Elo Coins mudaram. Confiram o saldo e tentem novamente.':'Não foi possível concluir a adoção.','error');}
+        };
+        window.proposePetName = async (forcedName='') => {
+            const pet=coupleData?.pet; if(pet?.status!=='adopted')return;
+            const input=document.getElementById('elo-pet-name-input'); const value=String(forcedName||input?.value||'').trim().slice(0,20);
+            if(value.length<2)return showToast('Escolha um nome com pelo menos 2 caracteres.','error');
+            const cost=pet.name?ELO_PET_RENAME_PRICE:0;
+            if(cost && getSpendableCoins(coupleData,currentUser.uid)<cost)return showToast(`Você precisa de ${cost} Elo Coins para propor a renomeação.`,'error');
+            try{await updateDoc(doc(db,'relationships',coupleId),{'pet.pendingName':{value,proposedBy:currentUser.uid,cost,createdAt:Date.now()}});closeGenericModal();showToast(`Nome “${value}” enviado para aprovação. ❤️`,'success')}catch(e){showToast('Não foi possível sugerir o nome.','error')}
+        };
+        window.openPetRename = () => openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>✍️</span><div><p class="elo-kicker">Nome do Pet</p><h3>Sugerir novo nome</h3><p>A troca custa ${ELO_PET_RENAME_PRICE} Elo Coins somente se seu amor aprovar.</p></div></div><div class="elo-pet-name-box"><div><input id="elo-pet-name-input" maxlength="20" placeholder="Novo nome"><button onclick="proposePetName()">Enviar sugestão</button></div></div><button class="elo-secondary-action" onclick="closeGenericModal();setTimeout(openPetCenter,80)">Voltar</button></div>`);
+        window.acceptPetName = async () => {
+            try{
+                const ref=doc(db,'relationships',coupleId);
+                await runTransaction(db,async tx=>{
+                    const snap=await tx.get(ref), data=snap.data(), pet=data?.pet, pending=pet?.pendingName;
+                    if(!pending||pending.proposedBy===currentUser.uid)throw new Error('name');
+                    const cost=Number(pending.cost||0), payer=pending.proposedBy, balance=Number(data?.users?.[payer]?.coins||0);
+                    if(cost>balance)throw new Error('coins');
+                    const updates={'pet.name':pending.value,'pet.pendingName':null,'pet.renamedAt':Date.now()};
+                    if(cost>0)updates[`users.${payer}.coins`]=balance-cost;
+                    tx.update(ref,updates);
+                });
+                closeGenericModal();showToast('💞 Nome escolhido pelos dois!','success');setTimeout(openPetCenter,280);
+            }catch(e){showToast(e?.message==='coins'?'Quem sugeriu o nome não tem mais Coins suficientes.':'Não foi possível aprovar o nome.','error')}
+        };
+        window.careForPet = async action => {
+            const rules={affection:{cooldown:45*60*1000,xp:8},feed:{cooldown:2*60*60*1000,xp:10},play:{cooldown:90*60*1000,xp:16}}; const rule=rules[action]; if(!rule)return;
+            try{
+                const ref=doc(db,'relationships',coupleId);
+                await runTransaction(db,async tx=>{
+                    const snap=await tx.get(ref), data=snap.data(), pet=data?.pet; if(pet?.status!=='adopted')throw new Error('pet');
+                    const last=Number(pet?.activity?.[action]?.at||0), now=Date.now(), remaining=rule.cooldown-(now-last);
+                    if(remaining>0){const err=new Error('cooldown');err.remaining=remaining;throw err;}
+                    const care=getPetCare(pet), updates={'pet.xp':Number(pet.xp||0)+rule.xp,[`pet.activity.${action}`]:{at:now,by:currentUser.uid}};
+                    if(action==='affection')updates['pet.care.affection']=Math.min(100,care.affection+14);
+                    if(action==='feed'){updates['pet.care.hunger']=Math.min(100,care.hunger+18);updates['pet.care.energy']=Math.min(100,care.energy+4)}
+                    if(action==='play'){updates['pet.care.affection']=Math.min(100,care.affection+8);updates['pet.care.energy']=Math.max(0,care.energy-8)}
+                    updates['pet.care.lastCareAt']=now; tx.update(ref,updates);
+                });
+                closeGenericModal();showToast(action==='feed'?'🍖 Pet alimentado!':action==='play'?'🎾 Que brincadeira boa!':'🤍 Carinho recebido!','success');setTimeout(openPetCenter,250);
+            }catch(e){if(e?.message==='cooldown'){const min=Math.max(1,Math.ceil(Number(e.remaining||0)/60000));return showToast(`Seu Pet já recebeu isso. Tente de novo em ${min} min.`,'error')}console.error(e);showToast('Não foi possível cuidar do Pet agora.','error')}
+        };
+
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
         const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
         const hexSafe = (v, fallback) => /^#[0-9a-f]{6}$/i.test(String(v||'')) ? v : fallback;
@@ -7019,7 +7164,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                             </div>
 
                             <div class="elo-home-couple-scene">
-                                <svg class="elo-home-akai-thread" viewBox="0 0 340 150" preserveAspectRatio="none" aria-hidden="true"><path class="elo-home-akai-thread-main" d="M4 112 C54 102 79 82 115 94 C140 103 146 79 160 69 C166 64 169 60 170 55 C171 60 174 64 180 69 C194 79 200 103 225 94 C261 82 286 102 336 112"/><path class="elo-home-akai-thread-heart" d="M170 55 C153 35 132 51 138 70 C144 89 170 101 170 101 C170 101 196 89 202 70 C208 51 187 35 170 55"/></svg>
+                                <svg class="elo-home-akai-thread" viewBox="0 0 340 150" preserveAspectRatio="none" role="button" tabindex="0" aria-label="Tocar o fio Akai Ito" onclick="pulseEloThread(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pulseEloThread(event)}"><path class="elo-home-akai-thread-shadow" d="M4 112 C54 102 79 82 115 94 C140 103 146 79 160 69 C166 64 169 60 170 55 C171 60 174 64 180 69 C194 79 200 103 225 94 C261 82 286 102 336 112"/><path class="elo-home-akai-thread-main" d="M4 112 C54 102 79 82 115 94 C140 103 146 79 160 69 C166 64 169 60 170 55 C171 60 174 64 180 69 C194 79 200 103 225 94 C261 82 286 102 336 112"/><path class="elo-home-akai-thread-heart" d="M170 55 C153 35 132 51 138 70 C144 89 170 101 170 101 C170 101 196 89 202 70 C208 51 187 35 170 55"/></svg>
                                 <div class="elo-home-person is-me">
                                     <div class="elo-home-avatar">${renderAvatar(myData.character, currentUser?.uid)}</div>
                                     <span>${escapeHTML(myData.name || 'Você')}</span>
@@ -7028,6 +7173,7 @@ const centerActiveStoreCategory = (smooth = true) => {
                                     <div class="elo-home-avatar">${partnerData ? renderAvatar(partnerData.character, partnerUid) : '<i class="ph-fill ph-user-plus elo-home-empty-avatar"></i>'}</div>
                                     <span>${partnerData ? escapeHTML(partnerData.name) : 'Aguardando'}</span>
                                 </div>
+                                ${renderHomePet(coupleData?.pet)}
                             </div>
 
                             <div class="elo-home-stats">
@@ -7107,8 +7253,10 @@ const centerActiveStoreCategory = (smooth = true) => {
                             <button onclick="openActivityModal()" class="elo-home-achievements"><span>🏆</span><div><b>Conquistas</b><small>Marcos de vocês</small></div><i class="ph-bold ph-caret-right"></i></button>
                         </section>
 
-                        <!-- reserva física para o futuro pet flutuante -->
-                        <div class="elo-pet-safe-zone" aria-hidden="true"></div>
+                        <!-- PET DO ELO -->
+                        <section class="elo-home-pet-panel" onclick="openPetCenter()">
+                            <div><span>${coupleData?.pet?.status==='adopted' ? petCatalogItem(coupleData.pet).emoji : '🐾'}</span><div><p class="elo-home-eyebrow">Pet do Elo</p><h3>${coupleData?.pet?.status==='adopted' ? escapeHTML(petDisplayName(coupleData.pet)) : coupleData?.pet?.status==='proposal' ? 'Adoção em andamento' : 'Adotem um companheiro'}</h3><small>${coupleData?.pet?.status==='adopted' ? `Nível ${getPetLevel(coupleData.pet)} · cuidem dele juntos` : coupleData?.pet?.status==='proposal' ? 'Abra para responder ou acompanhar a proposta' : 'Escolham, dividam o custo e deem um nome juntos'}</small></div></div><i class="ph-bold ph-caret-right"></i>
+                        </section>
                     </div>`;
             }
             else if (activeTab === 'store') {
