@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-3-daily-ux-performance-qa-20260903';
+const CACHE = 'elo-v36-11-4-web-apk-parity-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.11.3',
-  './v36-11.js?v=36.11.3',
-  './tailwind.css?v=36.11.3',
-  './styles.css?v=36.11.3',
+  './app.js?v=36.11.4',
+  './v36-11.js?v=36.11.4',
+  './tailwind.css?v=36.11.4',
+  './styles.css?v=36.11.4',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
