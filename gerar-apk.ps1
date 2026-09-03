@@ -33,7 +33,11 @@ if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "[INFO] Node: $(node --version)" -ForegroundColor DarkGray
-Write-Host "[INFO] Java: $((java -version 2>&1 | Select-Object -First 1))" -ForegroundColor DarkGray
+# java -version escreve a versao no STDERR. Com ErrorActionPreference=Stop isso
+# pode virar NativeCommandError no Windows PowerShell 5.1. O cmd captura as duas
+# saidas sem interromper o script.
+$JavaVersion = cmd /c "java -version 2>&1" | Select-Object -First 1
+Write-Host "[INFO] Java: $JavaVersion" -ForegroundColor DarkGray
 Write-Host ''
 
 Write-Host '[1/5] Compilando CSS...' -ForegroundColor Yellow
