@@ -70,9 +70,10 @@ function topRowForMessage(root,id){const bubble=[...root.querySelectorAll('[data
 function patchChatHtml(el,html){const template=document.createElement('template');template.innerHTML=String(html);const next=template.content;const oldIds=messageIds(el),newIds=messageIds(next);
   if(!oldIds.length||newIds.length<oldIds.length||!oldIds.every((id,i)=>newIds[i]===id)){state.chatFallbacks++;return nativeInnerHTML.set.call(el,html)}
   for(const id of oldIds){const oldRow=topRowForMessage(el,id),newRow=topRowForMessage(next,id);if(!oldRow||!newRow){state.chatFallbacks++;return nativeInnerHTML.set.call(el,html)}if(oldRow.outerHTML!==newRow.outerHTML)oldRow.replaceWith(newRow.cloneNode(true))}
-  // Indicador de digitação é o único nó efêmero que não tem id de mensagem.
-  const oldTyping=el.querySelector('.elo-typing-row'),newTyping=next.querySelector('.elo-typing-row');if(oldTyping&&!newTyping)oldTyping.remove();else if(!oldTyping&&newTyping)el.appendChild(newTyping.cloneNode(true));else if(oldTyping&&newTyping&&oldTyping.outerHTML!==newTyping.outerHTML)oldTyping.replaceWith(newTyping.cloneNode(true));
+  const nextTyping=next.querySelector('.elo-typing-row');el.querySelector('.elo-typing-row')?.remove();
+  // Novas mensagens entram antes do indicador de digitação, preservando a mesma ordem do HTML do app.js.
   if(newIds.length>oldIds.length){const lastOld=oldIds[oldIds.length-1],lastBubble=[...next.querySelectorAll('[data-chat-message]')].find(x=>x.dataset.chatMessage===lastOld),lastRow=lastBubble?.closest('.elo-message-row');let node=lastRow?.nextSibling;while(node){const copy=node.cloneNode(true);if(!(copy.nodeType===1&&copy.classList?.contains('elo-typing-row')))el.appendChild(copy);node=node.nextSibling}}
+  if(nextTyping)el.appendChild(nextTyping.cloneNode(true));
   state.chatPatches++;return html
 }
 function patchChatElement(el){if(!el||el.dataset.eloIncrementalChat==='1'||!nativeInnerHTML?.set)return;el.dataset.eloIncrementalChat='1';Object.defineProperty(el,'innerHTML',{configurable:true,get(){return nativeInnerHTML.get.call(el)},set(html){return patchChatHtml(el,html)}})}
