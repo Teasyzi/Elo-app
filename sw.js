@@ -1,12 +1,13 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-7-profile-mobile-fluidity-20260903';
+const CACHE = 'elo-v36-11-8-celestial-fluidity-phase-4-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.11.7',
-  './v36-11.js?v=36.11.7',
-  './tailwind.css?v=36.11.7',
-  './styles.css?v=36.11.7',
+  './app.js?v=36.11.8',
+  './v36-11.js?v=36.11.8',
+  './app-fluidity.js?v=36.11.8',
+  './tailwind.css?v=36.11.8',
+  './styles.css?v=36.11.8',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
@@ -29,8 +30,8 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  // JS/CSS principais: rede primeiro para evitar runtime antigo preso no Web/PWA.
-  if(/\/(app|v36-11)\.js$/.test(u.pathname)||/\/(styles|tailwind)\.css$/.test(u.pathname)){
+  // Runtimes/CSS principais: rede primeiro para evitar versão antiga presa no Web/PWA.
+  if(/\/(app|app-fluidity|v36-11)\.js$/.test(u.pathname)||/\/(styles|tailwind)\.css$/.test(u.pathname)){
     e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;}).catch(()=>caches.match(e.request)));
     return;
   }
