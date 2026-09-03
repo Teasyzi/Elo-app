@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-6-fluidity-phase-2-20260903';
+const CACHE = 'elo-v36-11-7-profile-mobile-fluidity-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.11.5',
-  './v36-11.js?v=36.11.5',
-  './tailwind.css?v=36.11.5',
-  './styles.css?v=36.11.5',
+  './app.js?v=36.11.7',
+  './v36-11.js?v=36.11.7',
+  './tailwind.css?v=36.11.7',
+  './styles.css?v=36.11.7',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
