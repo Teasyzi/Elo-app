@@ -1,0 +1,36 @@
+V36.11.5 — ADM Web + Fluidez Fase 1
+
+1. ADM no Web/PWA
+- Conta marcada em admins/{uid} continua sempre no Sandbox permanente.
+- Bootstrap do Sandbox ficou mais robusto no navegador e corrige o coupleId local antes de carregar a interface.
+- Incluído retry controlado quando a Web ainda mostra o lobby após preparar o Sandbox.
+- Painel ADM continua igual em Web/PWA/APK.
+
+2. Missões no ADM
+- O fluxo ADM não depende mais da aprovação normal do parceiro.
+- requestQuestApproval e confirmQuestCompletion são interceptados somente dentro do Sandbox ADM.
+- Ao concluir uma missão, o estado vai direto para completed e Coins/XP visíveis no card são aplicados na mesma transação.
+- Contas normais continuam usando o fluxo de aprovação do casal.
+
+3. Simulação de parceiro
+- Jogos continuam com resposta automática do parceiro técnico.
+- Aprovação de ovo e conclusão de vouchers continuam disponíveis no painel ADM.
+- Botão para reparar o Sandbox permanece disponível.
+
+4. Fluidez — fase 1
+- Conteúdo fora da área visível do Perfil passa a usar content-visibility.
+- Cards da Loja continuam com renderização sob demanda.
+- Efeitos de tema são pausados brevemente durante interações pesadas de Perfil/navegação.
+- Navegação ganha feedback imediato ao toque.
+- Celestial reduz ainda mais o orçamento de frames durante modais/interações e fora da Home.
+
+5. Web/PWA
+- app.js, v36-11.js, styles.css e tailwind.css usam versão 36.11.5.
+- Service Worker usa rede-primeiro nos JS/CSS principais para diminuir risco de runtime antigo preso.
+- CACHE alterado para elo-v36-11-5-admin-web-fluidity-20260903.
+
+6. Android
+- prepare-capacitor mantém index.html como fonte única de Web/PWA/APK e foi atualizado para V36.11.5.
+
+Próxima fase planejada:
+- refatoração estrutural do app.js para reduzir reconstruções completas de Chat, Perfil, Home, Missões e Loja sem alterar os fluxos funcionais.
