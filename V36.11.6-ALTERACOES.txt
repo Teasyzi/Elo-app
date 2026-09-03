@@ -1,0 +1,38 @@
+ELO V36.11.6 — FLUIDEZ FASE 2 + QA ADM
+
+1. FLUIDEZ / NAVEGACAO
+- Evita cliques duplicados muito rapidos na mesma aba.
+- Mantem feedback visual imediato no menu inferior.
+- Marca interacoes pesadas por poucos milissegundos para reduzir trabalho visual concorrente.
+- Perfil entra em modo de transicao leve durante abertura/fechamento.
+
+2. CHAT
+- Mensagens passam a usar content-visibility individual sem paint containment, reduzindo trabalho fora da viewport sem cortar menus/reacoes.
+- Scroll do chat pausa temporariamente efeitos de tema concorrentes.
+- Imagens inseridas dinamicamente recebem decoding async e lazy loading quando nao sao criticas.
+- Mantida a otimizacao estrutural ja existente no app.js: depois que o shell do Chat existe, composer e estrutura principal nao devem ser recriados em atualizacoes normais.
+
+3. PERFIL / LISTAS
+- Secoes do Perfil continuam virtualizadas por viewport.
+- Missoes, Bolsa e Amigos recebem virtualizacao leve nos cards fora da tela.
+- Loja mantem content-visibility/contain dos cards.
+
+4. TEMAS
+- Efeitos de tema pausam durante scroll, digitacao e transicoes curtas de interface.
+- Celestial reduz ainda mais calculos durante input, scroll e modais sem remover qualidade quando a tela esta ociosa.
+
+5. IMAGENS
+- Imagens dinamicas sao preparadas com decoding=async.
+- Imagens nao criticas passam para loading=lazy.
+- Avatares/cabecalhos visiveis permanecem prioritarios.
+
+6. ADM
+- Adicionado botao para o parceiro tecnico enviar uma mensagem de teste no Chat.
+- Mantidos: concluir missao direto, responder jogo, aprovar ovo, concluir vouchers, moedas, reset de temas/Pets e reparo do Sandbox.
+
+7. WEB / PWA
+- CACHE bumpado para elo-v36-11-6-fluidity-phase-2-20260903.
+- JS/CSS principais continuam em estrategia rede-primeiro com cache apenas como fallback.
+
+Observacao:
+Esta fase melhora bastante trabalho fora de viewport e concorrencia visual, mas o proximo grande ganho ainda deve vir de refatoracoes diretamente no app.js para reduzir reconstrucoes remanescentes por aba e separar updates pequenos de renders completos.
