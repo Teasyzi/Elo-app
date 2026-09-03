@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-9-7-floating-pet-blackhole-20260902';
+const CACHE = 'elo-v36-9-8-draggable-pet-eggs-blackhole-20260902';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.9.7',
-  './tailwind.css?v=36.9.7',
-  './styles.css?v=36.9.7',
+  './app.js?v=36.9.8',
+  './tailwind.css?v=36.9.8',
+  './styles.css?v=36.9.8',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

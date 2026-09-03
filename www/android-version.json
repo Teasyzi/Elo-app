@@ -1,15 +1,13 @@
 {
   "available": false,
-  "versionName": "0.8.7",
-  "versionCode": 31,
+  "versionName": "0.8.8",
+  "versionCode": 32,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Midnight agora é uma noite espacial animada com estrelas em profundidade e meteoros, sem lua cobrindo a interface.",
-    "Galáxia Celestial foi reconstruída como galáxia negra, com nebulosa profunda e buraco negro interativo.",
-    "O toque no Akai Ito mantém apenas a resposta visual e não exibe mais popup decorativo.",
-    "O Pet agora flutua em todo o app e não fica preso a um card da Home.",
-    "Tocar no Pet abre um painel rápido centralizado com carinho, comida, brincadeira, humor, bem-estar e cooldowns.",
-    "Os cuidados rápidos reutilizam o mesmo estado sincronizado do Pet no Firestore."
+    "Pet flutuante agora pode ser arrastado e posicionado pela tela.",
+    "Novo sistema de ovos: comprar em casal, cuidar e revelar o Pet ao chocar.",
+    "Galáxia Celestial ganhou buraco negro com sucção gradual e espaguetificação de partículas.",
+    "Midnight mantido com estrelas e meteoros."
   ]
 }

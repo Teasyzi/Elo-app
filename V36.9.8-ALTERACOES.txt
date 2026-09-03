@@ -1,0 +1,15 @@
+Elo V36.9.8 / APK 0.8.8
+
+- PET flutuante arrastável com Pointer Events; posição salva localmente por conta/dispositivo.
+- Ovo também fica flutuante e pode ser arrastado durante incubação.
+- Nova Incubadora do Elo com 4 tipos de ovos e chances de raridade.
+- Compra continua compartilhada: dividir 50/50 ou um parceiro pagar tudo, com aprovação do outro.
+- Cuidados do ovo sincronizados no Firestore e progresso até 100%.
+- Resultado do Pet é sorteado somente no momento do nascimento.
+- Catálogo ampliado de Comum até Mítico.
+- Galáxia Celestial: buraco negro redesenhado com horizonte de eventos, lente gravitacional, disco de acreção e sucção gradual.
+- Partículas próximas passam por efeito de espaguetificação antes de serem consumidas e reaparecem depois.
+- Midnight mantido como aprovado.
+- Menos popups decorativos nas ações do PET.
+- Web 36.9.8; APK 0.8.8; versionCode 32.
+- Service Worker cache: elo-v36-9-8-draggable-pet-eggs-blackhole-20260902.

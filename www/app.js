@@ -67,7 +67,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.7';
+        const ELO_WEB_VERSION = '36.9.8';
         const ELO_RELEASE_NOTES = [
             '🌙 Midnight virou uma noite espacial viva: estrelas em profundidade, cintilação e meteoros sem uma lua cobrindo a interface.',
             '🕳️ Galáxia Celestial agora é uma galáxia negra própria, com nebulosa profunda e buraco negro interativo.',
@@ -176,7 +176,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
         let googlePhotoSyncedForCouple = '';
         // V36.2 · Ponte PWA → Android. Quando o primeiro APK existir, basta publicar
         // android-version.json no mesmo site com available=true e a URL do APK.
-        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.5', versionCode:29 } : { versionName:'0.0.0-web', versionCode:0 };
+        const ELO_ANDROID_VERSION = isNativeApp ? { versionName:'0.8.8', versionCode:32 } : { versionName:'0.0.0-web', versionCode:0 };
         const getAndroidVersionManifestUrl = () => {
             if (!isNativeApp) return new URL('./android-version.json', window.location.href).href;
             // Será definido no primeiro build Android real. Mantido centralizado para não espalhar URL pelo app.
@@ -2143,16 +2143,44 @@ window.checkInToday = async (buttonEl = null) => {
             if(particleColor) fx.style.setProperty('--elo-fx-color', particleColor);
             const count = effect==='sakura'?22 : effect==='blackhole'?46 : effect==='galaxy'?72 : effect==='moonlight'?18 : effect==='stars'?58 : effect==='fireflies'?24 : 24;
             const particles=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--y:${(i*53)%97};--d:${7+(i%8)*1.25}s;--delay:${-(i%11)*1.05}s;--size:${2+(i%4)}px"></i>`).join('');
-            fx.innerHTML=(effect==='blackhole'?`<button type="button" class="elo-black-hole" onclick="reactCelestialBlackHole(event)" aria-label="Interagir com o buraco negro"><span class="elo-black-hole-core"></span><span class="elo-black-hole-ring ring-a"></span><span class="elo-black-hole-ring ring-b"></span><span class="elo-black-hole-hint">toque</span></button>`:'')+particles;
+            fx.innerHTML=(effect==='blackhole'?`<button type="button" class="elo-black-hole" onclick="reactCelestialBlackHole(event)" aria-label="Interagir com o buraco negro"><span class="elo-bh-lensing lens-back"></span><span class="elo-bh-disk disk-back"></span><span class="elo-black-hole-core"><i></i></span><span class="elo-bh-photon-ring"></span><span class="elo-bh-disk disk-front"></span><span class="elo-bh-lensing lens-front"></span><span class="elo-black-hole-hint">toque para alimentar</span></button>`:'')+particles;
             document.body.appendChild(fx);
+        };
+        const resetBlackHoleParticle = particle => {
+            if(!particle?.isConnected) return;
+            particle.getAnimations?.().forEach(a=>a.cancel());
+            particle.style.opacity='0';
+            particle.style.transform='none';
+            particle.style.left=`${4+Math.random()*92}%`;
+            particle.style.top=`${4+Math.random()*90}%`;
+            particle.style.width=particle.style.height=`${1+Math.random()*3}px`;
+            setTimeout(()=>{ if(particle?.isConnected){ particle.style.opacity=''; particle.style.transform=''; } }, 700+Math.random()*2100);
+        };
+        const swallowBlackHoleParticle = (particle, hole, delay=0) => {
+            if(!particle?.isConnected||!hole?.isConnected) return;
+            const p=particle.getBoundingClientRect(), h=hole.getBoundingClientRect();
+            const px=p.left+p.width/2, py=p.top+p.height/2, hx=h.left+h.width/2, hy=h.top+h.height/2;
+            const dx=hx-px, dy=hy-py, angle=Math.atan2(dy,dx)*180/Math.PI;
+            const anim=particle.animate([
+                {transform:'translate3d(0,0,0) scale(1)',opacity:.75,offset:0},
+                {transform:`translate3d(${dx*.34}px,${dy*.34}px,0) rotate(${angle}deg) scaleX(1.7) scaleY(.75)`,opacity:1,offset:.42},
+                {transform:`translate3d(${dx*.76}px,${dy*.76}px,0) rotate(${angle}deg) scaleX(7.5) scaleY(.16)`,opacity:.95,filter:'blur(.3px)',offset:.78},
+                {transform:`translate3d(${dx}px,${dy}px,0) rotate(${angle}deg) scaleX(10) scaleY(.03)`,opacity:0,filter:'blur(1px)',offset:1}
+            ],{duration:900+Math.min(1000,Math.hypot(dx,dy)*1.2),delay,easing:'cubic-bezier(.18,.66,.15,1)',fill:'forwards'});
+            anim.onfinish=()=>resetBlackHoleParticle(particle);
         };
         window.reactCelestialBlackHole = event => {
             event?.preventDefault?.(); event?.stopPropagation?.();
-            const hole=event?.currentTarget; const fx=hole?.closest?.('.fx-blackhole');
-            if(!hole||!fx) return;
-            hole.classList.remove('is-reacting'); void hole.offsetWidth; hole.classList.add('is-reacting');
-            fx.classList.remove('is-gravity-pulse'); void fx.offsetWidth; fx.classList.add('is-gravity-pulse');
-            setTimeout(()=>{hole.classList.remove('is-reacting');fx.classList.remove('is-gravity-pulse')},1200);
+            const hole=event?.currentTarget, fx=hole?.closest?.('.fx-blackhole');
+            if(!hole||!fx||fx.dataset.gravity==='1') return;
+            fx.dataset.gravity='1'; hole.classList.add('is-feeding'); fx.classList.add('is-gravity-active');
+            const particles=[...fx.querySelectorAll(':scope > i')];
+            const hr=hole.getBoundingClientRect(), hx=hr.left+hr.width/2, hy=hr.top+hr.height/2;
+            particles.sort((a,b)=>{const ar=a.getBoundingClientRect(),br=b.getBoundingClientRect();return Math.hypot(ar.left-hx,ar.top-hy)-Math.hypot(br.left-hx,br.top-hy)});
+            const chosen=particles.slice(0,Math.min(30,particles.length));
+            chosen.forEach((p,i)=>swallowBlackHoleParticle(p,hole,Math.floor(i/3)*170+(i%3)*55));
+            setTimeout(()=>hole.classList.add('is-satiated'),1650);
+            setTimeout(()=>{hole.classList.remove('is-feeding','is-satiated');fx.classList.remove('is-gravity-active');fx.dataset.gravity='0';},4600);
         };
 
         const resolveChatWallpaper = (cfg = {}) => {
@@ -2195,11 +2223,23 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
 
-        // ===== PET DO ELO · V36.9.7 =====
+        // ===== PET DO ELO · V36.9.8 · PET FLUTUANTE + OVOS =====
         const ELO_PET_CATALOG = {
-            shiba: {id:'shiba', name:'Mochi', species:'Shiba Inu', emoji:'🐕', rarity:'Comum', price:900, accent:'Âmbar', description:'Animado, leal e sempre pronto para brincar com vocês.'},
-            cat: {id:'cat', name:'Yoru', species:'Gatinho da noite', emoji:'🐈‍⬛', rarity:'Raro', price:1400, accent:'Violeta', description:'Curioso, carinhoso e com uma quedinha por cochilos no meio do Elo.'},
-            kitsune: {id:'kitsune', name:'Akane', species:'Raposinha do destino', emoji:'🦊', rarity:'Épico', price:2400, accent:'Carmesim', description:'Uma pequena guardiã do fio vermelho, rara e cheia de personalidade.'}
+            shiba: {id:'shiba', name:'Mochi', species:'Shiba Inu', emoji:'🐕', rarity:'Comum', rarityKey:'common', accent:'Âmbar', description:'Animado, leal e sempre pronto para brincar com vocês.'},
+            bunny: {id:'bunny', name:'Mimi', species:'Coelhinho', emoji:'🐇', rarity:'Comum', rarityKey:'common', accent:'Rosa', description:'Doce, elétrico e especialista em pedir carinho.'},
+            penguin: {id:'penguin', name:'Pingo', species:'Pinguinzinho', emoji:'🐧', rarity:'Incomum', rarityKey:'uncommon', accent:'Azul', description:'Companheiro, curioso e muito apegado ao casal.'},
+            capybara: {id:'capybara', name:'Capi', species:'Capivara', emoji:'🦫', rarity:'Incomum', rarityKey:'uncommon', accent:'Terra', description:'Calma por natureza e dona de uma paz contagiante.'},
+            cat: {id:'cat', name:'Yoru', species:'Gatinho da noite', emoji:'🐈‍⬛', rarity:'Raro', rarityKey:'rare', accent:'Violeta', description:'Curioso, carinhoso e com uma quedinha por cochilos no meio do Elo.'},
+            otter: {id:'otter', name:'Nami', species:'Lontrinha', emoji:'🦦', rarity:'Raro', rarityKey:'rare', accent:'Turquesa', description:'Brincalhona, sociável e adora fazer tudo em dupla.'},
+            kitsune: {id:'kitsune', name:'Akane', species:'Raposinha do destino', emoji:'🦊', rarity:'Épico', rarityKey:'epic', accent:'Carmesim', description:'Uma pequena guardiã do fio vermelho, rara e cheia de personalidade.'},
+            unicorn: {id:'unicorn', name:'Lumi', species:'Unicórnio estelar', emoji:'🦄', rarity:'Lendário', rarityKey:'legendary', accent:'Celestial', description:'Uma presença luminosa que quase nunca aparece nos ovos.'},
+            phoenix: {id:'phoenix', name:'Hinote', species:'Fênix do Elo', emoji:'🔥', rarity:'Mítico', rarityKey:'mythic', accent:'Solar', description:'Uma criatura mítica ligada aos Elos mais improváveis.'}
+        };
+        const ELO_EGG_CATALOG = {
+            common: {id:'common',name:'Ovo Comum',emoji:'🥚',price:800,accent:'stone',description:'Um começo simples com boas chances de pets comuns.',odds:{common:70,uncommon:25,rare:5}},
+            uncommon: {id:'uncommon',name:'Ovo Incomum',emoji:'🥚',price:1500,accent:'green',description:'Mais variedade e uma chance real de encontrar algo raro.',odds:{common:15,uncommon:60,rare:20,epic:5}},
+            rare: {id:'rare',name:'Ovo Raro',emoji:'🥚',price:3000,accent:'blue',description:'Feito para quem quer buscar companheiros difíceis de encontrar.',odds:{uncommon:10,rare:60,epic:25,legendary:5}},
+            legendary: {id:'legendary',name:'Ovo Lendário',emoji:'🥚',price:6000,accent:'gold',description:'O ovo mais especial, com chance de criaturas lendárias e míticas.',odds:{rare:10,epic:50,legendary:35,mythic:5}}
         };
         const ELO_PET_RENAME_PRICE = 150;
         const getPetPartnerUid = data => Object.keys(data?.users || {}).find(uid => uid !== currentUser?.uid) || null;
@@ -2211,9 +2251,8 @@ window.checkInToday = async (buttonEl = null) => {
         });
         const petCatalogItem = pet => ELO_PET_CATALOG[pet?.type] || ELO_PET_CATALOG.shiba;
         const petDisplayName = pet => String(pet?.name || pet?.pendingName?.value || petCatalogItem(pet).name || 'Pet').slice(0,20);
-
         const petMood = pet => {
-            const care=getPetCare(pet); const avg=(care.affection+care.hunger+care.energy)/3;
+            const care=getPetCare(pet), avg=(care.affection+care.hunger+care.energy)/3;
             if(care.hunger<30) return {emoji:'🍖',label:'com fome',tone:'hungry'};
             if(care.energy<28) return {emoji:'💤',label:'com sono',tone:'sleepy'};
             if(care.affection<32) return {emoji:'💗',label:'quer carinho',tone:'lonely'};
@@ -2221,160 +2260,103 @@ window.checkInToday = async (buttonEl = null) => {
             return {emoji:'❤',label:'feliz',tone:'calm'};
         };
         const petFloatPositionKey = () => `elo_pet_float_pos_${currentUser?.uid || 'device'}`;
+        let floatingPetDragState=null, suppressFloatingPetClick=false;
+        const clampFloatingPetPosition = (x,y,host=document.getElementById('elo-floating-pet-host')) => {
+            const w=host?.offsetWidth||76,h=host?.offsetHeight||90, pad=8, nav=74;
+            return {x:Math.max(pad,Math.min(innerWidth-w-pad,x)),y:Math.max(pad+8,Math.min(innerHeight-h-nav-Math.max(0,parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat')||'0')),y))};
+        };
+        const saveFloatingPetPosition = host => {
+            if(!host) return; const r=host.getBoundingClientRect();
+            localStorage.setItem(petFloatPositionKey(),JSON.stringify({x:(r.left+r.width/2)/innerWidth,y:(r.top+r.height/2)/innerHeight}));
+        };
+        const applyStoredFloatingPetPosition = host => {
+            if(!host) return; let pos=null; try{pos=JSON.parse(localStorage.getItem(petFloatPositionKey())||'null')}catch(_){}
+            const w=host.offsetWidth||76,h=host.offsetHeight||90;
+            const raw=pos?{x:Number(pos.x)*innerWidth-w/2,y:Number(pos.y)*innerHeight-h/2}:{x:innerWidth-w-12,y:innerHeight-h-88};
+            const p=clampFloatingPetPosition(raw.x,raw.y,host); host.style.left=`${p.x}px`;host.style.top=`${p.y}px`;host.style.right='auto';host.style.bottom='auto';
+        };
+        const initFloatingPetDrag = host => {
+            if(!host||host.dataset.dragReady==='1') return; host.dataset.dragReady='1';
+            host.addEventListener('pointerdown',e=>{
+                const btn=e.target.closest('.elo-floating-pet,.elo-floating-egg'); if(!btn||e.button>0) return;
+                const r=host.getBoundingClientRect(); floatingPetDragState={id:e.pointerId,startX:e.clientX,startY:e.clientY,left:r.left,top:r.top,moved:false};
+                btn.setPointerCapture?.(e.pointerId); host.classList.add('is-grabbing'); closeFloatingPetMenu();
+            });
+            host.addEventListener('pointermove',e=>{
+                const d=floatingPetDragState;if(!d||d.id!==e.pointerId)return; const dx=e.clientX-d.startX,dy=e.clientY-d.startY;
+                if(Math.hypot(dx,dy)>5)d.moved=true; if(!d.moved)return; e.preventDefault();
+                const p=clampFloatingPetPosition(d.left+dx,d.top+dy,host);host.style.left=`${p.x}px`;host.style.top=`${p.y}px`;host.style.right='auto';host.style.bottom='auto';
+            });
+            const finish=e=>{const d=floatingPetDragState;if(!d||d.id!==e.pointerId)return;host.classList.remove('is-grabbing');if(d.moved){suppressFloatingPetClick=true;saveFloatingPetPosition(host);setTimeout(()=>suppressFloatingPetClick=false,120)}floatingPetDragState=null};
+            host.addEventListener('pointerup',finish);host.addEventListener('pointercancel',finish);
+        };
+        window.addEventListener('resize',()=>{const h=document.getElementById('elo-floating-pet-host');if(h)applyStoredFloatingPetPosition(h)});
         const petCooldownRemaining = (pet,action) => {
             const cooldown={affection:45*60*1000,feed:2*60*60*1000,play:90*60*1000}[action]||0;
             return Math.max(0,cooldown-(Date.now()-Number(pet?.activity?.[action]?.at||0)));
         };
         const petQuickAction = (pet, action, icon, label) => {
-            const remaining=petCooldownRemaining(pet,action), disabled=remaining>0;
-            const sub=disabled?`${Math.max(1,Math.ceil(remaining/60000))}m`:'agora';
+            const remaining=petCooldownRemaining(pet,action), disabled=remaining>0, sub=disabled?`${Math.max(1,Math.ceil(remaining/60000))}m`:'agora';
             return `<button type="button" ${disabled?'disabled':''} onclick="careForPet('${action}',{floating:true})"><span>${icon}</span><b>${label}</b><small>${sub}</small></button>`;
         };
+        const eggCareRules={love:{label:'Carinho',icon:'💗',progress:12,cooldown:45*60*1000},warm:{label:'Aquecer',icon:'☀️',progress:18,cooldown:2*60*60*1000},rest:{label:'Descanso',icon:'🌙',progress:15,cooldown:3*60*60*1000},protect:{label:'Proteger',icon:'🛡️',progress:20,cooldown:4*60*60*1000}};
+        const eggCooldownRemaining=(pet,action)=>Math.max(0,(eggCareRules[action]?.cooldown||0)-(Date.now()-Number(pet?.eggActivity?.[action]?.at||0)));
+        const eggCrackClass=progress=>progress>=85?'crack-3':progress>=55?'crack-2':progress>=25?'crack-1':'crack-0';
+        const eggOddsText=egg=>Object.entries(egg.odds).map(([r,p])=>`${({common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário',mythic:'Mítico'})[r]} ${p}%`).join(' · ');
+        const rollPetFromEgg = eggId => {
+            const egg=ELO_EGG_CATALOG[eggId]||ELO_EGG_CATALOG.common, roll=Math.random()*100; let acc=0,rarity='common';
+            for(const [key,pct] of Object.entries(egg.odds)){acc+=pct;if(roll<=acc){rarity=key;break}}
+            const pool=Object.values(ELO_PET_CATALOG).filter(p=>p.rarityKey===rarity); return (pool[Math.floor(Math.random()*pool.length)]||ELO_PET_CATALOG.shiba).id;
+        };
+        const renderFloatingEgg = pet => {
+            const progress=Math.max(0,Math.min(100,Number(pet?.hatchProgress||0))), egg=ELO_EGG_CATALOG[pet.eggType]||ELO_EGG_CATALOG.common;
+            return `<div class="elo-floating-pet-shell elo-floating-egg-shell" data-pet-menu="closed"><div class="elo-floating-pet-menu" aria-hidden="true"><div class="elo-floating-pet-mini-status"><span>🥚</span><div><b>${egg.name}</b><small>${progress}% para chocar · cuidem juntos</small></div></div><div class="elo-floating-pet-actions egg-actions">${Object.entries(eggCareRules).map(([a,r])=>{const rem=eggCooldownRemaining(pet,a);return `<button ${rem?'disabled':''} onclick="careForEgg('${a}',{floating:true})"><span>${r.icon}</span><b>${r.label}</b><small>${rem?Math.max(1,Math.ceil(rem/60000))+'m':'agora'}</small></button>`}).join('')}</div><button class="elo-floating-pet-open" onclick="openPetCenter()">Abrir incubadora <i class="ph-bold ph-arrow-up-right"></i></button></div><button type="button" class="elo-floating-egg ${eggCrackClass(progress)}" onclick="toggleFloatingPetMenu(event)" aria-label="Interagir com o ovo"><span class="elo-egg-aura"></span><span class="elo-egg-emoji">🥚</span><span class="elo-egg-crack">⌁</span><span class="elo-floating-pet-name">${progress}%</span></button></div>`;
+        };
         const updateFloatingPetCompanion = () => {
-            let host=document.getElementById('elo-floating-pet-host');
-            const pet=coupleData?.pet || null;
-            const appVisible=!!currentUser && !!coupleData && !document.getElementById('main-content')?.classList.contains('hidden');
-            if(!appVisible){host?.remove();return;}
-            if(!host){host=document.createElement('div');host.id='elo-floating-pet-host';document.body.appendChild(host);}
-            if(!pet){host.innerHTML=`<button class="elo-floating-pet-adopt" onclick="openPetCenter()" aria-label="Adotar Pet"><span>🐾</span><small>Pet</small></button>`;return;}
-            if(pet.status==='proposal'){
-                const item=petCatalogItem(pet), waiting=pet.proposedBy===currentUser?.uid;
-                host.innerHTML=`<button class="elo-floating-pet-adopt is-pending" onclick="openPetCenter()"><span>${item.emoji}</span><small>${waiting?'Aguardando':'Pedido!'}</small></button>`;return;
-            }
-            if(pet.status!=='adopted'){host.innerHTML='';return;}
-            const item=petCatalogItem(pet), care=getPetCare(pet), mood=petMood(pet), level=getPetLevel(pet);
-            host.innerHTML=`<div class="elo-floating-pet-shell is-${mood.tone}" data-pet-menu="closed">
-                <div class="elo-floating-pet-menu" aria-hidden="true">
-                    <div class="elo-floating-pet-mini-status"><span>${mood.emoji}</span><div><b>${escapeHTML(petDisplayName(pet))} · Nv. ${level}</b><small>${mood.label} · ${Math.round((care.affection+care.hunger+care.energy)/3)}% bem-estar</small></div></div>
-                    <div class="elo-floating-pet-actions">${petQuickAction(pet,'affection','🤍','Carinho')}${petQuickAction(pet,'feed','🍖','Comida')}${petQuickAction(pet,'play','🎾','Brincar')}</div>
-                    <button class="elo-floating-pet-open" onclick="openPetCenter()">Abrir cantinho do Pet <i class="ph-bold ph-arrow-up-right"></i></button>
-                </div>
-                <button type="button" class="elo-floating-pet" onclick="toggleFloatingPetMenu(event)" aria-label="Interagir com ${escapeHTML(petDisplayName(pet))}">
-                    <span class="elo-floating-pet-bubble">${mood.emoji}</span>
-                    <span class="elo-floating-pet-shadow"></span>
-                    <span class="elo-floating-pet-emoji">${item.emoji}</span>
-                    <span class="elo-floating-pet-name">${escapeHTML(petDisplayName(pet))}</span>
-                </button>
-            </div>`;
+            let host=document.getElementById('elo-floating-pet-host'), pet=coupleData?.pet||null;
+            const appVisible=!!currentUser&&!!coupleData&&!document.getElementById('main-content')?.classList.contains('hidden'); if(!appVisible){host?.remove();return}
+            if(!host){host=document.createElement('div');host.id='elo-floating-pet-host';document.body.appendChild(host)}
+            if(!pet){host.innerHTML=`<button class="elo-floating-pet-adopt" onclick="openPetCenter()"><span>🥚</span><small>Ovos</small></button>`;applyStoredFloatingPetPosition(host);return}
+            if(pet.status==='proposal') {const egg=ELO_EGG_CATALOG[pet.eggType]||ELO_EGG_CATALOG.common,waiting=pet.proposedBy===currentUser?.uid;host.innerHTML=`<button class="elo-floating-pet-adopt is-pending" onclick="openPetCenter()"><span>${egg.emoji}</span><small>${waiting?'Aguardando':'Pedido!'}</small></button>`;applyStoredFloatingPetPosition(host);return}
+            if(pet.status==='egg'){host.innerHTML=renderFloatingEgg(pet);applyStoredFloatingPetPosition(host);initFloatingPetDrag(host);return}
+            if(pet.status!=='adopted'){host.innerHTML='';return}
+            const item=petCatalogItem(pet),care=getPetCare(pet),mood=petMood(pet),level=getPetLevel(pet);
+            host.innerHTML=`<div class="elo-floating-pet-shell is-${mood.tone}" data-pet-menu="closed"><div class="elo-floating-pet-menu" aria-hidden="true"><div class="elo-floating-pet-mini-status"><span>${mood.emoji}</span><div><b>${escapeHTML(petDisplayName(pet))} · Nv. ${level}</b><small>${mood.label} · ${Math.round((care.affection+care.hunger+care.energy)/3)}% bem-estar</small></div></div><div class="elo-floating-pet-actions">${petQuickAction(pet,'affection','🤍','Carinho')}${petQuickAction(pet,'feed','🍖','Comida')}${petQuickAction(pet,'play','🎾','Brincar')}</div><button class="elo-floating-pet-open" onclick="openPetCenter()">Abrir cantinho do Pet <i class="ph-bold ph-arrow-up-right"></i></button></div><button type="button" class="elo-floating-pet" onclick="toggleFloatingPetMenu(event)" aria-label="Interagir com ${escapeHTML(petDisplayName(pet))}"><span class="elo-floating-pet-bubble">${mood.emoji}</span><span class="elo-floating-pet-shadow"></span><span class="elo-floating-pet-emoji">${item.emoji}</span><span class="elo-floating-pet-name">${escapeHTML(petDisplayName(pet))}</span></button></div>`;
+            applyStoredFloatingPetPosition(host);initFloatingPetDrag(host);
         };
         window.toggleFloatingPetMenu = event => {
-            event?.preventDefault?.();
-            const shell=event?.currentTarget?.closest('.elo-floating-pet-shell'); if(!shell)return;
-            const open=shell.dataset.petMenu==='open';
-            shell.dataset.petMenu=open?'closed':'open';
-            shell.querySelector('.elo-floating-pet-menu')?.setAttribute('aria-hidden',open?'true':'false');
-            event.currentTarget.classList.remove('is-reacting'); void event.currentTarget.offsetWidth; event.currentTarget.classList.add('is-reacting');
+            event?.preventDefault?.(); if(suppressFloatingPetClick)return; const shell=event?.currentTarget?.closest('.elo-floating-pet-shell');if(!shell)return;
+            const open=shell.dataset.petMenu==='open';shell.dataset.petMenu=open?'closed':'open';shell.querySelector('.elo-floating-pet-menu')?.setAttribute('aria-hidden',open?'true':'false');
+            event.currentTarget.classList.remove('is-reacting');void event.currentTarget.offsetWidth;event.currentTarget.classList.add('is-reacting');
         };
-        window.closeFloatingPetMenu = () => {
-            const shell=document.querySelector('.elo-floating-pet-shell'); if(!shell)return;
-            shell.dataset.petMenu='closed';shell.querySelector('.elo-floating-pet-menu')?.setAttribute('aria-hidden','true');
-        };
-        window.petHomeReact = event => toggleFloatingPetMenu(event);
-
+        window.closeFloatingPetMenu=()=>{const shell=document.querySelector('.elo-floating-pet-shell');if(!shell)return;shell.dataset.petMenu='closed';shell.querySelector('.elo-floating-pet-menu')?.setAttribute('aria-hidden','true')};
+        window.petHomeReact=event=>toggleFloatingPetMenu(event);
         window.pulseEloThread = event => {
-            const scene=document.querySelector('.elo-home-couple-scene');
-            if(!scene) return;
-            scene.classList.remove('elo-thread-reacting');
-            void scene.offsetWidth;
-            scene.classList.add('elo-thread-reacting');
-            const rect=scene.getBoundingClientRect();
-            const x=Math.max(18,Math.min(rect.width-18,(event?.clientX||rect.left+rect.width/2)-rect.left));
-            const y=Math.max(18,Math.min(rect.height-18,(event?.clientY||rect.top+rect.height/2)-rect.top));
-            const burst=document.createElement('span'); burst.className='elo-thread-burst'; burst.style.left=`${x}px`; burst.style.top=`${y}px`;
-            burst.innerHTML='<i>♥</i><i>♥</i><i>♥</i><i>♥</i>';
-            scene.appendChild(burst); setTimeout(()=>burst.remove(),950);
+            const scene=document.querySelector('.elo-home-couple-scene');if(!scene)return;scene.classList.remove('elo-thread-reacting');void scene.offsetWidth;scene.classList.add('elo-thread-reacting');
+            const rect=scene.getBoundingClientRect(),x=Math.max(18,Math.min(rect.width-18,(event?.clientX||rect.left+rect.width/2)-rect.left)),y=Math.max(18,Math.min(rect.height-18,(event?.clientY||rect.top+rect.height/2)-rect.top));
+            const burst=document.createElement('span');burst.className='elo-thread-burst';burst.style.left=`${x}px`;burst.style.top=`${y}px`;burst.innerHTML='<i>♥</i><i>♥</i><i>♥</i><i>♥</i>';scene.appendChild(burst);setTimeout(()=>burst.remove(),950);
         };
-
         window.openPetCenter = () => {
-            const pet=coupleData?.pet || null;
-            if(!getPetPartnerUid(coupleData)) {
-                return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🐾</span><div><p class="elo-kicker">Pet do Elo</p><h3>Um companheiro de vocês</h3><p>Conecte seu amor primeiro. O Pet pertence ao casal e todas as decisões são compartilhadas.</p></div></div><button class="elo-primary-action" onclick="closeGenericModal()">Entendi</button></div>`);
-            }
-            if(!pet){
-                const cards=Object.values(ELO_PET_CATALOG).map(item=>`<article class="elo-pet-adopt-card"><div class="elo-pet-adopt-icon">${item.emoji}</div><div><span class="elo-pet-rarity">${item.rarity}</span><h4>${item.species}</h4><p>${item.description}</p><b>${item.price.toLocaleString('pt-BR')} 🪙</b></div><div class="elo-pet-adopt-actions"><button onclick="proposePetAdoption('${item.id}','split')">Dividir 50/50</button><button class="is-primary" onclick="proposePetAdoption('${item.id}','full')">Eu pago tudo</button></div></article>`).join('');
-                return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🐾</span><div><p class="elo-kicker">PET V1</p><h3>Adotem juntos</h3><p>Escolha um companheiro. Seu amor recebe a proposta e precisa aprovar antes da adoção.</p></div></div><div class="elo-pet-adopt-grid">${cards}</div></div>`);
-            }
-            const item=petCatalogItem(pet);
-            if(pet.status==='proposal'){
-                const mine=pet.proposedBy===currentUser.uid;
-                const minePay=Number(pet.contributions?.[currentUser.uid]||0), otherUid=getPetPartnerUid(coupleData), otherPay=Number(pet.contributions?.[otherUid]||0);
-                return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>${item.emoji}</span><div><p class="elo-kicker">Pedido de adoção</p><h3>${item.species}</h3><p>${mine?'Sua proposta está esperando seu amor.':'Seu amor quer adotar este Pet com você.'}</p></div></div><div class="elo-pet-proposal-summary"><span><small>Sua parte</small><b>${minePay.toLocaleString('pt-BR')} 🪙</b></span><span><small>Parte do amor</small><b>${otherPay.toLocaleString('pt-BR')} 🪙</b></span></div>${mine?`<button class="elo-secondary-action" onclick="cancelPetProposal()">Cancelar proposta</button>`:`<div class="elo-pet-decision"><button class="elo-secondary-action" onclick="rejectPetProposal()">Agora não</button><button class="elo-primary-action" onclick="acceptPetAdoption()">Adotar juntos ❤️</button></div>`}</div>`);
-            }
-            const care=getPetCare(pet), level=getPetLevel(pet), pending=pet.pendingName;
-            const nameBlock = !pet.name
-                ? (pending ? `<div class="elo-pet-name-box"><p>${pending.proposedBy===currentUser.uid?'Você sugeriu':'Seu amor sugeriu'} <b>“${escapeHTML(pending.value)}”</b></p>${pending.proposedBy===currentUser.uid?'<small>Aguardando aprovação.</small>':'<button onclick="acceptPetName()">Aprovar nome ❤️</button>'}</div>` : `<div class="elo-pet-name-box"><p><b>Escolham o nome juntos</b></p><div><input id="elo-pet-name-input" maxlength="20" placeholder="Nome do Pet"><button onclick="proposePetName()">Sugerir</button></div></div>`)
-                : `<div class="elo-pet-name-box"><p><b>${escapeHTML(pet.name)}</b> é oficialmente do Elo.</p>${pending?`<small>Renomeação sugerida: “${escapeHTML(pending.value)}” ${pending.proposedBy===currentUser.uid?'· aguardando':'· '} ${pending.proposedBy!==currentUser.uid?'<button onclick="acceptPetName()">Aprovar</button>':''}</small>`:`<button onclick="openPetRename()">Sugerir novo nome · ${ELO_PET_RENAME_PRICE} 🪙</button>`}</div>`;
-            openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-profile"><div class="elo-pet-profile-emoji">${item.emoji}</div><div><span class="elo-pet-rarity">${item.rarity}</span><h3>${escapeHTML(petDisplayName(pet))}</h3><p>${item.species} · Nível ${level}</p></div><b>${Number(pet.xp||0)%100}/100 XP</b></div>${nameBlock}<div class="elo-pet-bars"><label><span>❤️ Carinho</span><b>${care.affection}%</b><i><em style="width:${care.affection}%"></em></i></label><label><span>🍖 Fome</span><b>${care.hunger}%</b><i><em style="width:${care.hunger}%"></em></i></label><label><span>⚡ Energia</span><b>${care.energy}%</b><i><em style="width:${care.energy}%"></em></i></label></div><div class="elo-pet-care-actions"><button onclick="careForPet('affection')"><span>🤍</span><b>Carinho</b><small>+ vínculo</small></button><button onclick="careForPet('feed')"><span>🍖</span><b>Alimentar</b><small>+ fome</small></button><button onclick="careForPet('play')"><span>🎾</span><b>Brincar</b><small>+ XP</small></button></div><p class="elo-pet-footnote">Tudo aqui é sincronizado: vocês cuidam do mesmo Pet.</p></div>`);
+            const pet=coupleData?.pet||null;if(!getPetPartnerUid(coupleData))return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🐾</span><div><p class="elo-kicker">Pet do Elo</p><h3>Um companheiro de vocês</h3><p>Conecte seu amor primeiro. O Pet pertence ao casal e todas as decisões são compartilhadas.</p></div></div><button class="elo-primary-action" onclick="closeGenericModal()">Entendi</button></div>`);
+            if(!pet){const cards=Object.values(ELO_EGG_CATALOG).map(egg=>`<article class="elo-egg-shop-card is-${egg.accent}"><div class="elo-egg-shop-visual"><span class="elo-shop-egg">🥚</span><small>${egg.name}</small></div><div><p>${egg.description}</p><b>${egg.price.toLocaleString('pt-BR')} 🪙</b><small class="elo-egg-odds">${eggOddsText(egg)}</small></div><div class="elo-pet-adopt-actions"><button onclick="proposeEggAdoption('${egg.id}','split')">Dividir 50/50</button><button class="is-primary" onclick="proposeEggAdoption('${egg.id}','full')">Eu pago tudo</button></div></article>`).join('');return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🥚</span><div><p class="elo-kicker">Incubadora do Elo</p><h3>Escolham um ovo</h3><p>Vocês não compram o Pet diretamente. Adotem um ovo, cuidem dele juntos e descubram quem veio somente quando ele chocar.</p></div></div><div class="elo-egg-shop-grid">${cards}</div><p class="elo-pet-footnote">Ovo mais caro melhora as chances de raridade, mas nunca garante um Pet específico.</p></div>`)}
+            if(pet.status==='proposal'){const egg=ELO_EGG_CATALOG[pet.eggType]||ELO_EGG_CATALOG.common,mine=pet.proposedBy===currentUser.uid,minePay=Number(pet.contributions?.[currentUser.uid]||0),otherUid=getPetPartnerUid(coupleData),otherPay=Number(pet.contributions?.[otherUid]||0);return openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>🥚</span><div><p class="elo-kicker">Pedido de ovo</p><h3>${egg.name}</h3><p>${mine?'Sua proposta está esperando seu amor.':'Seu amor quer começar uma nova incubação com você.'}</p></div></div><div class="elo-pet-proposal-summary"><span><small>Sua parte</small><b>${minePay.toLocaleString('pt-BR')} 🪙</b></span><span><small>Parte do amor</small><b>${otherPay.toLocaleString('pt-BR')} 🪙</b></span></div><small class="elo-egg-odds">${eggOddsText(egg)}</small>${mine?`<button class="elo-secondary-action" onclick="cancelPetProposal()">Cancelar proposta</button>`:`<div class="elo-pet-decision"><button class="elo-secondary-action" onclick="rejectPetProposal()">Agora não</button><button class="elo-primary-action" onclick="acceptEggAdoption()">Adotar o ovo ❤️</button></div>`}</div>`)}
+            if(pet.status==='egg'){const egg=ELO_EGG_CATALOG[pet.eggType]||ELO_EGG_CATALOG.common,progress=Math.max(0,Math.min(100,Number(pet.hatchProgress||0)));const actions=Object.entries(eggCareRules).map(([a,r])=>{const rem=eggCooldownRemaining(pet,a);return `<button ${rem?'disabled':''} onclick="careForEgg('${a}')"><span>${r.icon}</span><b>${r.label}</b><small>${rem?Math.max(1,Math.ceil(rem/60000))+' min':`+${r.progress}%`}</small></button>`}).join('');return openGenericModal(`<div class="elo-pet-center elo-incubator"><div class="elo-pet-hero"><span>🥚</span><div><p class="elo-kicker">Incubadora</p><h3>${egg.name}</h3><p>Cada cuidado aproxima o momento da revelação. Os dois podem ajudar.</p></div></div><div class="elo-incubator-stage ${eggCrackClass(progress)}"><span class="elo-incubator-glow"></span><span class="elo-incubator-egg">🥚</span><span class="elo-incubator-crack">⌁</span><b>${progress}%</b><i><em style="width:${progress}%"></em></i></div><div class="elo-pet-care-actions elo-egg-care-actions">${actions}</div><small class="elo-egg-odds">Possibilidades deste ovo: ${eggOddsText(egg)}</small>${progress>=100?'<button class="elo-primary-action elo-hatch-button" onclick="hatchPetEgg()">Chocar agora ✨</button>':''}<p class="elo-pet-footnote">O resultado só é definido no momento em que o ovo choca.</p></div>`)}
+            const item=petCatalogItem(pet),care=getPetCare(pet),level=getPetLevel(pet),pending=pet.pendingName;
+            const nameBlock=!pet.name?(pending?`<div class="elo-pet-name-box"><p>${pending.proposedBy===currentUser.uid?'Você sugeriu':'Seu amor sugeriu'} <b>“${escapeHTML(pending.value)}”</b></p>${pending.proposedBy===currentUser.uid?'<small>Aguardando aprovação.</small>':'<button onclick="acceptPetName()">Aprovar nome ❤️</button>'}</div>`:`<div class="elo-pet-name-box"><p><b>Escolham o nome juntos</b></p><div><input id="elo-pet-name-input" maxlength="20" placeholder="Nome do Pet"><button onclick="proposePetName()">Sugerir</button></div></div>`):`<div class="elo-pet-name-box"><p><b>${escapeHTML(pet.name)}</b> é oficialmente do Elo.</p>${pending?`<small>Renomeação sugerida: “${escapeHTML(pending.value)}” ${pending.proposedBy===currentUser.uid?'· aguardando':'· '} ${pending.proposedBy!==currentUser.uid?'<button onclick="acceptPetName()">Aprovar</button>':''}</small>`:`<button onclick="openPetRename()">Sugerir novo nome · ${ELO_PET_RENAME_PRICE} 🪙</button>`}</div>`;
+            openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-profile"><div class="elo-pet-profile-emoji">${item.emoji}</div><div><span class="elo-pet-rarity">${item.rarity}</span><h3>${escapeHTML(petDisplayName(pet))}</h3><p>${item.species} · Nível ${level}</p></div><b>${Number(pet.xp||0)%100}/100 XP</b></div>${nameBlock}<div class="elo-pet-bars"><label><span>❤️ Carinho</span><b>${care.affection}%</b><i><em style="width:${care.affection}%"></em></i></label><label><span>🍖 Fome</span><b>${care.hunger}%</b><i><em style="width:${care.hunger}%"></em></i></label><label><span>⚡ Energia</span><b>${care.energy}%</b><i><em style="width:${care.energy}%"></em></i></label></div><div class="elo-pet-care-actions"><button onclick="careForPet('affection')"><span>🤍</span><b>Carinho</b><small>+ vínculo</small></button><button onclick="careForPet('feed')"><span>🍖</span><b>Alimentar</b><small>+ fome</small></button><button onclick="careForPet('play')"><span>🎾</span><b>Brincar</b><small>+ XP</small></button></div><p class="elo-pet-footnote">Arraste seu Pet pela tela para deixá-lo onde preferir. A posição fica salva neste dispositivo.</p></div>`);
         };
-
-        window.proposePetAdoption = async (type, mode='split') => {
-            const item=ELO_PET_CATALOG[type]; if(!item||!coupleId||!currentUser)return;
-            const otherUid=getPetPartnerUid(coupleData); if(!otherUid)return showToast('Conecte seu amor antes de adotar.','error');
-            const mine=mode==='full'?item.price:Math.ceil(item.price/2), other=mode==='full'?0:item.price-mine;
-            if(getSpendableCoins(coupleData,currentUser.uid)<mine)return showToast(`Você precisa de ${mine} Elo Coins para sua parte.`,'error');
-            try{
-                await updateDoc(doc(db,'relationships',coupleId),{pet:{status:'proposal',type:item.id,price:item.price,proposedBy:currentUser.uid,mode,contributions:{[currentUser.uid]:mine,[otherUid]:other},requestedAt:Date.now()}});
-                closeGenericModal(); showToast(`${item.emoji} Proposta enviada para seu amor!`,'success');
-            }catch(e){console.error(e);showToast('Não foi possível enviar a proposta do Pet.','error');}
-        };
-        window.cancelPetProposal = async () => { try{await updateDoc(doc(db,'relationships',coupleId),{pet:deleteField()});closeGenericModal();showToast('Proposta cancelada.','success')}catch(e){showToast('Não foi possível cancelar.','error')} };
-        window.rejectPetProposal = async () => { try{await updateDoc(doc(db,'relationships',coupleId),{pet:deleteField()});closeGenericModal();showToast('Tudo bem — vocês podem escolher outro Pet depois.','success')}catch(e){showToast('Não foi possível responder agora.','error')} };
-        window.acceptPetAdoption = async () => {
-            try{
-                const ref=doc(db,'relationships',coupleId);
-                await runTransaction(db,async tx=>{
-                    const snap=await tx.get(ref); if(!snap.exists())throw new Error('elo'); const data=snap.data(), pet=data.pet;
-                    if(pet?.status!=='proposal'||pet.proposedBy===currentUser.uid)throw new Error('proposal');
-                    for(const [uid,amountRaw] of Object.entries(pet.contributions||{})){
-                        const amount=Number(amountRaw||0), balance=Number(data?.users?.[uid]?.coins||0); if(balance<amount)throw new Error('coins');
-                        if(amount>0) tx.update(ref,{[`users.${uid}.coins`]:balance-amount});
-                    }
-                    tx.update(ref,{pet:{status:'adopted',type:pet.type,price:pet.price,adoptedAt:Date.now(),adoptedBy:[pet.proposedBy,currentUser.uid],name:'',pendingName:null,xp:0,care:{affection:72,hunger:76,energy:80,lastCareAt:Date.now()},activity:{}}});
-                });
-                closeGenericModal();showToast('🐾 Vocês adotaram um Pet! Agora escolham o nome.','success');setTimeout(openPetCenter,350);
-            }catch(e){console.error(e);showToast(e?.message==='coins'?'As Elo Coins mudaram. Confiram o saldo e tentem novamente.':'Não foi possível concluir a adoção.','error');}
-        };
-        window.proposePetName = async (forcedName='') => {
-            const pet=coupleData?.pet; if(pet?.status!=='adopted')return;
-            const input=document.getElementById('elo-pet-name-input'); const value=String(forcedName||input?.value||'').trim().slice(0,20);
-            if(value.length<2)return showToast('Escolha um nome com pelo menos 2 caracteres.','error');
-            const cost=pet.name?ELO_PET_RENAME_PRICE:0;
-            if(cost && getSpendableCoins(coupleData,currentUser.uid)<cost)return showToast(`Você precisa de ${cost} Elo Coins para propor a renomeação.`,'error');
-            try{await updateDoc(doc(db,'relationships',coupleId),{'pet.pendingName':{value,proposedBy:currentUser.uid,cost,createdAt:Date.now()}});closeGenericModal();showToast(`Nome “${value}” enviado para aprovação. ❤️`,'success')}catch(e){showToast('Não foi possível sugerir o nome.','error')}
-        };
-        window.openPetRename = () => openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>✍️</span><div><p class="elo-kicker">Nome do Pet</p><h3>Sugerir novo nome</h3><p>A troca custa ${ELO_PET_RENAME_PRICE} Elo Coins somente se seu amor aprovar.</p></div></div><div class="elo-pet-name-box"><div><input id="elo-pet-name-input" maxlength="20" placeholder="Novo nome"><button onclick="proposePetName()">Enviar sugestão</button></div></div><button class="elo-secondary-action" onclick="closeGenericModal();setTimeout(openPetCenter,80)">Voltar</button></div>`);
-        window.acceptPetName = async () => {
-            try{
-                const ref=doc(db,'relationships',coupleId);
-                await runTransaction(db,async tx=>{
-                    const snap=await tx.get(ref), data=snap.data(), pet=data?.pet, pending=pet?.pendingName;
-                    if(!pending||pending.proposedBy===currentUser.uid)throw new Error('name');
-                    const cost=Number(pending.cost||0), payer=pending.proposedBy, balance=Number(data?.users?.[payer]?.coins||0);
-                    if(cost>balance)throw new Error('coins');
-                    const updates={'pet.name':pending.value,'pet.pendingName':null,'pet.renamedAt':Date.now()};
-                    if(cost>0)updates[`users.${payer}.coins`]=balance-cost;
-                    tx.update(ref,updates);
-                });
-                closeGenericModal();showToast('💞 Nome escolhido pelos dois!','success');setTimeout(openPetCenter,280);
-            }catch(e){showToast(e?.message==='coins'?'Quem sugeriu o nome não tem mais Coins suficientes.':'Não foi possível aprovar o nome.','error')}
-        };
-        window.careForPet = async (action, opts={}) => {
-            const rules={affection:{cooldown:45*60*1000,xp:8},feed:{cooldown:2*60*60*1000,xp:10},play:{cooldown:90*60*1000,xp:16}}; const rule=rules[action]; if(!rule)return;
-            try{
-                const ref=doc(db,'relationships',coupleId);
-                await runTransaction(db,async tx=>{
-                    const snap=await tx.get(ref), data=snap.data(), pet=data?.pet; if(pet?.status!=='adopted')throw new Error('pet');
-                    const last=Number(pet?.activity?.[action]?.at||0), now=Date.now(), remaining=rule.cooldown-(now-last);
-                    if(remaining>0){const err=new Error('cooldown');err.remaining=remaining;throw err;}
-                    const care=getPetCare(pet), updates={'pet.xp':Number(pet.xp||0)+rule.xp,[`pet.activity.${action}`]:{at:now,by:currentUser.uid}};
-                    if(action==='affection')updates['pet.care.affection']=Math.min(100,care.affection+14);
-                    if(action==='feed'){updates['pet.care.hunger']=Math.min(100,care.hunger+18);updates['pet.care.energy']=Math.min(100,care.energy+4)}
-                    if(action==='play'){updates['pet.care.affection']=Math.min(100,care.affection+8);updates['pet.care.energy']=Math.max(0,care.energy-8)}
-                    updates['pet.care.lastCareAt']=now; tx.update(ref,updates);
-                });
-                if(opts.floating){const btn=document.querySelector('.elo-floating-pet');btn?.classList.remove('is-reacting');void btn?.offsetWidth;btn?.classList.add('is-reacting');setTimeout(updateFloatingPetCompanion,120);}else{closeGenericModal();showToast(action==='feed'?'🍖 Pet alimentado!':action==='play'?'🎾 Que brincadeira boa!':'🤍 Carinho recebido!','success');setTimeout(openPetCenter,250);}
-            }catch(e){if(e?.message==='cooldown'){const min=Math.max(1,Math.ceil(Number(e.remaining||0)/60000));if(opts.floating){const bubble=document.querySelector('.elo-floating-pet-bubble');if(bubble){bubble.textContent=`${min}m`;setTimeout(updateFloatingPetCompanion,900)}return;}return showToast(`Seu Pet já recebeu isso. Tente de novo em ${min} min.`,'error')}console.error(e);showToast('Não foi possível cuidar do Pet agora.','error')}
-        };
+        window.proposeEggAdoption = async (eggType,mode='split') => {const egg=ELO_EGG_CATALOG[eggType];if(!egg||!coupleId||!currentUser)return;const otherUid=getPetPartnerUid(coupleData);if(!otherUid)return showToast('Conecte seu amor antes de adotar.','error');const mine=mode==='full'?egg.price:Math.ceil(egg.price/2),other=mode==='full'?0:egg.price-mine;if(getSpendableCoins(coupleData,currentUser.uid)<mine)return showToast(`Você precisa de ${mine} Elo Coins para sua parte.`,'error');try{await updateDoc(doc(db,'relationships',coupleId),{pet:{status:'proposal',kind:'egg',eggType:egg.id,price:egg.price,proposedBy:currentUser.uid,mode,contributions:{[currentUser.uid]:mine,[otherUid]:other},requestedAt:Date.now()}});closeGenericModal();showToast('Proposta do ovo enviada.','success')}catch(e){console.error(e);showToast('Não foi possível enviar a proposta.','error')}};
+        window.proposePetAdoption=window.proposeEggAdoption;
+        window.cancelPetProposal=async()=>{try{await updateDoc(doc(db,'relationships',coupleId),{pet:deleteField()});closeGenericModal()}catch(e){showToast('Não foi possível cancelar.','error')}};
+        window.rejectPetProposal=async()=>{try{await updateDoc(doc(db,'relationships',coupleId),{pet:deleteField()});closeGenericModal()}catch(e){showToast('Não foi possível responder agora.','error')}};
+        window.acceptEggAdoption = async () => {try{const ref=doc(db,'relationships',coupleId);await runTransaction(db,async tx=>{const snap=await tx.get(ref);if(!snap.exists())throw new Error('elo');const data=snap.data(),pet=data.pet;if(pet?.status!=='proposal'||pet.proposedBy===currentUser.uid)throw new Error('proposal');for(const [uid,amountRaw] of Object.entries(pet.contributions||{})){const amount=Number(amountRaw||0),balance=Number(data?.users?.[uid]?.coins||0);if(balance<amount)throw new Error('coins');if(amount>0)tx.update(ref,{[`users.${uid}.coins`]:balance-amount})}tx.update(ref,{pet:{status:'egg',eggType:pet.eggType,price:pet.price,adoptedAt:Date.now(),adoptedBy:[pet.proposedBy,currentUser.uid],hatchProgress:0,eggActivity:{}}})});closeGenericModal();showToast('🥚 O ovo chegou à incubadora!','success');setTimeout(openPetCenter,300)}catch(e){console.error(e);showToast(e?.message==='coins'?'As Elo Coins mudaram. Confiram o saldo.':'Não foi possível adotar o ovo.','error')}};
+        window.acceptPetAdoption=window.acceptEggAdoption;
+        window.careForEgg = async (action,opts={}) => {const rule=eggCareRules[action];if(!rule)return;try{const ref=doc(db,'relationships',coupleId);let reached=false;await runTransaction(db,async tx=>{const snap=await tx.get(ref),data=snap.data(),pet=data?.pet;if(pet?.status!=='egg')throw new Error('egg');const now=Date.now(),last=Number(pet?.eggActivity?.[action]?.at||0),remaining=rule.cooldown-(now-last);if(remaining>0){const err=new Error('cooldown');err.remaining=remaining;throw err}const next=Math.min(100,Number(pet.hatchProgress||0)+rule.progress);reached=next>=100;tx.update(ref,{'pet.hatchProgress':next,[`pet.eggActivity.${action}`]:{at:now,by:currentUser.uid}})});if(opts.floating){const egg=document.querySelector('.elo-floating-egg');egg?.classList.add('is-reacting');setTimeout(updateFloatingPetCompanion,160)}else{closeGenericModal();setTimeout(openPetCenter,220)}}catch(e){if(e?.message==='cooldown'){const min=Math.max(1,Math.ceil(Number(e.remaining||0)/60000));if(opts.floating){const n=document.querySelector('.elo-floating-pet-name');if(n){n.textContent=`${min}m`;setTimeout(updateFloatingPetCompanion,900)}return}return showToast(`Esse cuidado volta em ${min} min.`,'error')}console.error(e);showToast('Não foi possível cuidar do ovo agora.','error')}};
+        window.hatchPetEgg = async () => {try{const ref=doc(db,'relationships',coupleId);let revealed=null;await runTransaction(db,async tx=>{const snap=await tx.get(ref),data=snap.data(),pet=data?.pet;if(pet?.status!=='egg'||Number(pet.hatchProgress||0)<100)throw new Error('not-ready');const type=rollPetFromEgg(pet.eggType);revealed=ELO_PET_CATALOG[type];tx.update(ref,{pet:{status:'adopted',type,eggType:pet.eggType,price:pet.price,hatchedAt:Date.now(),adoptedAt:pet.adoptedAt,adoptedBy:pet.adoptedBy||[],name:'',pendingName:null,xp:0,care:{affection:78,hunger:82,energy:86,lastCareAt:Date.now()},activity:{}}})});closeGenericModal();openGenericModal(`<div class="elo-pet-center elo-hatch-reveal"><p class="elo-kicker">O ovo chocou!</p><div class="elo-hatch-light"></div><div class="elo-hatch-pet">${revealed?.emoji||'🐾'}</div><span class="elo-pet-rarity">${revealed?.rarity||''}</span><h3>${revealed?.species||'Novo Pet'}</h3><p>${revealed?.description||'Um novo companheiro chegou ao Elo.'}</p><button class="elo-primary-action" onclick="closeGenericModal();setTimeout(openPetCenter,100)">Conhecer nosso Pet ❤️</button></div>`)}catch(e){console.error(e);showToast('O ovo ainda não está pronto para chocar.','error')}};
+        window.proposePetName = async (forcedName='') => {const pet=coupleData?.pet;if(pet?.status!=='adopted')return;const input=document.getElementById('elo-pet-name-input'),value=String(forcedName||input?.value||'').trim().slice(0,20);if(value.length<2)return showToast('Escolha um nome com pelo menos 2 caracteres.','error');const cost=pet.name?ELO_PET_RENAME_PRICE:0;if(cost&&getSpendableCoins(coupleData,currentUser.uid)<cost)return showToast(`Você precisa de ${cost} Elo Coins para propor a renomeação.`,'error');try{await updateDoc(doc(db,'relationships',coupleId),{'pet.pendingName':{value,proposedBy:currentUser.uid,cost,createdAt:Date.now()}});closeGenericModal()}catch(e){showToast('Não foi possível sugerir o nome.','error')}};
+        window.openPetRename=()=>openGenericModal(`<div class="elo-pet-center"><div class="elo-pet-hero"><span>✍️</span><div><p class="elo-kicker">Nome do Pet</p><h3>Sugerir novo nome</h3><p>A troca custa ${ELO_PET_RENAME_PRICE} Elo Coins somente se seu amor aprovar.</p></div></div><div class="elo-pet-name-box"><div><input id="elo-pet-name-input" maxlength="20" placeholder="Novo nome"><button onclick="proposePetName()">Enviar sugestão</button></div></div><button class="elo-secondary-action" onclick="closeGenericModal();setTimeout(openPetCenter,80)">Voltar</button></div>`);
+        window.acceptPetName = async () => {try{const ref=doc(db,'relationships',coupleId);await runTransaction(db,async tx=>{const snap=await tx.get(ref),data=snap.data(),pet=data?.pet,pending=pet?.pendingName;if(!pending||pending.proposedBy===currentUser.uid)throw new Error('name');const cost=Number(pending.cost||0),payer=pending.proposedBy,balance=Number(data?.users?.[payer]?.coins||0);if(cost>balance)throw new Error('coins');const updates={'pet.name':pending.value,'pet.pendingName':null,'pet.renamedAt':Date.now()};if(cost>0)updates[`users.${payer}.coins`]=balance-cost;tx.update(ref,updates)});closeGenericModal();setTimeout(openPetCenter,200)}catch(e){showToast(e?.message==='coins'?'Quem sugeriu o nome não tem mais Coins suficientes.':'Não foi possível aprovar o nome.','error')}};
+        window.careForPet = async (action,opts={}) => {const rules={affection:{cooldown:45*60*1000,xp:8},feed:{cooldown:2*60*60*1000,xp:10},play:{cooldown:90*60*1000,xp:16}},rule=rules[action];if(!rule)return;try{const ref=doc(db,'relationships',coupleId);await runTransaction(db,async tx=>{const snap=await tx.get(ref),data=snap.data(),pet=data?.pet;if(pet?.status!=='adopted')throw new Error('pet');const last=Number(pet?.activity?.[action]?.at||0),now=Date.now(),remaining=rule.cooldown-(now-last);if(remaining>0){const err=new Error('cooldown');err.remaining=remaining;throw err}const care=getPetCare(pet),updates={'pet.xp':Number(pet.xp||0)+rule.xp,[`pet.activity.${action}`]:{at:now,by:currentUser.uid}};if(action==='affection')updates['pet.care.affection']=Math.min(100,care.affection+14);if(action==='feed'){updates['pet.care.hunger']=Math.min(100,care.hunger+18);updates['pet.care.energy']=Math.min(100,care.energy+4)}if(action==='play'){updates['pet.care.affection']=Math.min(100,care.affection+8);updates['pet.care.energy']=Math.max(0,care.energy-8)}updates['pet.care.lastCareAt']=now;tx.update(ref,updates)});if(opts.floating){const btn=document.querySelector('.elo-floating-pet');btn?.classList.add('is-reacting');setTimeout(updateFloatingPetCompanion,120)}else{closeGenericModal();setTimeout(openPetCenter,180)}}catch(e){if(e?.message==='cooldown'){const min=Math.max(1,Math.ceil(Number(e.remaining||0)/60000));if(opts.floating){const bubble=document.querySelector('.elo-floating-pet-bubble');if(bubble){bubble.textContent=`${min}m`;setTimeout(updateFloatingPetCompanion,900)}return}return showToast(`Seu Pet já recebeu isso. Tente de novo em ${min} min.`,'error')}console.error(e);showToast('Não foi possível cuidar do Pet agora.','error')}};
 
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
         const saveOwnedThemes = set => localStorage.setItem(eloThemeOwnedKey(), JSON.stringify([...set].filter(x=>x!=='akai')));
