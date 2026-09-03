@@ -11,9 +11,9 @@ const indexPath='www/index.html';
 if(existsSync(indexPath)&&existsSync('v36-11.js')){
   let html=await readFile(indexPath,'utf8');
   if(!html.includes('v36-11.js')){
-    const tag='    <script type="module" src="./v36-11.js?v=36.11.2"></script>\n';
+    const tag='    <script type="module" src="./v36-11.js?v=36.11.3"></script>\n';
     html=html.includes('</body>')?html.replace('</body>',`${tag}</body>`):`${html}\n${tag}`;
     await writeFile(indexPath,html,'utf8');
   }
 }
-console.log('Web assets preparados em ./www para o Capacitor (V36.11.2 runtime incluído).');
+console.log('Web assets preparados em ./www para o Capacitor (V36.11.3 runtime incluído).');
