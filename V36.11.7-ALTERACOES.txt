@@ -1,0 +1,42 @@
+V36.11.7 — PERFIL MOBILE + FLUIDEZ FASE 3
+Data: 03/09/2026
+
+1. Scroll
+- Removida a pausa automática dos efeitos durante rolagem.
+- Removida a classe elo-scroll-busy do runtime.
+- O Celestial não congela mais ao simplesmente rolar a tela.
+- Mantidas apenas reduções temporárias durante abertura de modal, digitação e transições curtas.
+
+2. Perfil
+- Removido content-visibility dos blocos do Perfil, pois podia fazer opções aparecerem tarde ao abrir rapidamente.
+- Adicionada barra rápida fixa com Perfil / Avatar / Temas.
+- Temas ficam acessíveis imediatamente ao abrir o Perfil.
+- Botão de foto Google é reposicionado para fora do recorte da foto.
+- Layout do editor de avatar passa para uma coluna no celular.
+- Preview do personagem fica centralizado e maior no mobile.
+- Campos do avatar ocupam a largura disponível.
+- Atualizações consecutivas do preview são agrupadas em requestAnimationFrame para reduzir trabalho repetido.
+
+3. Loja
+- O saldo duplicado dentro do cabeçalho da Loja é ocultado.
+- O saldo principal do cabeçalho global continua sendo a fonte visual principal.
+- Bolsa e título da Loja permanecem acessíveis.
+
+4. Fluidez Fase 3
+- Mantidas virtualizações leves de Chat, Loja, Missões, Bolsa e Amigos.
+- Mantido lazy loading/async decode de imagens não prioritárias.
+- Navegação e Perfil continuam com feedback imediato.
+- O foco desta fase foi corrigir regressões da Fase 2 sem perder os ganhos de desempenho.
+
+5. Web / PWA / APK
+- index.html atualizado para 36.11.7.
+- app.js, v36-11.js, styles.css e tailwind.css usam ?v=36.11.7 no HTML/cache.
+- prepare-capacitor continua usando o mesmo index.html para Web/PWA/APK.
+
+6. Service Worker
+CACHE: elo-v36-11-7-profile-mobile-fluidity-20260903
+
+Próxima fase
+- Refatoração estrutural de renderização do app.js.
+- Reduzir reconstruções completas de Chat/Home/Missões/Loja.
+- Atualizações pontuais de DOM para mensagens, badges, coins, typing e estados de missão.
