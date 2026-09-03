@@ -1420,3 +1420,15 @@ body.elo-theme-celestial #main-content{position:relative;z-index:auto}
 body.elo-theme-celestial #main-header{position:sticky;z-index:40}
 body.elo-theme-celestial #main-nav{position:fixed;z-index:40}
 .fx-blackhole{background:transparent!important}
+\n/* V36.10.0 · UX audit: Pet modal + cometas coerentes */
+#generic-modal{z-index:10100!important}
+#elo-floating-pet-host.is-behind-modal{opacity:0!important;pointer-events:none!important;transition:opacity .14s ease}
+.elo-pet-center{position:relative}
+.elo-pet-center-close{position:absolute;right:.05rem;top:.05rem;z-index:4;width:2rem;height:2rem;border-radius:999px;border:1px solid var(--elo-border);background:color-mix(in srgb,var(--elo-surface-2) 92%,transparent);color:var(--elo-muted);display:grid;place-items:center;box-shadow:0 5px 16px rgba(0,0,0,.16)}
+.elo-pet-center-close:active{transform:scale(.94)}
+/* A cabeça do cometa aponta para a trajetória; o rastro sempre fica atrás. */
+.elo-space-comet{--comet-angle:8.7deg;transform-origin:center;}
+.elo-space-comet::before{right:3px;left:auto;width:6.2rem;height:1.4px;transform:translateY(-50%);background:linear-gradient(90deg,transparent 0%,rgba(78,139,255,.06) 18%,rgba(128,188,255,.22) 58%,rgba(255,245,220,.82) 100%);filter:blur(.45px);}
+.elo-space-comet::after{content:"";position:absolute;right:3px;top:50%;width:3.1rem;height:5px;transform:translateY(-50%);background:linear-gradient(90deg,transparent,rgba(95,171,255,.12),rgba(255,218,163,.28));filter:blur(2.8px);border-radius:50%;}
+@keyframes eloCometCruise{0%{opacity:0;transform:translate3d(-8vw,0,0) rotate(var(--comet-angle))}7%{opacity:.8}82%{opacity:.72}100%{opacity:0;transform:translate3d(118vw,18vh,0) rotate(var(--comet-angle))}}
+@media(max-width:430px){.elo-pet-center-close{position:sticky;float:right;top:.1rem;margin-bottom:-2rem}}

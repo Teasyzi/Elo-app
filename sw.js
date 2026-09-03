@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-9-9-pet-collection-incubator-celestial-20260902';
+const CACHE = 'elo-v36-10-0-pet-ux-comets-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.9.9',
-  './tailwind.css?v=36.9.9',
-  './styles.css?v=36.9.9',
+  './app.js?v=36.10.0',
+  './tailwind.css?v=36.10.0',
+  './styles.css?v=36.10.0',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'

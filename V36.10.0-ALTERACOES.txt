@@ -1,0 +1,10 @@
+Elo V36.10.0 / APK 0.9.0
+
+- Corrigido o rastro dos cometas do Galáxia Celestial para acompanhar corretamente a trajetória.
+- Central dos Pets agora fecha o painel flutuante antes de abrir.
+- Modal genérico elevado acima do backdrop do Pet para impedir tela cinza bloqueando a Central.
+- Pet flutuante fica oculto/inativo enquanto um modal está aberto.
+- Central dos Pets ganhou botão de fechar visível.
+- Clique fora do modal continua fechando sem atravessar para a interface abaixo.
+- Revisão de UX: camadas e estados de interação do Pet ficaram previsíveis no mobile.
+- CACHE e versões dos assets atualizados.
