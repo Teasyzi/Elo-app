@@ -1,1 +1,34 @@
-placeholder
+Elo V36.11.11 — Celestial Black Hole V5
+
+Objetivo desta versão
+- Redesenhar o buraco negro do tema Celestial para um visual cinematográfico mais próximo da linguagem visual de Gargântua/Interstellar, sem copiar uma imagem do filme.
+- Remover o elemento rosa/roxo que destoava do buraco negro.
+- Preservar a interação gravitacional e a espaguetificação já existentes.
+
+Alterações
+- Paleta do buraco negro alterada para preto absoluto + branco quente + dourado/âmbar.
+- Novo disco de acreção em duas camadas: uma faixa traseira e uma faixa dianteira cruzando visualmente o horizonte.
+- Lente gravitacional reforçada com arco de luz quente envolvendo o horizonte.
+- Photon ring fino e branco-quente próximo ao horizonte de eventos.
+- Correntes do disco continuam girando lentamente, mas agora sem tons rosa/roxo.
+- Poeira orbital passou a usar brilho branco/dourado.
+- Núcleo do buraco negro escurecido para destacar melhor o horizonte de eventos.
+- A animação de alimentação/gravidade aumenta temporariamente a luminosidade do disco sem mudar a paleta.
+- Espaguetificação de cometas e partículas permanece ativa.
+
+Performance
+- Nenhum novo requestAnimationFrame contínuo foi criado.
+- As novas camadas usam CSS e as animações existentes.
+- Dispositivos classificados como lite continuam com filtros e poeira reduzidos.
+
+PWA / APK
+- CACHE do service worker bumpado para:
+  elo-v36-11-11-celestial-interstellar-blackhole-20260903
+- scripts/prepare-capacitor.mjs alinhado para V36.11.11.
+
+Teste recomendado
+1. Ativar o tema Galáxia Celestial.
+2. Observar o buraco negro parado: núcleo preto, disco branco/dourado e lente gravitacional.
+3. Confirmar que não existe mais faixa rosa girando.
+4. Tocar no buraco negro e observar cometas/partículas sendo alongados até o centro.
+5. Testar em PWA e APK Android para comparar fluidez e composição visual.
