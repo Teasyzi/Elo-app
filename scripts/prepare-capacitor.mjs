@@ -5,7 +5,7 @@ const files=['index.html','app.js','v36-11.js','styles.css','tailwind.css','mani
 await rm('www',{recursive:true,force:true});
 await mkdir('www/icons',{recursive:true});
 for(const file of files){if(existsSync(file))await cp(file,`www/${file}`)}
-for(const icon of ['icon-192.png','icon-512.png']){if(existsSync(`icons/${icon}`))await cp(icon.startsWith('icons/')?icon:`icons/${icon}`,`www/icons/${icon}`).catch(()=>{})}
+for(const icon of ['icon-192.png','icon-512.png']){if(existsSync(`icons/${icon}`))await cp(`icons/${icon}`,`www/icons/${icon}`)}
 
 const indexPath='www/index.html';
 if(existsSync(indexPath)&&existsSync('v36-11.js')){
