@@ -1,0 +1,35 @@
+Elo V36.11.8 — Celestial vivo + Fluidez Fase 4
+Data: 03/09/2026
+
+CELESTIAL / BURACO NEGRO
+- Corrigida a interação de gravidade: ao tocar no buraco negro, todos os cometas visíveis entram no pulso gravitacional.
+- O efeito também captura uma amostra controlada de partículas e estrelas, respeitando aparelhos mais fracos.
+- A nova atração usa translate/scale compostos com a física já existente dos cometas, evitando a disputa de transform que fazia alguns meteoros ignorarem o buraco negro.
+- Buraco negro recebeu lente gravitacional, disco de acreção, anel de fótons e poeira orbitando.
+- Adicionado pulso/flash de energia ao tocar, sem criar um segundo loop contínuo de requestAnimationFrame.
+- Celestial continua animando durante o scroll; a pausa ao rolar NÃO voltou.
+
+FLUIDEZ — FASE 4
+- Criado app-fluidity.js, carregado após app.js e v36-11.js em Web/PWA/APK.
+- Primeiro hot path estrutural otimizado: lista de mensagens do Chat.
+- Em atualizações normais, a lista deixa de necessariamente substituir todas as bolhas via innerHTML.
+- Quando a sequência atual é compatível, somente bolhas alteradas e novas mensagens são atualizadas.
+- Digitação do parceiro é atualizada separadamente.
+- Paginação para mensagens antigas, exclusão/reordenação ou estrutura incompatível continuam usando o render original como fallback de segurança.
+- Mantidos os listeners, Firebase e regras de negócio do app.js sem duplicação.
+
+PARIDADE / CACHE
+- index.html agora usa ?v=36.11.8 para app.js, v36-11.js, app-fluidity.js e CSS.
+- app-fluidity.js é copiado pelo prepare-capacitor.mjs para o APK.
+- CACHE do Service Worker: elo-v36-11-8-celestial-fluidity-phase-4-20260903
+
+TESTES IMPORTANTES
+1. Celestial: tocar várias vezes no buraco negro e confirmar que todos os cometas são atraídos.
+2. Celestial: observar disco/lente/poeira sem tocar e verificar que o tema parece mais vivo.
+3. Chat: enviar várias mensagens seguidas e receber mensagens do parceiro/ADM.
+4. Chat: testar indicador de digitação, reação, edição, resposta e áudio.
+5. Chat: subir para carregar mensagens antigas; o fallback tradicional deve preservar a paginação.
+6. Confirmar que scroll do app não congela os efeitos do tema.
+
+OBSERVAÇÃO
+Esta fase começa a otimização estrutural do runtime principal de forma isolada e reversível. Depois de validada, os hot paths aprovados podem ser incorporados ao núcleo do app.js em uma limpeza maior, reduzindo risco de regressão no arquivo principal.

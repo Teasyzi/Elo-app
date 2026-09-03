@@ -1,0 +1,12 @@
+Elo V36.11.1
+
+- Sandbox ADM reparado para recursos que exigem duas pessoas: um parceiro técnico de teste é criado apenas dentro do Sandbox.
+- Central/Pet flutuante não aparece mais na tela de login e fica oculto antes do início da jornada de Pets.
+- No Sandbox ADM, a área de Pets fica liberada para testes mesmo sem um parceiro real.
+- Tema Galáxia Celestial ganhou mais profundidade visual com estrelas em camadas, nebulosas e poeira galáctica.
+- Cometas continuam sob atração do buraco negro, agora com órbita/curvatura mais natural e menor custo em aparelhos antigos.
+- Loop dos cometas deixa de rodar quando o Celestial não está ativo, quando o app vai para segundo plano ou quando a página está oculta.
+- Efeitos pesados são pausados durante abertura do Perfil/modal para reduzir travamentos em celulares antigos.
+- Perfil leve automático para aparelhos com menos núcleos/memória: reduz partículas do Celestial e filtros caros sem remover o tema.
+- Sincronização de temas deixou de verificar mudanças a cada 1,2 s; agora usa listener do perfil e fallback bem mais espaçado.
+- CACHE do service worker alterado para elo-v36-11-1-sandbox-pets-performance-celestial-20260903.

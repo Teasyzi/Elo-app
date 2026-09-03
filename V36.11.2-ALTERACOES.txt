@@ -1,0 +1,19 @@
+Elo V36.11.2
+
+- Conta ADM passou a ser exclusivamente Sandbox: não existe mais alternância entre Elo real e Sandbox.
+- Ao autenticar uma conta presente em /admins/{uid}, o Elo cria/repara automaticamente o relacionamento técnico __admin_UID e entra nele.
+- Parceiro técnico continua existindo para liberar recursos que exigem duas pessoas.
+- Saldo/XP do Sandbox não é mais resetado para 10.000 a cada abertura; valores existentes são preservados.
+- Painel ADM simplificado: moedas, reset de temas e reset de Pets/ovos.
+- Mantidas autoaprovação de missões, proteção da UI de Pets e otimizações do Celestial.
+- CACHE do service worker atualizado para V36.11.2.
+
+Auditoria V36.11 em andamento:
+- Prioridade alta: fluidez da navegação e do Perfil em aparelhos antigos; reduzir rerenders completos e trabalho visual fora da aba ativa.
+- Chat: manter listener somente das mensagens recentes, paginação sob demanda, envio otimista e evitar reconstruções completas enquanto digita.
+- Jogos: ampliar variedade e reduzir dependência de esperas; modo ADM precisa conseguir simular resposta do parceiro para testar uma rodada inteira sozinho.
+- Missões: reforçar clareza de estados (fazer, aguardando aprovação, aprovado/reprovado), ação de desfazer e coerência entre prazo e descrição.
+- Loja: simplificar fluxo comprar -> usar/enviar -> pendência -> conclusão; destacar itens úteis e evitar catálogo excessivamente longo sem contexto.
+- Pets: Central só entra na experiência depois do primeiro ovo no uso normal; Sandbox permanece liberado para testes.
+- Home: deve priorizar ações do dia e não funcionar como painel com informação demais.
+- Performance: listeners/timers devem existir apenas quando necessários; animações caras pausam em segundo plano/modal e celulares limitados usam perfil visual leve.

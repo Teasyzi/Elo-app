@@ -1,0 +1,27 @@
+ELO V36.11.3 — REVISÃO DE USO DIÁRIO, QA E PERFORMANCE
+Data: 03/09/2026
+
+- Conta ADM continua em Sandbox permanente e não precisa de Elo real.
+- Parceiro técnico ganhou ações de QA pelo painel ADM:
+  - responder jogo atual;
+  - aprovar proposta de ovo;
+  - concluir vouchers pendentes;
+  - reparar o parceiro técnico.
+- Jogo Rápido passou a usar bancos muito maiores nos três modos atuais.
+- Rodadas seguem sincronizadas pelo relacionamento e evitam repetição imediata por sequência.
+- No ADM, o parceiro técnico responde automaticamente depois da resposta do administrador.
+- Missões do ADM continuam com autoaprovação e recompensa.
+- Central de Pets permanece escondida no login e antes da primeira jornada de Pet para usuários comuns.
+- Loja recebeu content-visibility/contain para reduzir custo de renderização de cartões fora da tela.
+- Home e mensagens receberam isolamento de pintura/layout onde seguro.
+- Celestial mantém a física e aparência, mas reduz taxa de atualização fora da Home e pausa cálculos pesados em modais.
+- Removida a verificação periódica de 15 segundos do runtime; sincronização agora reage a eventos relevantes.
+- Perfil e modais desativam filtros caros em aparelhos detectados como limitados.
+- Service Worker atualizado para o cache elo-v36-11-3-daily-ux-performance-qa-20260903.
+
+PRIORIDADES AINDA EM REVISÃO PARA A V36.11:
+- reduzir reconstruções completas de telas no app.js, principalmente Chat/Perfil;
+- tornar estados de Missões mais explícitos visualmente;
+- revisar curadoria e descoberta da Loja por contexto de uso;
+- simplificar a Home com foco no que importa no dia;
+- ampliar jogos além dos modos A/B sem perder leveza.
