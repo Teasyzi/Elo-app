@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-0-admin-theme-sync-celestial-20260903';
+const CACHE = 'elo-v36-11-1-sandbox-pets-performance-celestial-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.11.0',
-  './v36-11.js?v=36.11.0',
-  './tailwind.css?v=36.11.0',
-  './styles.css?v=36.11.0',
+  './app.js?v=36.11.1',
+  './v36-11.js?v=36.11.1',
+  './tailwind.css?v=36.11.1',
+  './styles.css?v=36.11.1',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
