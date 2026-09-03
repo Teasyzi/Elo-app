@@ -1,0 +1,10 @@
+ELO V36.11.4 — PARIDADE WEB / PWA / APK
+Data: 2026-09-03
+
+- index.html passa a carregar diretamente app.js e v36-11.js em todas as plataformas.
+- Web/PC, PWA/iPhone e APK/Android usam a mesma base de HTML e os mesmos runtimes funcionais.
+- scripts/prepare-capacitor.mjs não injeta mais runtime exclusivo no Android; apenas copia os mesmos arquivos usados pela Web.
+- assets versionados com ?v=36.11.4 para evitar mistura entre versões.
+- service worker recebeu novo CACHE: elo-v36-11-4-web-apk-parity-20260903.
+- Mantidas como diferenças somente integrações realmente nativas do Android, detectadas em runtime pelo app.js.
+- Esta alteração prepara a base para o próximo refactor de fluidez/performance sem criar divergência entre site e APK.
