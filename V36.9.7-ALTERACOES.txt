@@ -1,0 +1,12 @@
+ELO V36.9.7 / APK 0.8.7
+
+- Midnight redesenhado: céu noturno espacial, estrelas animadas e meteoros; lua grande removida.
+- Galáxia Celestial redesenhada: black galaxy própria com buraco negro interativo e pulso gravitacional.
+- Toast decorativo do clique no fio Akai Ito removido; a interação visual permanece.
+- PET V1.5: companheiro flutuante global em todas as áreas do app.
+- Pet não fica mais duplicado na Home/card dedicado.
+- Toque no Pet abre painel rápido com humor, bem-estar, nível e três cuidados.
+- Carinho, comida e brincadeira do painel flutuante usam os mesmos cooldowns/XP/estado compartilhado do Firestore.
+- Feedback de cuidados rápidos ocorre no próprio Pet, reduzindo popups desnecessários.
+- Web 36.9.7; APK 0.8.7; versionCode 31.
+- Service Worker CACHE atualizado para elo-v36-9-7-floating-pet-blackhole-20260902.

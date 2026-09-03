@@ -67,12 +67,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 
         const appId = "elo-app-v2";
         // V36.7 · Chat Messenger: seleção múltipla, mídia em tela cheia, fixadas, favoritos, links e informações de mensagem.
-        const ELO_WEB_VERSION = '36.9.6';
+        const ELO_WEB_VERSION = '36.9.7';
         const ELO_RELEASE_NOTES = [
-            '🌙 Midnight agora é uma noite romântica de luar, com lua grande, nuvens lentas e poucas estrelas — visual bem diferente da Galáxia.',
-            '🌌 Galáxia Celestial mantém o espaço profundo premium, com nebulosas, estrelas densas e meteoros.',
-            '🧵 O fio Akai Ito da Home ficou mais orgânico e agora reage ao toque com uma onda de energia entre o casal.',
-            '🐾 PET V1 chegou: adoção compartilhada, divisão de custo, aprovação do parceiro, nome em conjunto e cuidados sincronizados.',
+            '🌙 Midnight virou uma noite espacial viva: estrelas em profundidade, cintilação e meteoros sem uma lua cobrindo a interface.',
+            '🕳️ Galáxia Celestial agora é uma galáxia negra própria, com nebulosa profunda e buraco negro interativo.',
+            '🧵 O Akai Ito continua reagindo visualmente ao toque, agora sem popup decorativo.',
+            '🐾 PET V1.5: o Pet virou um companheiro flutuante em todo o app, com cuidados rápidos, humor e status centralizados.',
             '💞 O Pet ganha XP e vínculo com carinho, comida e brincadeiras, aparecendo junto do casal na Home.'
         ];
         let firstEntryExperienceScheduled = false;
@@ -2103,9 +2103,9 @@ window.checkInToday = async (buttonEl = null) => {
         const ELO_THEME_CATALOG = {
             akai: {name:'Akai Ito', icon:'🧵', price:0, className:'elo-theme-akai', description:'Vermelho profundo, fio do destino e atmosfera romântica.', effect:'thread'},
             sakura: {name:'Sakura', icon:'🌸', price:1200, className:'elo-theme-sakura', description:'Primavera japonesa com pétalas animadas e chat rosado.', premium:true, effect:'sakura'},
-            midnight: {name:'Midnight', icon:'🌙', price:1700, className:'elo-theme-midnight', description:'Noite romântica de luar com lua grande, nuvens lentas e estrelas discretas.', premium:true, effect:'moonlight'},
+            midnight: {name:'Midnight', icon:'🌙', price:1700, className:'elo-theme-midnight', description:'Noite espacial elegante com estrelas vivas, profundidade e meteoros suaves.', premium:true, effect:'stars'},
             cozy: {name:'Cozy', icon:'🧸', price:800, className:'elo-theme-cozy', description:'Âmbar, madeira e pequenos brilhos aconchegantes.', effect:'fireflies'},
-            celestial: {name:'Galáxia Celestial', icon:'🌌', price:3200, className:'elo-theme-celestial', description:'Black galaxy premium com nebulosas em movimento, estrelas densas e meteoros.', premium:true, effect:'galaxy'}
+            celestial: {name:'Galáxia Celestial', icon:'🕳️', price:3200, className:'elo-theme-celestial', description:'Galáxia negra premium com nebulosa profunda e um buraco negro interativo.', premium:true, effect:'blackhole'}
         };
         const ELO_CUSTOM_THEME_PRICE = 900;
         const ELO_CUSTOM_PARTICLES = {
@@ -2141,10 +2141,20 @@ window.checkInToday = async (buttonEl = null) => {
             const fx=document.createElement('div');
             fx.id='elo-theme-fx'; fx.className=`elo-theme-fx fx-${effect}`; fx.setAttribute('aria-hidden','true');
             if(particleColor) fx.style.setProperty('--elo-fx-color', particleColor);
-            const count = effect==='sakura'?22 : effect==='galaxy'?72 : effect==='moonlight'?18 : effect==='stars'?54 : effect==='fireflies'?24 : 24;
-            fx.innerHTML=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--y:${(i*53)%97};--d:${7+(i%8)*1.25}s;--delay:${-(i%11)*1.05}s;--size:${3+(i%4)}px"></i>`).join('');
+            const count = effect==='sakura'?22 : effect==='blackhole'?46 : effect==='galaxy'?72 : effect==='moonlight'?18 : effect==='stars'?58 : effect==='fireflies'?24 : 24;
+            const particles=Array.from({length:count},(_,i)=>`<i style="--i:${i};--x:${(i*37)%101};--y:${(i*53)%97};--d:${7+(i%8)*1.25}s;--delay:${-(i%11)*1.05}s;--size:${2+(i%4)}px"></i>`).join('');
+            fx.innerHTML=(effect==='blackhole'?`<button type="button" class="elo-black-hole" onclick="reactCelestialBlackHole(event)" aria-label="Interagir com o buraco negro"><span class="elo-black-hole-core"></span><span class="elo-black-hole-ring ring-a"></span><span class="elo-black-hole-ring ring-b"></span><span class="elo-black-hole-hint">toque</span></button>`:'')+particles;
             document.body.appendChild(fx);
         };
+        window.reactCelestialBlackHole = event => {
+            event?.preventDefault?.(); event?.stopPropagation?.();
+            const hole=event?.currentTarget; const fx=hole?.closest?.('.fx-blackhole');
+            if(!hole||!fx) return;
+            hole.classList.remove('is-reacting'); void hole.offsetWidth; hole.classList.add('is-reacting');
+            fx.classList.remove('is-gravity-pulse'); void fx.offsetWidth; fx.classList.add('is-gravity-pulse');
+            setTimeout(()=>{hole.classList.remove('is-reacting');fx.classList.remove('is-gravity-pulse')},1200);
+        };
+
         const resolveChatWallpaper = (cfg = {}) => {
             if (cfg.wallpaper) return {
                 image: `linear-gradient(${cfg.overlay||'rgba(8,6,9,.34)'},${cfg.overlay||'rgba(8,6,9,.34)'}),url("${String(cfg.wallpaper).replace(/"/g,'')}")`,
@@ -2185,7 +2195,7 @@ window.checkInToday = async (buttonEl = null) => {
         };
 
 
-        // ===== PET DO ELO · V36.9.6 =====
+        // ===== PET DO ELO · V36.9.7 =====
         const ELO_PET_CATALOG = {
             shiba: {id:'shiba', name:'Mochi', species:'Shiba Inu', emoji:'🐕', rarity:'Comum', price:900, accent:'Âmbar', description:'Animado, leal e sempre pronto para brincar com vocês.'},
             cat: {id:'cat', name:'Yoru', species:'Gatinho da noite', emoji:'🐈‍⬛', rarity:'Raro', price:1400, accent:'Violeta', description:'Curioso, carinhoso e com uma quedinha por cochilos no meio do Elo.'},
@@ -2202,24 +2212,64 @@ window.checkInToday = async (buttonEl = null) => {
         const petCatalogItem = pet => ELO_PET_CATALOG[pet?.type] || ELO_PET_CATALOG.shiba;
         const petDisplayName = pet => String(pet?.name || pet?.pendingName?.value || petCatalogItem(pet).name || 'Pet').slice(0,20);
 
-        const renderHomePet = pet => {
-            if (!pet) return `<button class="elo-home-pet-empty" onclick="openPetCenter()" aria-label="Adotar Pet do Elo"><span>🐾</span><small>Adotar Pet</small></button>`;
-            if (pet.status === 'proposal') {
+        const petMood = pet => {
+            const care=getPetCare(pet); const avg=(care.affection+care.hunger+care.energy)/3;
+            if(care.hunger<30) return {emoji:'🍖',label:'com fome',tone:'hungry'};
+            if(care.energy<28) return {emoji:'💤',label:'com sono',tone:'sleepy'};
+            if(care.affection<32) return {emoji:'💗',label:'quer carinho',tone:'lonely'};
+            if(avg>86) return {emoji:'✨',label:'radiante',tone:'happy'};
+            return {emoji:'❤',label:'feliz',tone:'calm'};
+        };
+        const petFloatPositionKey = () => `elo_pet_float_pos_${currentUser?.uid || 'device'}`;
+        const petCooldownRemaining = (pet,action) => {
+            const cooldown={affection:45*60*1000,feed:2*60*60*1000,play:90*60*1000}[action]||0;
+            return Math.max(0,cooldown-(Date.now()-Number(pet?.activity?.[action]?.at||0)));
+        };
+        const petQuickAction = (pet, action, icon, label) => {
+            const remaining=petCooldownRemaining(pet,action), disabled=remaining>0;
+            const sub=disabled?`${Math.max(1,Math.ceil(remaining/60000))}m`:'agora';
+            return `<button type="button" ${disabled?'disabled':''} onclick="careForPet('${action}',{floating:true})"><span>${icon}</span><b>${label}</b><small>${sub}</small></button>`;
+        };
+        const updateFloatingPetCompanion = () => {
+            let host=document.getElementById('elo-floating-pet-host');
+            const pet=coupleData?.pet || null;
+            const appVisible=!!currentUser && !!coupleData && !document.getElementById('main-content')?.classList.contains('hidden');
+            if(!appVisible){host?.remove();return;}
+            if(!host){host=document.createElement('div');host.id='elo-floating-pet-host';document.body.appendChild(host);}
+            if(!pet){host.innerHTML=`<button class="elo-floating-pet-adopt" onclick="openPetCenter()" aria-label="Adotar Pet"><span>🐾</span><small>Pet</small></button>`;return;}
+            if(pet.status==='proposal'){
                 const item=petCatalogItem(pet), waiting=pet.proposedBy===currentUser?.uid;
-                return `<button class="elo-home-pet-float is-pending" onclick="openPetCenter()" aria-label="Abrir proposta de Pet"><span class="elo-home-pet-emoji">${item.emoji}</span><small>${waiting?'Aguardando 💌':'Pedido novo!'}</small></button>`;
+                host.innerHTML=`<button class="elo-floating-pet-adopt is-pending" onclick="openPetCenter()"><span>${item.emoji}</span><small>${waiting?'Aguardando':'Pedido!'}</small></button>`;return;
             }
-            if (pet.status !== 'adopted') return '';
-            const item=petCatalogItem(pet), level=getPetLevel(pet);
-            return `<button class="elo-home-pet-float" onclick="petHomeReact(event)" aria-label="Abrir ${escapeHTML(petDisplayName(pet))}"><span class="elo-home-pet-spark" aria-hidden="true">♥</span><span class="elo-home-pet-emoji">${item.emoji}</span><b>${escapeHTML(petDisplayName(pet))}</b><small>Nv. ${level}</small></button>`;
+            if(pet.status!=='adopted'){host.innerHTML='';return;}
+            const item=petCatalogItem(pet), care=getPetCare(pet), mood=petMood(pet), level=getPetLevel(pet);
+            host.innerHTML=`<div class="elo-floating-pet-shell is-${mood.tone}" data-pet-menu="closed">
+                <div class="elo-floating-pet-menu" aria-hidden="true">
+                    <div class="elo-floating-pet-mini-status"><span>${mood.emoji}</span><div><b>${escapeHTML(petDisplayName(pet))} · Nv. ${level}</b><small>${mood.label} · ${Math.round((care.affection+care.hunger+care.energy)/3)}% bem-estar</small></div></div>
+                    <div class="elo-floating-pet-actions">${petQuickAction(pet,'affection','🤍','Carinho')}${petQuickAction(pet,'feed','🍖','Comida')}${petQuickAction(pet,'play','🎾','Brincar')}</div>
+                    <button class="elo-floating-pet-open" onclick="openPetCenter()">Abrir cantinho do Pet <i class="ph-bold ph-arrow-up-right"></i></button>
+                </div>
+                <button type="button" class="elo-floating-pet" onclick="toggleFloatingPetMenu(event)" aria-label="Interagir com ${escapeHTML(petDisplayName(pet))}">
+                    <span class="elo-floating-pet-bubble">${mood.emoji}</span>
+                    <span class="elo-floating-pet-shadow"></span>
+                    <span class="elo-floating-pet-emoji">${item.emoji}</span>
+                    <span class="elo-floating-pet-name">${escapeHTML(petDisplayName(pet))}</span>
+                </button>
+            </div>`;
         };
-
-        window.petHomeReact = event => {
-            const button=event?.currentTarget;
-            button?.classList.remove('is-reacting');
-            void button?.offsetWidth;
-            button?.classList.add('is-reacting');
-            setTimeout(()=>openPetCenter(),260);
+        window.toggleFloatingPetMenu = event => {
+            event?.preventDefault?.();
+            const shell=event?.currentTarget?.closest('.elo-floating-pet-shell'); if(!shell)return;
+            const open=shell.dataset.petMenu==='open';
+            shell.dataset.petMenu=open?'closed':'open';
+            shell.querySelector('.elo-floating-pet-menu')?.setAttribute('aria-hidden',open?'true':'false');
+            event.currentTarget.classList.remove('is-reacting'); void event.currentTarget.offsetWidth; event.currentTarget.classList.add('is-reacting');
         };
+        window.closeFloatingPetMenu = () => {
+            const shell=document.querySelector('.elo-floating-pet-shell'); if(!shell)return;
+            shell.dataset.petMenu='closed';shell.querySelector('.elo-floating-pet-menu')?.setAttribute('aria-hidden','true');
+        };
+        window.petHomeReact = event => toggleFloatingPetMenu(event);
 
         window.pulseEloThread = event => {
             const scene=document.querySelector('.elo-home-couple-scene');
@@ -2233,8 +2283,6 @@ window.checkInToday = async (buttonEl = null) => {
             const burst=document.createElement('span'); burst.className='elo-thread-burst'; burst.style.left=`${x}px`; burst.style.top=`${y}px`;
             burst.innerHTML='<i>♥</i><i>♥</i><i>♥</i><i>♥</i>';
             scene.appendChild(burst); setTimeout(()=>burst.remove(),950);
-            const phrases=['O fio encontrou vocês. ❤️','Akai Ito: conectados. 🧵','Um pulso atravessou o Elo. ✨'];
-            showToast(phrases[Math.floor(Math.random()*phrases.length)],'success');
         };
 
         window.openPetCenter = () => {
@@ -2310,7 +2358,7 @@ window.checkInToday = async (buttonEl = null) => {
                 closeGenericModal();showToast('💞 Nome escolhido pelos dois!','success');setTimeout(openPetCenter,280);
             }catch(e){showToast(e?.message==='coins'?'Quem sugeriu o nome não tem mais Coins suficientes.':'Não foi possível aprovar o nome.','error')}
         };
-        window.careForPet = async action => {
+        window.careForPet = async (action, opts={}) => {
             const rules={affection:{cooldown:45*60*1000,xp:8},feed:{cooldown:2*60*60*1000,xp:10},play:{cooldown:90*60*1000,xp:16}}; const rule=rules[action]; if(!rule)return;
             try{
                 const ref=doc(db,'relationships',coupleId);
@@ -2324,8 +2372,8 @@ window.checkInToday = async (buttonEl = null) => {
                     if(action==='play'){updates['pet.care.affection']=Math.min(100,care.affection+8);updates['pet.care.energy']=Math.max(0,care.energy-8)}
                     updates['pet.care.lastCareAt']=now; tx.update(ref,updates);
                 });
-                closeGenericModal();showToast(action==='feed'?'🍖 Pet alimentado!':action==='play'?'🎾 Que brincadeira boa!':'🤍 Carinho recebido!','success');setTimeout(openPetCenter,250);
-            }catch(e){if(e?.message==='cooldown'){const min=Math.max(1,Math.ceil(Number(e.remaining||0)/60000));return showToast(`Seu Pet já recebeu isso. Tente de novo em ${min} min.`,'error')}console.error(e);showToast('Não foi possível cuidar do Pet agora.','error')}
+                if(opts.floating){const btn=document.querySelector('.elo-floating-pet');btn?.classList.remove('is-reacting');void btn?.offsetWidth;btn?.classList.add('is-reacting');setTimeout(updateFloatingPetCompanion,120);}else{closeGenericModal();showToast(action==='feed'?'🍖 Pet alimentado!':action==='play'?'🎾 Que brincadeira boa!':'🤍 Carinho recebido!','success');setTimeout(openPetCenter,250);}
+            }catch(e){if(e?.message==='cooldown'){const min=Math.max(1,Math.ceil(Number(e.remaining||0)/60000));if(opts.floating){const bubble=document.querySelector('.elo-floating-pet-bubble');if(bubble){bubble.textContent=`${min}m`;setTimeout(updateFloatingPetCompanion,900)}return;}return showToast(`Seu Pet já recebeu isso. Tente de novo em ${min} min.`,'error')}console.error(e);showToast('Não foi possível cuidar do Pet agora.','error')}
         };
 
         const ownedThemes = () => { try { return new Set(['akai', ...JSON.parse(localStorage.getItem(eloThemeOwnedKey()) || '[]')]); } catch (_) { return new Set(['akai']); } };
@@ -7173,7 +7221,6 @@ const centerActiveStoreCategory = (smooth = true) => {
                                     <div class="elo-home-avatar">${partnerData ? renderAvatar(partnerData.character, partnerUid) : '<i class="ph-fill ph-user-plus elo-home-empty-avatar"></i>'}</div>
                                     <span>${partnerData ? escapeHTML(partnerData.name) : 'Aguardando'}</span>
                                 </div>
-                                ${renderHomePet(coupleData?.pet)}
                             </div>
 
                             <div class="elo-home-stats">
@@ -7251,11 +7298,6 @@ const centerActiveStoreCategory = (smooth = true) => {
                                 <i class="ph-bold ph-calendar-heart"></i>
                             </button>
                             <button onclick="openActivityModal()" class="elo-home-achievements"><span>🏆</span><div><b>Conquistas</b><small>Marcos de vocês</small></div><i class="ph-bold ph-caret-right"></i></button>
-                        </section>
-
-                        <!-- PET DO ELO -->
-                        <section class="elo-home-pet-panel" onclick="openPetCenter()">
-                            <div><span>${coupleData?.pet?.status==='adopted' ? petCatalogItem(coupleData.pet).emoji : '🐾'}</span><div><p class="elo-home-eyebrow">Pet do Elo</p><h3>${coupleData?.pet?.status==='adopted' ? escapeHTML(petDisplayName(coupleData.pet)) : coupleData?.pet?.status==='proposal' ? 'Adoção em andamento' : 'Adotem um companheiro'}</h3><small>${coupleData?.pet?.status==='adopted' ? `Nível ${getPetLevel(coupleData.pet)} · cuidem dele juntos` : coupleData?.pet?.status==='proposal' ? 'Abra para responder ou acompanhar a proposta' : 'Escolham, dividam o custo e deem um nome juntos'}</small></div></div><i class="ph-bold ph-caret-right"></i>
                         </section>
                     </div>`;
             }
@@ -7514,12 +7556,14 @@ const centerActiveStoreCategory = (smooth = true) => {
             // documento do relacionamento (sinergia, typing, chama etc.) não devem recriar
             // o textarea e interromper a digitação.
             if (window.activeTab === 'chat' && main.querySelector('.elo-chat-shell') && document.getElementById('chat-input')) {
+                updateFloatingPetCompanion();
                 updateChatBadge();
                 updateNotificationDot();
                 setTimeout(renderChatOnly, 0);
                 return;
             }
             main.innerHTML = html;
+            updateFloatingPetCompanion();
             if (window.activeTab === 'quests') startDailyQuestTimer(); else stopDailyQuestTimer();
             if (window.activeTab === 'home') startHomeStreakCountdown(); else stopHomeStreakCountdown();
             if (window.activeTab === 'store') centerActiveStoreCategory(false);

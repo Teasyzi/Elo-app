@@ -1,15 +1,15 @@
 {
   "available": false,
-  "versionName": "0.8.6",
-  "versionCode": 30,
+  "versionName": "0.8.7",
+  "versionCode": 31,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Midnight agora é uma noite romântica de luar, visualmente separado da Galáxia Celestial.",
-    "O fio Akai Ito da Home ficou mais orgânico, contínuo e reage ao toque com um pulso de energia.",
-    "PET V1: três Pets iniciais com raridades e adoção compartilhada entre o casal.",
-    "A adoção pode ser paga por uma pessoa ou dividida 50/50 e depende da aprovação do parceiro.",
-    "O nome do Pet é decidido em conjunto; renomeações custam 150 Elo Coins após aprovação.",
-    "Carinho, alimentação e brincadeiras são sincronizados e dão XP ao Pet."
+    "Midnight agora é uma noite espacial animada com estrelas em profundidade e meteoros, sem lua cobrindo a interface.",
+    "Galáxia Celestial foi reconstruída como galáxia negra, com nebulosa profunda e buraco negro interativo.",
+    "O toque no Akai Ito mantém apenas a resposta visual e não exibe mais popup decorativo.",
+    "O Pet agora flutua em todo o app e não fica preso a um card da Home.",
+    "Tocar no Pet abre um painel rápido centralizado com carinho, comida, brincadeira, humor, bem-estar e cooldowns.",
+    "Os cuidados rápidos reutilizam o mesmo estado sincronizado do Pet no Firestore."
   ]
 }
