@@ -1,13 +1,13 @@
 {
   "available": false,
-  "versionName": "0.8.8",
-  "versionCode": 32,
+  "versionName": "0.8.9",
+  "versionCode": 33,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Pet flutuante agora pode ser arrastado e posicionado pela tela.",
-    "Novo sistema de ovos: comprar em casal, cuidar e revelar o Pet ao chocar.",
-    "Galáxia Celestial ganhou buraco negro com sucção gradual e espaguetificação de partículas.",
-    "Midnight mantido com estrelas e meteoros."
+    "Painel do Pet sempre abre dentro da tela, fecha no segundo toque e bloqueia cliques externos.",
+    "Central dos Pets com coleção compartilhada e seleção de Pet ativo.",
+    "Inventário de ovos e incubadora independente do Pet ativo.",
+    "Galáxia Celestial corrigida: interface permanece visível, buraco negro mais realista e cometas atraíveis."
   ]
 }

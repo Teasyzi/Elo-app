@@ -1,0 +1,15 @@
+ELO V36.9.9 / APK 0.8.9
+
+- Corrigido painel do Pet flutuante: clamping dinâmico dentro da viewport.
+- Segundo toque fecha o painel. Toque fora fecha e o backdrop bloqueia a interface abaixo.
+- Central dos Pets: coleção compartilhada e seleção de Pet ativo.
+- Inventário de ovos: ovos comprados ficam guardados e não substituem o Pet.
+- Incubadora independente: um ovo por vez, enquanto o Pet ativo continua no app.
+- Eclosão adiciona novo Pet à coleção e o torna ativo sem perder o anterior.
+- Migração compatível com o Pet/ovo legado das versões anteriores.
+- Galáxia Celestial: corrigido z-index que escondia a interface.
+- Buraco negro refinado com horizonte de eventos, anel de fótons, lente gravitacional e disco assimétrico.
+- Cometas lentos atravessam a galáxia e podem ser capturados/espaguetificados pela interação gravitacional.
+- Midnight mantido como aprovado.
+- Web 36.9.9 / APK 0.8.9 / versionCode 33.
+- Service Worker cache: elo-v36-9-9-pet-collection-incubator-celestial-20260902.
