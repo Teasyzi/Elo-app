@@ -1,0 +1,38 @@
+Elo V36.11.15
+
+Foco desta versão: correção e otimização de uso.
+
+1. TEMAS
+- Corrigido o caso em que o botão Temas deixava de abrir depois da primeira troca.
+- Adicionado tratamento de pointerup/click para liberar novamente o botão e abrir o estúdio de forma confiável.
+- Caso o modal não abra por causa do guard antigo de toque duplicado, o runtime tenta novamente após a janela de proteção.
+
+2. TEMA MUSEU
+- Tipografia principal passa a usar marrons escuros em superfícies claras.
+- Textos slate/white usados nas telas principais recebem contraste adequado.
+- Cards e bordas principais passam a marfim/bege quando o Museu está ativo.
+- Chat fica fora da conversão geral para preservar contraste das bolhas.
+
+3. CELESTIAL / BURACO NEGRO
+- Gravidade V8.
+- O alvo é calculado pelo centro real do core do buraco negro.
+- Cometas e partículas são clonados em coordenadas fixas do viewport durante o puxão.
+- O movimento externo dos cometas não consegue mais alterar o destino durante a animação.
+- Trajetória continua curva, progressiva e com deformação concentrada perto do horizonte.
+- Todos os clones terminam exatamente no mesmo ponto do buraco negro.
+
+4. PERFORMANCE
+- O MutationObserver do main-content deixa de observar toda a subárvore.
+- Atualizações internas do chat deixam de disparar tuning global desnecessariamente.
+- Menos trabalho de DOM durante mensagens, reações e atualizações rápidas.
+
+5. ESTRUTURA
+- app-fluidity.js agora é um loader pequeno.
+- Core estável da V36.11.14 foi preservado em app-fluidity-core-v36-11-14.js.
+- Correções desta versão ficam isoladas em app-fluidity-hotfix-v36-11-15.js.
+- Facilita rollback e reduz risco de reescrever o runtime grande.
+- prepare-capacitor copia os três arquivos para Web/PWA/APK.
+
+6. PWA
+- Cache alterado para elo-v36-11-15-theme-museum-gravity-usage-20260903.
+- Módulos app-fluidity adicionais usam network-first/no-store para evitar versão antiga presa em cache.
