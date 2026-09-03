@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-4-web-apk-parity-20260903';
+const CACHE = 'elo-v36-11-5-admin-web-fluidity-20260903';
 const CORE=[
   './',
   './index.html',
-  './app.js?v=36.11.4',
-  './v36-11.js?v=36.11.4',
-  './tailwind.css?v=36.11.4',
-  './styles.css?v=36.11.4',
+  './app.js?v=36.11.5',
+  './v36-11.js?v=36.11.5',
+  './tailwind.css?v=36.11.5',
+  './styles.css?v=36.11.5',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
@@ -23,10 +23,18 @@ self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
   if(u.pathname.endsWith('/android-version.json')){e.respondWith(fetch(e.request,{cache:'no-store'}));return;}
   if(u.origin!==location.origin)return;
+
   if(e.request.mode==='navigate'){
     e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put('./index.html',copy));return r;}).catch(()=>caches.match('./index.html')));
     return;
   }
+
+  // JS/CSS principais: rede primeiro para evitar runtime antigo preso no Web/PWA.
+  if(/\/(app|v36-11)\.js$/.test(u.pathname)||/\/(styles|tailwind)\.css$/.test(u.pathname)){
+    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;}).catch(()=>caches.match(e.request)));
+    return;
+  }
+
   e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;})));
 });
 
