@@ -1,0 +1,23 @@
+Elo V36.11.13
+
+Alterações desta rodada:
+
+1. Fundos temáticos no Chat
+- Akai Ito: vermelho escuro com fios sutis.
+- Sakura: fundo vinho/rosado com pontos de pétalas discretos.
+- Midnight: azul profundo com estrelas suaves.
+- Cozy: textura quente em marrom/âmbar.
+- Celestial: espaço profundo com estrelas e nebulosas discretas.
+- Todos os fundos são feitos em CSS, sem imagens externas, para manter leveza no PWA/APK.
+
+2. Buraco negro
+- O puxão ao tocar no buraco negro ficou mais lento e progressivo.
+- A espaguetificação permanece, mas com mais tempo para enxergar a trajetória e a deformação antes do objeto cruzar o horizonte.
+
+3. Pop-ups internos
+- Toasts/notificações flutuantes dentro do app foram desativados completamente.
+- Modais funcionais e confirmações necessárias continuam existindo.
+- Push do sistema operacional em segundo plano não foi removido.
+
+4. PWA
+- CACHE do service worker alterado para forçar a atualização desta versão.
