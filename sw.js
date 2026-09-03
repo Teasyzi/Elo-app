@@ -1,16 +1,17 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-18-museum-contrast-20260903';
+const CACHE = 'elo-v36-11-19-smooth-gravity-museum-home-20260903';
 const CORE=[
   './',
   './index.html',
   './app.js?v=36.11.8',
   './v36-11.js?v=36.11.8',
   './app-fluidity.js?v=36.11.8',
-  './app-fluidity.js?v=36.11.18',
+  './app-fluidity.js?v=36.11.19',
   './app-fluidity-core-v36-11-14.js',
   './app-fluidity-hotfix-v36-11-16.js',
   './app-fluidity-hotfix-v36-11-17.js',
   './app-fluidity-hotfix-v36-11-18.js',
+  './app-fluidity-hotfix-v36-11-19.js',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
