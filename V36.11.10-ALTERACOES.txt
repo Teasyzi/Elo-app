@@ -1,0 +1,26 @@
+ELO V36.11.10 — ESTABILIDADE MOBILE + CELESTIAL
+
+1. Buraco negro
+- Corrigido o elemento visual que girava deslocado do centro.
+- Disco de acreção e anel de fótons agora giram no próprio eixo.
+- Mantida a espaguetificação ao puxar cometas e partículas.
+- Mantida redução automática de efeitos secundários em dispositivos modestos.
+
+2. Perfil / Avatar
+- Preview do personagem volta a ficar sticky no celular durante a edição.
+- Layout mobile do editor passa a manter a prévia visível enquanto acessórios são trocados.
+
+3. Toques duplicados
+- Adicionado bloqueio de abertura duplicada do estúdio de temas.
+- Botões de Tema no Perfil recebem proteção contra double tap acidental.
+
+4. Fluidez
+- Removido o interceptador global de innerHTML do main-content da fase anterior, pois ele podia acrescentar custo e interferir em interações.
+- Mantida a atualização incremental do Chat, que apresentou melhora nos testes.
+- Observação do DOM ficou restrita aos pontos necessários.
+- Mantida pintura sob demanda em listas de Missões, Loja, Bolsa e Amigos.
+
+5. PWA/APK
+- Service Worker com novo CACHE: elo-v36-11-10-mobile-stability-celestial-20260903.
+- app-fluidity.js continua incluído na preparação do Capacitor.
+- prepare-capacitor atualizado para V36.11.10.
