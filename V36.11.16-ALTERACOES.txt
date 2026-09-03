@@ -1,0 +1,21 @@
+Elo V36.11.16
+
+Foco: correções de uso e estabilidade.
+
+1. Temas
+- O botão de Temas deixa de depender do modal/guard antigo para abrir.
+- Novo Theme Studio independente, reabrível quantas vezes for necessário sem reiniciar o app.
+- O guard de duplo toque é removido especificamente do botão de Temas antes do click.
+- Mantidos temas existentes, novos temas padrão e acesso ao criador de tema.
+
+2. Buraco negro / gravidade V9
+- Objetos entram em trajetória orbital ao redor do horizonte antes da queda.
+- O raio orbital diminui progressivamente: órbita -> espiral de queda -> horizonte.
+- Espaguetificação acontece perto do fim da trajetória, não no começo.
+- Todos os objetos terminam no centro real do horizonte.
+- O buraco negro reage discretamente durante a alimentação sem virar um grande clarão.
+
+3. APK/PWA
+- app-fluidity.js carrega o core estável V36.11.14 e o hotfix V36.11.16.
+- prepare-capacitor atualizado para incluir o novo módulo.
+- Service Worker cache: elo-v36-11-16-theme-studio-orbit-gravity-20260903.
