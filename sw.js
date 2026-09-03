@@ -1,11 +1,11 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-8-celestial-fluidity-phase-4-20260903';
+const CACHE = 'elo-v36-11-9-blackhole-spaghettification-fluidity-phase-5-20260903';
 const CORE=[
   './',
   './index.html',
   './app.js?v=36.11.8',
   './v36-11.js?v=36.11.8',
-  './app-fluidity.js?v=36.11.8',
+  './app-fluidity.js?v=36.11.9',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
