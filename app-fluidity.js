@@ -1,4 +1,4 @@
-// Elo V36.12 RC2 · temas estáveis + auth original preservado + restauração segura do vínculo.
+// Elo V36.12 RC6 · temas estáveis + auth original preservado + restauração segura do vínculo.
 import './app-fluidity-core-v36-11-14.js';
 import './app-fluidity-hotfix-v36-11-16.js';
 import './app-fluidity-hotfix-v36-11-17.js';
@@ -9,9 +9,11 @@ import './app-fluidity-hotfix-v36-11-22.js';
 import './app-fluidity-hotfix-v36-11-27.js';
 import './app-fluidity-hotfix-v36-12-theme-exit.js';
 import './app-fluidity-hotfix-v36-12-session-restore.js';
+import './app-fluidity-hotfix-v36-12-login-stability.js';
 
-// O fluxo de autenticação continua 100% sob responsabilidade do app.js.
-// Os módulos Android só carregam depois que o Firebase Auth entregou um usuário.
+// O fluxo de autenticação continua sob responsabilidade do app.js/Firebase Web SDK.
+// O hotfix acima apenas troca a implementação nativa do seletor Google no Android.
+// Os módulos Android de distribuição só carregam depois que o Firebase Auth entregou um usuário.
 function loadAndroidSidecarsAfterAuth(){
   let attempts=0;
   const timer=setInterval(()=>{
