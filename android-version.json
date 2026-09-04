@@ -2,16 +2,17 @@
   "available": false,
   "channel": "rc",
   "packageName": "br.com.eloapp",
-  "versionName": "0.9.1-rc1",
-  "versionCode": 35,
+  "versionName": "0.9.1-rc2",
+  "versionCode": 36,
   "minimumVersionCode": 1,
-  "downloadUrl": "",
+  "downloadUrl": "https://github.com/Teasyzi/Elo-app/releases/download/v0.9.1-rc2/Elo-Android-0.9.1-rc2.apk",
   "sha256": "",
+  "sizeBytes": 0,
   "changes": [
-    "Primeira Release Candidate do APK Android.",
-    "Tema Galáxia Celestial removido temporariamente para priorizar estabilidade.",
-    "Melhorias acumuladas de chat, Pets, temas e experiência nativa Android.",
-    "APK de release assinado com identidade fixa br.com.eloapp.",
-    "PWA Android preparado para oferecer o download quando o APK oficial for publicado."
+    "Migração assistida do PWA Android para o APK oficial.",
+    "Ao abrir o APK, ele passa a ser o canal principal de notificações da conta.",
+    "Tokens de push do PWA Android são removidos para evitar notificações duplicadas, preservando Web/iPhone/desktop.",
+    "O PWA avisa quando o Elo Android já é o aplicativo principal e permite reativar notificações no PWA manualmente.",
+    "Verificação de novas versões do APK preparada para futuras atualizações."
   ]
 }
