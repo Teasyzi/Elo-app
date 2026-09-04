@@ -8,4 +8,4 @@ for(const file of files){if(existsSync(file))await cp(file,`www/${file}`)}
 for(const icon of ['icon-192.png','icon-512.png']){if(existsSync(`icons/${icon}`))await cp(`icons/${icon}`,`www/icons/${icon}`)}
 
 // O mesmo index.html é a fonte única para Web/PWA e APK.
-console.log('Web assets preparados em ./www para o Capacitor (Android 0.9.1-rc2 · Elo V36.12 RC2 · migração PWA→APK ativa).');
+console.log('Web assets preparados em ./www para o Capacitor (Android 0.9.1-rc3 · Elo V36.12 RC3 · migração PWA→APK ativa).');
