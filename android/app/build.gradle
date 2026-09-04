@@ -2,14 +2,10 @@ apply plugin: 'com.android.application'
 
 import java.util.Properties
 
-// Release signing is configured locally in android/keystore.properties.
-// The file is ignored by Git and must never be committed.
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('keystore.properties')
 def hasReleaseKeystore = keystorePropertiesFile.exists()
-if (hasReleaseKeystore) {
-    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-}
+if (hasReleaseKeystore) keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 
 android {
     namespace = "br.com.eloapp"
@@ -18,21 +14,14 @@ android {
         applicationId "br.com.eloapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 38
-        versionName "0.9.1-rc4"
+        versionCode 39
+        versionName "0.9.1-rc5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
-            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
-        }
+        aaptOptions { ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~' }
     }
-
     signingConfigs {
         if (hasReleaseKeystore) {
             release {
-                // IMPORTANT: storeFile in keystore.properties is relative to android/ (root project),
-                // not android/app/. This matches where elo-release.jks is generated.
                 storeFile rootProject.file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
@@ -40,24 +29,15 @@ android {
             }
         }
     }
-
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (hasReleaseKeystore) {
-                signingConfig signingConfigs.release
-            }
+            if (hasReleaseKeystore) signingConfig signingConfigs.release
         }
     }
 }
-
-repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
-    }
-}
-
+repositories { flatDir{ dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs' } }
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
@@ -71,14 +51,8 @@ dependencies {
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
 }
-
 apply from: 'capacitor.build.gradle'
-
 try {
     def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}
+    if (servicesJSON.text) apply plugin: 'com.google.gms.google-services'
+} catch(Exception e) { logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work") }
