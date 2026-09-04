@@ -38,17 +38,7 @@ function showBanner({title, text, primaryLabel, primaryHref, primaryAction, seco
   wrap.id = 'elo-android-distribution-banner';
   wrap.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(5.9rem + env(safe-area-inset-bottom));z-index:2147483640;width:min(92vw,430px);font-family:Inter,system-ui,sans-serif;';
   const accent = tone === 'green' ? '#10b981' : '#db2777';
-  wrap.innerHTML = `<div style="background:rgba(15,23,42,.99);border:1px solid ${accent}55;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.5);padding:14px;color:#fff;backdrop-filter:blur(18px)">
-    <div style="display:flex;gap:12px;align-items:flex-start">
-      <div style="width:42px;height:42px;border-radius:14px;background:${accent}1c;color:${accent};display:grid;place-items:center;font-size:22px;flex:0 0 auto">📲</div>
-      <div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:900;line-height:1.2">${esc(title)}</div><div style="font-size:10px;color:#94a3b8;line-height:1.45;margin-top:4px">${esc(text)}</div></div>
-      <button data-close style="border:0;background:transparent;color:#64748b;font-size:18px;padding:0 2px;cursor:pointer">×</button>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      ${primaryLabel ? `<${primaryHref ? 'a' : 'button'} data-primary ${primaryHref ? `href="${esc(primaryHref)}" target="_blank" rel="noopener"` : ''} style="flex:1;min-width:150px;text-align:center;text-decoration:none;border:0;border-radius:13px;background:${accent};color:white;font-size:11px;font-weight:900;padding:11px 13px;cursor:pointer">${esc(primaryLabel)}</${primaryHref ? 'a' : 'button'}>` : ''}
-      ${secondaryLabel ? `<button data-secondary style="flex:1;min-width:130px;border:1px solid #334155;border-radius:13px;background:#0f172a;color:#cbd5e1;font-size:10px;font-weight:900;padding:10px 12px;cursor:pointer">${esc(secondaryLabel)}</button>` : ''}
-    </div>
-  </div>`;
+  wrap.innerHTML = `<div style="background:rgba(15,23,42,.99);border:1px solid ${accent}55;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.5);padding:14px;color:#fff;backdrop-filter:blur(18px)"><div style="display:flex;gap:12px;align-items:flex-start"><div style="width:42px;height:42px;border-radius:14px;background:${accent}1c;color:${accent};display:grid;place-items:center;font-size:22px;flex:0 0 auto">📲</div><div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:900;line-height:1.2">${esc(title)}</div><div style="font-size:10px;color:#94a3b8;line-height:1.45;margin-top:4px">${esc(text)}</div></div><button data-close style="border:0;background:transparent;color:#64748b;font-size:18px;padding:0 2px;cursor:pointer">×</button></div><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">${primaryLabel ? `<${primaryHref ? 'a' : 'button'} data-primary ${primaryHref ? `href="${esc(primaryHref)}" target="_blank" rel="noopener"` : ''} style="flex:1;min-width:150px;text-align:center;text-decoration:none;border:0;border-radius:13px;background:${accent};color:white;font-size:11px;font-weight:900;padding:11px 13px;cursor:pointer">${esc(primaryLabel)}</${primaryHref ? 'a' : 'button'}>` : ''}${secondaryLabel ? `<button data-secondary style="flex:1;min-width:130px;border:1px solid #334155;border-radius:13px;background:#0f172a;color:#cbd5e1;font-size:10px;font-weight:900;padding:10px 12px;cursor:pointer">${esc(secondaryLabel)}</button>` : ''}</div></div>`;
   wrap.querySelector('[data-close]')?.addEventListener('click', removeBanner);
   const primary = wrap.querySelector('[data-primary]');
   if (primaryAction && primary) primary.addEventListener('click', primaryAction);
@@ -134,10 +124,7 @@ async function removeAndroidWebPushTokens(ctx) {
 async function setAndroidPrimary(ctx) {
   if (!await waitForNativeRegistration(ctx)) return false;
   const {doc,setDoc} = ctx.api;
-  await setDoc(doc(ctx.db, 'userProfiles', ctx.user.uid), {
-    pushPrimaryPlatform:'android', pushPrimaryUpdatedAt:Date.now(),
-    androidAppVersionName:ANDROID_RELEASE.versionName, androidAppVersionCode:ANDROID_RELEASE.versionCode
-  }, {merge:true});
+  await setDoc(doc(ctx.db, 'userProfiles', ctx.user.uid), {pushPrimaryPlatform:'android',pushPrimaryUpdatedAt:Date.now(),androidAppVersionName:ANDROID_RELEASE.versionName,androidAppVersionCode:ANDROID_RELEASE.versionCode}, {merge:true});
   await removeAndroidWebPushTokens(ctx);
   return true;
 }
@@ -146,7 +133,8 @@ async function keepPwaPushSuppressed(ctx) {
   suppressPwaNotificationNudge(true);
   clearInterval(cleanupTimer);
   const run = () => removeAndroidWebPushTokens(ctx).catch(()=>{});
-  await run(); cleanupTimer = setInterval(run,15000);
+  await run();
+  cleanupTimer = setInterval(run,15000);
 }
 
 async function activatePwaNotificationsAfterUninstall(ctx) {
@@ -154,7 +142,9 @@ async function activatePwaNotificationsAfterUninstall(ctx) {
     const {doc,setDoc} = ctx.api;
     await setDoc(doc(ctx.db,'userProfiles',ctx.user.uid),{pushPrimaryPlatform:'web',pushPrimaryUpdatedAt:Date.now(),androidAppRemovedAt:Date.now()},{merge:true});
   } catch (_) {}
-  clearInterval(cleanupTimer); suppressPwaNotificationNudge(false); removeBanner();
+  clearInterval(cleanupTimer);
+  suppressPwaNotificationNudge(false);
+  removeBanner();
   try { await window.openNotificationPermissionPrompt?.({manual:true}); } catch (_) {}
 }
 
@@ -169,7 +159,6 @@ async function handleAccountMigration() {
     const profileSnap = await getDoc(doc(ctx.db,'userProfiles',ctx.user.uid));
     const profile = profileSnap.exists() ? profileSnap.data() || {} : {};
     const state = await getProfileState(ctx);
-    // O banner de download já foi tratado independentemente do Firebase e continua prioritário.
     if (apkBannerActive) return;
     if (profile.pushPrimaryPlatform === 'android' || state.nativeTokens > 0) {
       await keepPwaPushSuppressed(ctx);
@@ -190,22 +179,22 @@ async function handleDistribution() {
   const manifest = await fetchManifest();
   if (!manifest?.available || !manifest.downloadUrl) return;
   suppressPwaNotificationNudge(true);
-  const text = isStandalone
-    ? 'Você está usando o Elo instalado pelo navegador. O APK é a versão principal no Android. Instale-o e depois remova este atalho antigo.'
-    : 'O Elo para Android está disponível. O APK é a versão principal no Android e recebe as notificações nativas.';
+  const text = isStandalone ? 'Você está usando o Elo instalado pelo navegador. O APK é a versão principal no Android. Instale-o e depois remova este atalho antigo.' : 'O Elo para Android está disponível. O APK é a versão principal no Android e recebe as notificações nativas.';
   showBanner({title:`Elo para Android ${manifest.versionName||''}`.trim(),text,primaryLabel:'Baixar Elo para Android',primaryHref:manifest.downloadUrl,primaryAction:()=>localStorage.setItem('elo_android_apk_downloaded_at',String(Date.now())),secondaryLabel:'Agora não',secondaryAction:removeBanner,apkPriority:true});
 }
 
 window.eloAndroidDistribution = { release:ANDROID_RELEASE, check:handleDistribution, migrateAccount:handleAccountMigration };
 
+// Importante: não observar a árvore inteira do DOM no Android.
+// O app altera classes constantemente (chat, presença, animações, temas); um MutationObserver
+// global transformava cada render em trabalho extra e podia travar o Chrome mobile no reload.
 if (isAndroidWeb) {
   suppressPwaNotificationNudge(true);
-  const nudgeGuard = new MutationObserver(() => { if (window.eloPreferAndroidApk) document.getElementById('elo-notification-nudge')?.classList.add('hidden'); });
-  const startGuard = () => nudgeGuard.observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class']});
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',startGuard,{once:true}); else startGuard();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && window.eloPreferAndroidApk) suppressPwaNotificationNudge(true);
+  }, {passive:true});
 }
 
-// Primeiro mostra distribuição; Firebase só entra depois e nunca bloqueia o download.
-setTimeout(handleDistribution, 250);
-setTimeout(handleAccountMigration, 2600);
+setTimeout(handleDistribution, 350);
+setTimeout(handleAccountMigration, 3200);
 window.addEventListener('elo:auth-ready', handleAccountMigration);
