@@ -1,4 +1,4 @@
-// Elo V36.12 RC2 · temas estáveis + distribuição Android isolada do boot principal.
+// Elo V36.12 RC2 · temas estáveis + recuperação de auth + distribuição Android isolada.
 import './app-fluidity-core-v36-11-14.js';
 import './app-fluidity-hotfix-v36-11-16.js';
 import './app-fluidity-hotfix-v36-11-17.js';
@@ -7,6 +7,7 @@ import './app-fluidity-hotfix-v36-11-19.js';
 import './app-fluidity-hotfix-v36-11-20.js';
 import './app-fluidity-hotfix-v36-11-22.js';
 import './app-fluidity-hotfix-v36-11-27.js';
+import './app-fluidity-hotfix-v36-12-auth.js';
 
 // A distribuição Android é complementar e nunca pode travar a inicialização do Elo.
 // Carregamos depois do boot principal e isolamos qualquer falha de rede/Firebase.
