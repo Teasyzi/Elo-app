@@ -7,4 +7,5 @@ import './app-fluidity-hotfix-v36-11-19.js';
 import './app-fluidity-hotfix-v36-11-20.js';
 import './app-fluidity-hotfix-v36-11-22.js';
 import './app-fluidity-hotfix-v36-11-27.js';
+import './android-rc2-guard.js';
 import './android-distribution-v36-12.js';
