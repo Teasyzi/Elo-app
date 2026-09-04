@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc2-auth-recovery-20260903-2315';
+const CACHE = 'elo-v36-12-rc2-mobile-auth-theme-20260903-2320';
 const CORE=[
   './',
   './index.html',
@@ -18,6 +18,7 @@ const CORE=[
   './app-fluidity-hotfix-v36-11-22.js',
   './app-fluidity-hotfix-v36-11-27.js',
   './app-fluidity-hotfix-v36-12-auth.js',
+  './app-fluidity-hotfix-v36-12-theme-exit.js',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
