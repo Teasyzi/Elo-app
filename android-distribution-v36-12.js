@@ -1,6 +1,6 @@
 // Elo V36.12 RC2 · distribuição Android + migração PWA → APK sem push duplicado.
 import { getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getFirestore, doc, setDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 const ANDROID_RELEASE = { versionName: '0.9.1-rc2', versionCode: 36 };
 const REMOTE_MANIFEST = 'https://raw.githubusercontent.com/Teasyzi/Elo-app/main/android-version.json';
@@ -65,6 +65,27 @@ async function firebaseContext() {
   return null;
 }
 
+async function getProfileState(ctx) {
+  const snap = await getDocs(collection(ctx.db, 'userProfiles', ctx.user.uid, 'fcmTokens'));
+  let nativeTokens = 0;
+  snap.forEach(tokenDoc => {
+    const platform = String(tokenDoc.data()?.platform || 'web').toLowerCase();
+    if (platform === 'android' || platform === 'native') nativeTokens++;
+  });
+  return {nativeTokens};
+}
+
+async function waitForNativeRegistration(ctx) {
+  for (let i = 0; i < 15; i++) {
+    try {
+      const state = await getProfileState(ctx);
+      if (state.nativeTokens > 0) return true;
+    } catch (_) {}
+    await sleep(1000);
+  }
+  return false;
+}
+
 async function removeAndroidWebPushTokens(db, uid) {
   const snap = await getDocs(collection(db, 'userProfiles', uid, 'fcmTokens'));
   const deletions = [];
@@ -79,25 +100,19 @@ async function removeAndroidWebPushTokens(db, uid) {
 }
 
 async function setAndroidPrimary(ctx) {
-  const {user, db} = ctx;
-  await setDoc(doc(db, 'userProfiles', user.uid), {
+  const registered = await waitForNativeRegistration(ctx);
+  if (!registered) {
+    console.info('[Elo] Push nativo ainda não registrado; PWA Android foi preservado.');
+    return false;
+  }
+  await setDoc(doc(ctx.db, 'userProfiles', ctx.user.uid), {
     pushPrimaryPlatform: 'android',
     pushPrimaryUpdatedAt: Date.now(),
     androidAppVersionName: ANDROID_RELEASE.versionName,
     androidAppVersionCode: ANDROID_RELEASE.versionCode
   }, {merge:true});
-  await removeAndroidWebPushTokens(db, user.uid);
-}
-
-async function getProfileState(ctx) {
-  const {user, db} = ctx;
-  const snap = await getDocs(collection(db, 'userProfiles', user.uid, 'fcmTokens'));
-  let nativeTokens = 0;
-  snap.forEach(tokenDoc => {
-    const platform = String(tokenDoc.data()?.platform || 'web').toLowerCase();
-    if (platform === 'android' || platform === 'native') nativeTokens++;
-  });
-  return {nativeTokens};
+  await removeAndroidWebPushTokens(ctx.db, ctx.user.uid);
+  return true;
 }
 
 async function keepPwaPushSuppressed(ctx) {
@@ -133,9 +148,7 @@ async function handleAccountMigration() {
 
   if (!isAndroidWeb) return;
   try {
-    const profileRef = doc(ctx.db, 'userProfiles', ctx.user.uid);
-    const { getDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
-    const profileSnap = await getDoc(profileRef);
+    const profileSnap = await getDoc(doc(ctx.db, 'userProfiles', ctx.user.uid));
     const profile = profileSnap.exists() ? profileSnap.data() || {} : {};
     const state = await getProfileState(ctx);
     if (profile.pushPrimaryPlatform === 'android' || state.nativeTokens > 0) {
@@ -143,8 +156,8 @@ async function handleAccountMigration() {
       showBanner({
         title:'Elo Android é seu app principal',
         text:'As notificações deste PWA foram pausadas para evitar duplicidade. Você pode remover este atalho antigo da tela inicial quando quiser.',
-        primaryLabel:'Continuar no app Android',
-        primaryAction:()=>removeBanner(),
+        primaryLabel:'Entendi',
+        primaryAction:removeBanner,
         secondaryLabel:'Usar notificações neste PWA',
         secondaryAction:()=>activatePwaNotifications(ctx),
         tone:'green'
