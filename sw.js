@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc2-login-rootfix-20260904-0012';
+const CACHE = 'elo-v36-12-rc2-apk-banner-20260904-0025';
 const CORE=[
   './',
   './index.html',
