@@ -8,6 +8,7 @@ import './app-fluidity-hotfix-v36-11-20.js';
 import './app-fluidity-hotfix-v36-11-22.js';
 import './app-fluidity-hotfix-v36-11-27.js';
 import './app-fluidity-hotfix-v36-12-auth.js';
+import './app-fluidity-hotfix-v36-12-theme-exit.js';
 
 // A distribuição Android é complementar e nunca pode travar a inicialização do Elo.
 // Carregamos depois do boot principal e isolamos qualquer falha de rede/Firebase.
