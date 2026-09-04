@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc4-theme-update-20260904-2015';
+const CACHE = 'elo-v36-12-rc6-google-login-stability-20260904-2035';
 const CORE=[
   './',
   './index.html',
   './app.js?v=36.11.8',
   './v36-11.js?v=36.11.8',
   './app-fluidity.js?v=36.11.8',
-  './app-fluidity.js?v=36.12-rc3',
+  './app-fluidity.js?v=36.12-rc6',
   './android-rc2-guard.js',
   './android-distribution-v36-12.js',
   './app-fluidity-core-v36-11-14.js',
@@ -19,6 +19,7 @@ const CORE=[
   './app-fluidity-hotfix-v36-11-27.js',
   './app-fluidity-hotfix-v36-12-theme-exit.js',
   './app-fluidity-hotfix-v36-12-session-restore.js',
+  './app-fluidity-hotfix-v36-12-login-stability.js',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
