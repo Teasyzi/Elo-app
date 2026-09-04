@@ -7,6 +7,7 @@ const files=[
   'app-fluidity-hotfix-v36-11-18.js','app-fluidity-hotfix-v36-11-19.js','app-fluidity-hotfix-v36-11-20.js',
   'app-fluidity-hotfix-v36-11-22.js','app-fluidity-hotfix-v36-11-27.js',
   'app-fluidity-hotfix-v36-12-theme-exit.js','app-fluidity-hotfix-v36-12-session-restore.js',
+  'app-fluidity-hotfix-v36-12-login-stability.js',
   'styles.css','tailwind.css','manifest.json','404.html','android-version.json'
 ];
 
@@ -49,6 +50,5 @@ distribution = distribution.replace(
 );
 await writeFile(distributionPath,distribution,'utf8');
 
-// O mesmo index.html é a fonte única para Web/PWA e APK.
 console.log(`Web assets preparados em ./www para o Capacitor (Android ${versionName} · Elo V36.12 · migração PWA→APK ativa).`);
 console.log(`Validação concluída: ${localImports.length} imports locais de app-fluidity.js presentes no APK.`);
