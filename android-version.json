@@ -1,13 +1,17 @@
 {
   "available": false,
+  "channel": "rc",
+  "packageName": "br.com.eloapp",
   "versionName": "0.9.1-rc1",
   "versionCode": 35,
   "minimumVersionCode": 1,
   "downloadUrl": "",
+  "sha256": "",
   "changes": [
     "Primeira Release Candidate do APK Android.",
     "Tema Galáxia Celestial removido temporariamente para priorizar estabilidade.",
     "Melhorias acumuladas de chat, Pets, temas e experiência nativa Android.",
-    "Preparação para assinatura de release e distribuição controlada do APK."
+    "APK de release assinado com identidade fixa br.com.eloapp.",
+    "PWA Android preparado para oferecer o download quando o APK oficial for publicado."
   ]
 }
