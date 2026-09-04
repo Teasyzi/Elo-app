@@ -2,18 +2,18 @@
   "available": true,
   "channel": "rc",
   "packageName": "br.com.eloapp",
-  "versionName": "0.9.1-rc2",
-  "versionCode": 36,
+  "versionName": "0.9.1-rc3",
+  "versionCode": 37,
   "minimumVersionCode": 1,
-  "downloadUrl": "https://github.com/Teasyzi/Elo-app/releases/download/v0.9.1-rc2/Elo-Android-0.9.1-rc2.apk",
-  "sha256": "44699BB36FA91D544BBBB4C3058D213A31911854177D30312CC6201697B5D6CB",
-  "sizeBytes": 6464078,
+  "downloadUrl": "https://github.com/Teasyzi/Elo-app/releases/download/v0.9.1-rc3/Elo-Android-0.9.1-rc3.apk",
+  "sha256": "5F2B07D53EBC46B5E37D9CCDBAB2A1C2A51B378FF81C65A7E842BBE578762DDF",
+  "sizeBytes": 6466882,
   "signingCertificateSha256": "349CA5A6443331DA2AB89EC09508CC9764119D9F923EB353D537C5C10759D5DC",
   "changes": [
-    "Migração assistida do PWA Android para o APK oficial.",
-    "Ao abrir o APK, ele passa a ser o canal principal de notificações da conta.",
-    "Tokens de push do PWA Android são removidos para evitar notificações duplicadas, preservando Web/iPhone/desktop.",
-    "O PWA avisa quando o Elo Android já é o aplicativo principal e permite reativar notificações no PWA manualmente.",
-    "Verificação de novas versões do APK preparada para futuras atualizações."
+    "Corrigido o login com Google no aplicativo Android.",
+    "Google Sign-In nativo configurado corretamente para builds de release.",
+    "Firebase Authentication atualizado e integrado ao fluxo nativo do Android.",
+    "Sincronização da versão interna do APK corrigida para detectar atualizações sem falso positivo.",
+    "Mantida a migração PWA → APK e a prevenção de notificações duplicadas."
   ]
 }
