@@ -5,6 +5,9 @@ node_modules/
 android/.gradle/
 android/build/
 android/app/build/
+android/keystore.properties
+android/*.jks
+android/*.keystore
 
 # Capacitor / plugins build
 **/build/
