@@ -11,22 +11,35 @@ const PROFILE_POLL_MS = 1200;
 let bannerNode = null;
 let profileHandledForUid = '';
 let cleanupTimer = null;
+let latestManifest = null;
+let apkBannerActive = false;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
+function suppressPwaNotificationNudge(active=true) {
+  window.eloPreferAndroidApk = !!active;
+  const nudge = document.getElementById('elo-notification-nudge');
+  if (nudge && active) nudge.classList.add('hidden');
+}
+
 function removeBanner() {
   bannerNode?.remove();
   bannerNode = null;
+  apkBannerActive = false;
 }
 
-function showBanner({title, text, primaryLabel, primaryHref, primaryAction, secondaryLabel, secondaryAction, tone='pink'}) {
+function showBanner({title, text, primaryLabel, primaryHref, primaryAction, secondaryLabel, secondaryAction, tone='pink', apkPriority=false}) {
   removeBanner();
+  if (apkPriority) {
+    apkBannerActive = true;
+    suppressPwaNotificationNudge(true);
+  }
   const wrap = document.createElement('div');
   wrap.id = 'elo-android-distribution-banner';
-  wrap.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(5.9rem + env(safe-area-inset-bottom));z-index:2147483000;width:min(92vw,430px);font-family:Inter,system-ui,sans-serif;';
+  wrap.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(5.9rem + env(safe-area-inset-bottom));z-index:2147483640;width:min(92vw,430px);font-family:Inter,system-ui,sans-serif;';
   const accent = tone === 'green' ? '#10b981' : '#db2777';
-  wrap.innerHTML = `<div style="background:rgba(15,23,42,.98);border:1px solid ${accent}55;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.45);padding:14px;color:#fff;backdrop-filter:blur(18px)">
+  wrap.innerHTML = `<div style="background:rgba(15,23,42,.99);border:1px solid ${accent}55;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.5);padding:14px;color:#fff;backdrop-filter:blur(18px)">
     <div style="display:flex;gap:12px;align-items:flex-start">
       <div style="width:42px;height:42px;border-radius:14px;background:${accent}1c;color:${accent};display:grid;place-items:center;font-size:22px;flex:0 0 auto">📲</div>
       <div style="min-width:0;flex:1"><div style="font-size:13px;font-weight:900;line-height:1.2">${esc(title)}</div><div style="font-size:10px;color:#94a3b8;line-height:1.45;margin-top:4px">${esc(text)}</div></div>
@@ -52,7 +65,9 @@ async function fetchManifest(source = null) {
     const sep = url.includes('?') ? '&' : '?';
     const response = await fetch(`${url}${sep}t=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) return null;
-    return await response.json();
+    const info = await response.json();
+    latestManifest = info;
+    return info;
   } catch (_) { return null; }
 }
 
@@ -116,6 +131,7 @@ async function setAndroidPrimary(ctx) {
 }
 
 async function keepPwaPushSuppressed(ctx) {
+  suppressPwaNotificationNudge(true);
   clearInterval(cleanupTimer);
   const run = () => removeAndroidWebPushTokens(ctx.db, ctx.user.uid).catch(()=>{});
   await run();
@@ -123,14 +139,16 @@ async function keepPwaPushSuppressed(ctx) {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) run(); }, {passive:true});
 }
 
-async function activatePwaNotifications(ctx) {
+async function activatePwaNotificationsAfterUninstall(ctx) {
   try {
     await setDoc(doc(ctx.db, 'userProfiles', ctx.user.uid), {
       pushPrimaryPlatform: 'web',
-      pushPrimaryUpdatedAt: Date.now()
+      pushPrimaryUpdatedAt: Date.now(),
+      androidAppRemovedAt: Date.now()
     }, {merge:true});
   } catch (_) {}
   clearInterval(cleanupTimer);
+  suppressPwaNotificationNudge(false);
   removeBanner();
   try { await window.openNotificationPermissionPrompt?.({manual:true}); } catch (_) {}
 }
@@ -151,17 +169,31 @@ async function handleAccountMigration() {
     const profileSnap = await getDoc(doc(ctx.db, 'userProfiles', ctx.user.uid));
     const profile = profileSnap.exists() ? profileSnap.data() || {} : {};
     const state = await getProfileState(ctx);
+    const manifest = latestManifest || await fetchManifest();
+    const publishedCode = Number(manifest?.versionCode || 0);
+    const installedCode = Number(profile.androidAppVersionCode || 0);
+
+    // Se existe APK publicado mais novo, o aviso de download/atualização SEMPRE vence qualquer aviso do PWA.
+    if (manifest?.available && manifest.downloadUrl && installedCode < publishedCode) {
+      suppressPwaNotificationNudge(true);
+      await handleDistribution();
+      return;
+    }
+
     if (profile.pushPrimaryPlatform === 'android' || state.nativeTokens > 0) {
       await keepPwaPushSuppressed(ctx);
-      showBanner({
-        title:'Elo Android é seu app principal',
-        text:'As notificações deste PWA foram pausadas para evitar duplicidade. Você pode remover este atalho antigo da tela inicial quando quiser.',
-        primaryLabel:'Entendi',
-        primaryAction:removeBanner,
-        secondaryLabel:'Usar notificações neste PWA',
-        secondaryAction:()=>activatePwaNotifications(ctx),
-        tone:'green'
-      });
+      if (!apkBannerActive) {
+        showBanner({
+          title:'Elo Android é seu app principal',
+          text:'As notificações deste PWA ficam desativadas enquanto você usa o APK, evitando duplicidade. Remova este atalho antigo quando quiser.',
+          primaryLabel:'Entendi',
+          primaryAction:removeBanner,
+          secondaryLabel:'Desinstalei o APK · reativar PWA',
+          secondaryAction:()=>activatePwaNotificationsAfterUninstall(ctx),
+          tone:'green',
+          apkPriority:true
+        });
+      }
     }
   } catch (error) { console.warn('Elo PWA: estado Android:', error); }
 }
@@ -176,7 +208,8 @@ async function handleDistribution() {
         primaryLabel:'Baixar atualização',
         primaryHref:manifest.downloadUrl,
         secondaryLabel:'Agora não',
-        secondaryAction:removeBanner
+        secondaryAction:removeBanner,
+        apkPriority:true
       });
     }
     return;
@@ -185,17 +218,19 @@ async function handleDistribution() {
   if (!isAndroidWeb) return;
   const manifest = await fetchManifest();
   if (!manifest?.available || !manifest.downloadUrl) return;
+  suppressPwaNotificationNudge(true);
   const text = isStandalone
-    ? 'Você está usando o Elo instalado pelo navegador. Instale o APK e, depois de abrir o app Android, remova este atalho antigo para evitar dois ícones. As notificações serão migradas automaticamente.'
-    : 'Instale o Elo para Android para ter notificações nativas e melhor integração com o aparelho.';
+    ? 'Você está usando o Elo instalado pelo navegador. O APK é a versão principal no Android. Instale-o e, depois de abrir o app, remova este atalho antigo; o PWA ficará apenas como fallback se você desinstalar o APK.'
+    : 'No Android, o APK do Elo é a versão principal. O PWA fica apenas como alternativa caso o APK seja desinstalado.';
   showBanner({
     title:`Elo para Android ${manifest.versionName || ''}`.trim(),
     text,
     primaryLabel:'Baixar Elo para Android',
     primaryHref:manifest.downloadUrl,
     primaryAction:()=>localStorage.setItem('elo_android_apk_downloaded_at', String(Date.now())),
-    secondaryLabel:isStandalone ? 'Continuar no PWA' : 'Agora não',
-    secondaryAction:removeBanner
+    secondaryLabel:'Agora não',
+    secondaryAction:removeBanner,
+    apkPriority:true
   });
 }
 
@@ -205,6 +240,16 @@ window.eloAndroidDistribution = {
   migrateAccount: handleAccountMigration
 };
 
-setTimeout(handleDistribution, 1800);
-setTimeout(handleAccountMigration, 2600);
+// No Android, qualquer aviso genérico de ativação de push do PWA fica subordinado ao APK.
+if (isAndroidWeb) {
+  suppressPwaNotificationNudge(true);
+  const nudgeGuard = new MutationObserver(() => {
+    if (window.eloPreferAndroidApk) document.getElementById('elo-notification-nudge')?.classList.add('hidden');
+  });
+  const startGuard = () => nudgeGuard.observe(document.documentElement, {subtree:true, attributes:true, attributeFilter:['class']});
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startGuard, {once:true}); else startGuard();
+}
+
+setTimeout(handleDistribution, 900);
+setTimeout(handleAccountMigration, 2200);
 window.addEventListener('elo:auth-ready', handleAccountMigration);
