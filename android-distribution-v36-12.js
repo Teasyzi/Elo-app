@@ -1,6 +1,6 @@
-// Elo V36.12 RC2 · distribuição Android desacoplada do Firebase.
+// Elo V36.12 RC3 · distribuição Android desacoplada do Firebase.
 // O aviso de APK precisa aparecer mesmo se Firebase/Firestore estiver lento ou indisponível.
-const ANDROID_RELEASE = { versionName: '0.9.1-rc2', versionCode: 36 };
+const ANDROID_RELEASE = { versionName: '0.9.1-rc3', versionCode: 37 };
 const REMOTE_MANIFEST = 'https://raw.githubusercontent.com/Teasyzi/Elo-app/main/android-version.json';
 const isNative = !!window.Capacitor?.isNativePlatform?.();
 const isAndroidWeb = !isNative && /Android/i.test(navigator.userAgent || '');
