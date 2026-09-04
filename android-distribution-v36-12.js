@@ -1,5 +1,5 @@
 // Elo V36.12 · distribuição Android desacoplada do Firebase.
-const ANDROID_RELEASE = { versionName: '0.9.1-rc4', versionCode: 38 };
+const ANDROID_RELEASE = { versionName: '0.9.1-rc6', versionCode: 40 };
 const REMOTE_MANIFEST = 'https://raw.githubusercontent.com/Teasyzi/Elo-app/main/android-version.json';
 const isNative = !!window.Capacitor?.isNativePlatform?.();
 const isAndroidWeb = !isNative && /Android/i.test(navigator.userAgent || '');
