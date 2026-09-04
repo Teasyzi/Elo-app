@@ -31,7 +31,9 @@ android {
     signingConfigs {
         if (hasReleaseKeystore) {
             release {
-                storeFile file(keystoreProperties['storeFile'])
+                // IMPORTANT: storeFile in keystore.properties is relative to android/ (root project),
+                // not android/app/. This matches where elo-release.jks is generated.
+                storeFile rootProject.file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
