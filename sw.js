@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-11-27-celestial-disabled-20260903';
+const CACHE = 'elo-v36-12-rc1-android-0-9-1-rc1-20260903';
 const CORE=[
   './',
   './index.html',
