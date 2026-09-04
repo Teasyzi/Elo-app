@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc2-session-restore-20260903-2355';
+const CACHE = 'elo-v36-12-rc2-login-rootfix-20260904-0012';
 const CORE=[
   './',
   './index.html',
@@ -25,7 +25,13 @@ const CORE=[
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
+
+// Não usamos skipWaiting automaticamente. O index já possui um fluxo explícito de
+// atualização; tomar o controle durante a abertura acionava controllerchange + reload
+// e fazia o usuário enxergar o Elo carregando duas vezes.
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)));
+});
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
@@ -56,4 +62,7 @@ self.addEventListener('notificationclick',event=>{
   event.notification.close();
   const target=event.notification?.data?.url||'./';
   event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if('focus'in client){client.navigate(target);return client.focus();}}return clients.openWindow?clients.openWindow(target):null;}));
+});
+self.addEventListener('message',event=>{
+  if(event.data?.type==='SKIP_WAITING')self.skipWaiting();
 });
