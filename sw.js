@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc2-auth-rootfix-theme-20260903-2338';
+const CACHE = 'elo-v36-12-rc2-session-restore-20260903-2355';
 const CORE=[
   './',
   './index.html',
@@ -18,89 +18,42 @@ const CORE=[
   './app-fluidity-hotfix-v36-11-22.js',
   './app-fluidity-hotfix-v36-11-27.js',
   './app-fluidity-hotfix-v36-12-theme-exit.js',
+  './app-fluidity-hotfix-v36-12-session-restore.js',
   './tailwind.css?v=36.11.8',
   './styles.css?v=36.11.8',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
-
-self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));
-});
-self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
-});
-self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET')return;
-  const u=new URL(e.request.url);
-  if(u.pathname.endsWith('/android-version.json')){e.respondWith(fetch(e.request,{cache:'no-store'}));return;}
-  if(u.origin!==location.origin)return;
-
-  if(e.request.mode==='navigate'){
-    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put('./index.html',copy));return r;}).catch(()=>caches.match('./index.html')));
-    return;
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+  const url=new URL(event.request.url);
+  if(url.origin!==self.location.origin)return;
+  if(url.pathname.endsWith('/android-version.json')){event.respondWith(fetch(event.request,{cache:'no-store'}));return;}
+  if(event.request.mode==='navigate'){
+    event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put('./index.html',copy));return response;}).catch(()=>caches.match('./index.html')));return;
   }
-
-  if(/\/(app|v36-11)\.js$/.test(u.pathname)||/\/app-fluidity(?:-[^/]+)?\.js$/.test(u.pathname)||/\/android-(?:distribution|rc2-guard)(?:-[^/]+)?\.js$/.test(u.pathname)||/\/(styles|tailwind)\.css$/.test(u.pathname)){
-    e.respondWith(fetch(e.request,{cache:'no-store'}).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;}).catch(()=>caches.match(e.request)));
-    return;
+  if(/\.(?:js|css)$/.test(url.pathname)){
+    event.respondWith(fetch(event.request,{cache:'no-store'}).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;}).catch(()=>caches.match(event.request)));return;
   }
-
-  e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(cache=>cache.put(e.request,copy));return r;})));
+  event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));return response;})));
 });
 
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
-
-firebase.initializeApp({
-  apiKey: 'AIzaSyAExc0XnqS2MjL3bTmvNNx2CnBbziiyJds',
-  authDomain: 'elo-app-82e6e.firebaseapp.com',
-  projectId: 'elo-app-82e6e',
-  storageBucket: 'elo-app-82e6e.firebasestorage.app',
-  messagingSenderId: '107299510923',
-  appId: '1:107299510923:web:eb9c8b550ba4ecb3bc528e'
+firebase.initializeApp({apiKey:'AIzaSyAExc0XnqS2MjL3bTmvNNx2CnBbziiyJds',authDomain:'elo-app-82e6e.firebaseapp.com',projectId:'elo-app-82e6e',storageBucket:'elo-app-82e6e.firebasestorage.app',messagingSenderId:'107299510923',appId:'1:107299510923:web:eb9c8b550ba4ecb3bc528e'});
+const messaging=firebase.messaging();
+messaging.onBackgroundMessage(payload=>{
+  const notification=payload.notification||{};
+  const data=payload.data||{};
+  const title=notification.title||data.title||'Elo';
+  const options={body:notification.body||data.body||'',icon:data.icon||'./icons/icon-192.png',badge:'./icons/icon-192.png',data:{url:data.url||'./'},tag:data.tag||undefined,renotify:true};
+  return self.registration.showNotification(title,options);
 });
-
-const messaging = firebase.messaging();
-messaging.onBackgroundMessage(payload => {
-  const data = payload.data || {};
-  const title = data.title || data.senderName || 'Elo 💕';
-  const body = data.body || 'Você tem uma novidade do seu amor.';
-  const appIcon = './icons/icon-192.png';
-  const senderPhoto = /^https?:\/\//i.test(data.senderPhotoUrl || '') ? data.senderPhotoUrl : '';
-  const notificationId = data.notificationId || `${data.type || 'elo'}-${Date.now()}`;
-  return self.registration.showNotification(title, {
-    body,
-    icon: senderPhoto || appIcon,
-    badge: appIcon,
-    ...(senderPhoto ? {image: senderPhoto} : {}),
-    tag: `elo-${notificationId}`,
-    renotify: true,
-    silent: false,
-    vibrate: [220, 100, 220],
-    requireInteraction: false,
-    timestamp: Date.now(),
-    data: {...data,url: data.url || './index.html'}
-  });
-});
-
-self.addEventListener('notificationclick', event => {
+self.addEventListener('notificationclick',event=>{
   event.notification.close();
-  const target = event.notification.data?.url || './index.html';
-  event.waitUntil((async()=>{
-    const clientsList = await clients.matchAll({type:'window', includeUncontrolled:true});
-    for (const client of clientsList) {
-      if ('focus' in client) {
-        await client.focus();
-        try { await client.navigate(target); } catch (_) {}
-        return;
-      }
-    }
-    if (clients.openWindow) await clients.openWindow(target);
-  })());
-});
-
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  const target=event.notification?.data?.url||'./';
+  event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if('focus'in client){client.navigate(target);return client.focus();}}return clients.openWindow?clients.openWindow(target):null;}));
 });
