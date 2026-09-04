@@ -1,13 +1,12 @@
 // Elo V36.12 RC2 · restauração de sessão autenticada sem criar um segundo fluxo de Auth.
-// O app.js continua sendo a autoridade do Firebase Auth. Este módulo apenas recupera
-// o vínculo do usuário autenticado quando o primeiro GET de userProfiles falhar/demorar.
+// O app.js continua sendo a autoridade do Firebase Auth. Este módulo só repara contas
+// antigas que têm vínculo em relationships, mas perderam/faltam coupleId em userProfiles.
 (() => {
   if (window.__eloSessionRestoreGuard) return;
   window.__eloSessionRestoreGuard = true;
 
   let recovering = false;
   let completedForUid = '';
-
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
   const appVisible = () => !document.getElementById('main-content')?.classList.contains('hidden');
 
@@ -17,55 +16,82 @@
     const uid = String(user?.uid || '');
     if (!uid || user?.isAnonymous || completedForUid === uid) return;
 
-    // Se o app.js já recuperou o vínculo, não repetimos Firestore nem setupSync.
-    const savedCoupleId = String(localStorage.getItem('elo_coupleId') || window.coupleId || '');
-    if (savedCoupleId) return;
+    const localId = String(localStorage.getItem('elo_coupleId') || window.coupleId || '').trim();
+    if (localId) return;
 
     recovering = true;
     try {
-      // Damos ao fluxo original tempo para concluir primeiro. Só entramos como recuperação.
-      await sleep(900);
+      // O fluxo original recebe a primeira chance. Entramos apenas quando ele deixou
+      // a conta Google conectada no lobby por não encontrar o vínculo.
+      await sleep(650);
       if (appVisible() || localStorage.getItem('elo_coupleId')) return;
 
       const { getApps, getApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-      const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+      const {
+        getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, limit, FieldPath
+      } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
       if (!getApps().length) return;
       const db = getFirestore(getApp());
 
-      let profile = null;
-      let lastError = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          profile = await Promise.race([
-            getDoc(doc(db, 'userProfiles', uid)),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('profile-timeout')), 6500))
-          ]);
-          if (profile?.exists()) break;
-        } catch (error) {
-          lastError = error;
+      let coupleId = '';
+      let profileData = null;
+      try {
+        const profile = await getDoc(doc(db, 'userProfiles', uid));
+        if (profile.exists()) {
+          profileData = profile.data() || {};
+          coupleId = String(profileData.coupleId || '').trim();
         }
-        await sleep(700 * (attempt + 1));
+      } catch (error) {
+        console.warn('[Elo] Leitura do perfil durante recuperação:', error);
       }
 
-      if (!profile?.exists()) {
-        if (lastError) console.warn('[Elo] Perfil autenticado não pôde ser recuperado:', lastError);
+      // Causa real para contas antigas: o relacionamento contém o UID, mas o perfil
+      // reverso userProfiles/{uid}.coupleId não existe ou ficou sem vínculo. Procuramos
+      // diretamente pelo mapa users.<uid>.name, sem varrer todos os relacionamentos.
+      if (!coupleId) {
+        try {
+          const membershipQuery = query(
+            collection(db, 'relationships'),
+            where(new FieldPath('users', uid, 'name'), '!=', null),
+            limit(2)
+          );
+          const matches = await getDocs(membershipQuery);
+          if (!matches.empty) coupleId = String(matches.docs[0].id || '').trim();
+        } catch (error) {
+          console.warn('[Elo] Recuperação do vínculo pelo relacionamento:', error);
+        }
+      }
+
+      if (!coupleId) {
+        completedForUid = uid;
+        console.info('[Elo] Conta autenticada sem vínculo de relacionamento recuperável.');
         return;
       }
 
-      const data = profile.data() || {};
-      const coupleId = String(data.coupleId || '').trim();
-      if (!coupleId) return;
+      // Repara a fonte persistente para que próximos dispositivos entrem normalmente.
+      try {
+        await setDoc(doc(db, 'userProfiles', uid), {
+          uid,
+          coupleId,
+          name: profileData?.name || user.displayName || 'Eu',
+          displayName: profileData?.displayName || user.displayName || '',
+          email: profileData?.email || user.email || '',
+          photoUrl: profileData?.photoUrl || user.photoURL || '',
+          updatedAt: Date.now(),
+          relationshipRecoveredAt: Date.now()
+        }, { merge: true });
+      } catch (error) {
+        console.warn('[Elo] Não foi possível reparar userProfiles; usando vínculo local:', error);
+      }
 
-      // Corrige a causa observada após limpar os dados do site: Auth persiste/retorna,
-      // mas elo_coupleId local foi apagado. O vínculo real continua em userProfiles.
       localStorage.setItem('elo_coupleId', coupleId);
       window.coupleId = coupleId;
       completedForUid = uid;
 
-      // Não chamamos setupSync (escopo privado do app.js) nem criamos outro listener Auth.
-      // Um único reload controlado deixa o boot original consumir o vínculo restaurado.
-      if (!sessionStorage.getItem('elo_session_restore_reload')) {
-        sessionStorage.setItem('elo_session_restore_reload', '1');
+      // O callback Auth original já encerrou quando chegou ao lobby. Fazemos só este
+      // reload de reparo; depois userProfiles fica correto e nenhum reload extra ocorre.
+      if (!sessionStorage.getItem('elo_relationship_repair_reload')) {
+        sessionStorage.setItem('elo_relationship_repair_reload', '1');
         location.reload();
       }
     } finally {
@@ -73,17 +99,14 @@
     }
   }
 
-  // Limpa o marcador quando o app principal realmente abriu; evita reloads futuros.
   const observer = new MutationObserver(() => {
-    if (appVisible()) sessionStorage.removeItem('elo_session_restore_reload');
+    if (appVisible()) sessionStorage.removeItem('elo_relationship_repair_reload');
   });
   const start = () => {
-    observer.observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class'] });
-    // O Auth original costuma resolver rapidamente; fazemos verificações espaçadas,
-    // sem disputar o primeiro boot e sem gerar a sensação de duas cargas normais.
+    observer.observe(document.documentElement, { subtree:true, attributes:true, attributeFilter:['class'] });
     setTimeout(recoverAuthenticatedSession, 1800);
-    setTimeout(recoverAuthenticatedSession, 5000);
+    setTimeout(recoverAuthenticatedSession, 4500);
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
   else start();
 })();
