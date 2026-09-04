@@ -1,13 +1,13 @@
 {
   "available": false,
-  "versionName": "0.9.0",
-  "versionCode": 34,
+  "versionName": "0.9.1-rc1",
+  "versionCode": 35,
   "minimumVersionCode": 1,
   "downloadUrl": "",
   "changes": [
-    "Painel do Pet sempre abre dentro da tela, fecha no segundo toque e bloqueia cliques externos.",
-    "Central dos Pets com coleção compartilhada e seleção de Pet ativo.",
-    "Inventário de ovos e incubadora independente do Pet ativo.",
-    "Galáxia Celestial corrigida: interface permanece visível, buraco negro mais realista e cometas atraíveis."
+    "Primeira Release Candidate do APK Android.",
+    "Tema Galáxia Celestial removido temporariamente para priorizar estabilidade.",
+    "Melhorias acumuladas de chat, Pets, temas e experiência nativa Android.",
+    "Preparação para assinatura de release e distribuição controlada do APK."
   ]
 }
