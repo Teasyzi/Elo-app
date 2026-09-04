@@ -1,7 +1,8 @@
-// Elo V36.11.20 · loader incremental: core estável + premium + Museu + Celestial/gravidade V11.
+// Elo V36.11.21 · loader incremental: temas estáveis + Museu + gravidade Celestial V12.
 import './app-fluidity-core-v36-11-14.js';
 import './app-fluidity-hotfix-v36-11-16.js';
 import './app-fluidity-hotfix-v36-11-17.js';
 import './app-fluidity-hotfix-v36-11-18.js';
 import './app-fluidity-hotfix-v36-11-19.js';
 import './app-fluidity-hotfix-v36-11-20.js';
+import './app-fluidity-hotfix-v36-11-21.js';
