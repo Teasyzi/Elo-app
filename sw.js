@@ -1,12 +1,12 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc2-android-reload-fix-20260904-0042';
+const CACHE = 'elo-v36-12-rc3-android-update-20260904-1935';
 const CORE=[
   './',
   './index.html',
   './app.js?v=36.11.8',
   './v36-11.js?v=36.11.8',
   './app-fluidity.js?v=36.11.8',
-  './app-fluidity.js?v=36.12-rc2',
+  './app-fluidity.js?v=36.12-rc3',
   './android-rc2-guard.js',
   './android-distribution-v36-12.js',
   './app-fluidity-core-v36-11-14.js',
