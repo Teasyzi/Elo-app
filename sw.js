@@ -1,5 +1,5 @@
 /* Elo PWA + Firebase Cloud Messaging background notifications */
-const CACHE = 'elo-v36-12-rc6-session-restore-20260904-2045';
+const CACHE = 'elo-v36-12-rc6-auth-diagnostics-20260904-2115';
 const CORE=[
   './',
   './index.html',
